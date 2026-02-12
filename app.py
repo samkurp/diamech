@@ -627,6 +627,24 @@ def generate_protocol():
             wb = load_workbook(Config.TEMPLATE_PATH)
             ws = wb.active
             
+            # Словарь объединенных ячеек и их левых верхних углов
+            merged_cells = ws.merged_cells.ranges
+            
+            # Функция для безопасной записи в ячейку
+            def safe_set_cell(cell_coord, value):
+                try:
+                    # Проверяем, не является ли ячейка частью объединения
+                    for merged_range in merged_cells:
+                        if cell_coord in merged_range:
+                            # Берем левый верхний угол объединения
+                            cell_coord = f"{merged_range.min_col}{merged_range.min_row}"
+                            break
+                    
+                    # Записываем значение
+                    ws[cell_coord] = value
+                except Exception as e:
+                    print(f"⚠️ Не удалось записать в ячейку {cell_coord}: {e}")
+            
             # Маппинг полей на ячейки Excel
             mapping = {
                 'workType': 'I1',
@@ -656,13 +674,15 @@ def generate_protocol():
                 'notes': 'B37'
             }
             
+            # Заполняем ячейки с обработкой объединенных ячеек
             for field, cell in mapping.items():
                 if field in data and data[field]:
-                    ws[cell] = data[field]
+                    safe_set_cell(cell, data[field])
             
             # Сохраняем протокол
             protocol_path = os.path.join(temp_dir, protocol_filename)
             wb.save(protocol_path)
+            print(f"✅ Excel протокол создан: {protocol_filename}")
             
             # 2. Создаем папку для изображений
             images_dir = os.path.join(temp_dir, f"{folder_name}_images")
