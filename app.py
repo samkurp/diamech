@@ -117,7 +117,7 @@ def generate_protocol_filename(data):
     lifting_capacity = data.get('liftingCapacity', '').strip()
     serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_')
     work_type = data.get('workType', '').strip()
-    return f"{machine_type}{lifting_capacity}№{serial_number}_{work_type}.xlsx"
+    return f"{machine_type}{lifting_capacity}№{serial_number}.xlsx"
 
 # ========== КЛАСС ДЛЯ РАБОТЫ С SUPABASE ==========
 class SupabaseDB:
@@ -627,24 +627,6 @@ def generate_protocol():
             wb = load_workbook(Config.TEMPLATE_PATH)
             ws = wb.active
             
-            # Словарь объединенных ячеек и их левых верхних углов
-            merged_cells = ws.merged_cells.ranges
-            
-            # Функция для безопасной записи в ячейку
-            def safe_set_cell(cell_coord, value):
-                try:
-                    # Проверяем, не является ли ячейка частью объединения
-                    for merged_range in merged_cells:
-                        if cell_coord in merged_range:
-                            # Берем левый верхний угол объединения
-                            cell_coord = f"{merged_range.min_col}{merged_range.min_row}"
-                            break
-                    
-                    # Записываем значение
-                    ws[cell_coord] = value
-                except Exception as e:
-                    print(f"⚠️ Не удалось записать в ячейку {cell_coord}: {e}")
-            
             # Маппинг полей на ячейки Excel
             mapping = {
                 'workType': 'I1',
@@ -671,18 +653,16 @@ def generate_protocol():
                 'measuringDeviceNumber': 'G18',
                 'signalProcessor': 'E20',
                 'signalProcessorNumber': 'G20',
-                'notes': 'B37'
+                'notes': 'A37'
             }
             
-            # Заполняем ячейки с обработкой объединенных ячеек
             for field, cell in mapping.items():
                 if field in data and data[field]:
-                    safe_set_cell(cell, data[field])
+                    ws[cell] = data[field]
             
             # Сохраняем протокол
             protocol_path = os.path.join(temp_dir, protocol_filename)
             wb.save(protocol_path)
-            print(f"✅ Excel протокол создан: {protocol_filename}")
             
             # 2. Создаем папку для изображений
             images_dir = os.path.join(temp_dir, f"{folder_name}_images")
@@ -798,7 +778,7 @@ def generate_protocol():
                 f.write(info_content.strip())
             
             # 6. Создаем ZIP архив
-            zip_filename = f"{folder_name}_протокол_и_фото.zip"
+            zip_filename = f"{folder_name}.zip"
             zip_path = os.path.join(temp_dir, zip_filename)
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -830,7 +810,6 @@ def generate_protocol():
             'success': False,
             'error': f'Ошибка генерации протокола: {str(e)}'
         }), 500
-
 @app.route('/api/download-full-package/<draft_id>', methods=['GET'])
 def download_full_package(draft_id):
     """
@@ -885,7 +864,7 @@ def download_full_package(draft_id):
             'measuringDeviceNumber': 'G18',
             'signalProcessor': 'E20',
             'signalProcessorNumber': 'G20',
-            'notes': 'B37'
+            'notes': 'A37'
         }
         
         for field, cell in mapping.items():
