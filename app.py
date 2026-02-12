@@ -37,9 +37,9 @@ class Config:
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
     
     # Настройки сжатия изображений
-    IMAGE_MAX_SIZE = 1024  # Максимальный размер стороны в пикселях
-    IMAGE_QUALITY = 70     # Качество сжатия в процентах
-    IMAGE_FORMAT = 'JPEG'  # Формат для сохранения
+    IMAGE_MAX_SIZE = 1024
+    IMAGE_QUALITY = 70
+    IMAGE_FORMAT = 'JPEG'
 
 # ========== ИНИЦИАЛИЗАЦИЯ SUPABASE ==========
 supabase = None
@@ -71,24 +71,17 @@ if Config.SUPABASE_URL and Config.SUPABASE_KEY:
 else:
     print("\n⚠️ Supabase не настроен - переменные окружения отсутствуют")
     print("   Установите SUPABASE_URL и SUPABASE_KEY в переменных окружения\n")
-# ============================================
 
 def compress_image(image_data, max_size=1024, quality=70):
-    """
-    Сжимает изображение до заданных размеров и качества
-    """
+    """Сжимает изображение до заданных размеров и качества"""
     try:
-        # Открываем изображение
         img = Image.open(io.BytesIO(image_data))
         
-        # Конвертируем в RGB если нужно
         if img.mode in ('RGBA', 'LA', 'P'):
             img = img.convert('RGB')
         
-        # Изменяем размер с сохранением пропорций
         img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
         
-        # Сохраняем с сжатием
         output = io.BytesIO()
         img.save(output, format=Config.IMAGE_FORMAT, quality=quality, optimize=True)
         compressed_data = output.getvalue()
@@ -98,7 +91,7 @@ def compress_image(image_data, max_size=1024, quality=70):
         
     except Exception as e:
         print(f"❌ Ошибка сжатия изображения: {e}")
-        return image_data  # Возвращаем оригинал в случае ошибки
+        return image_data
 
 def allowed_file(filename):
     """Проверка разрешенного формата файла"""
@@ -106,18 +99,22 @@ def allowed_file(filename):
 
 def generate_folder_name(data):
     """Генерирует имя папки для сохранения"""
-    machine_type = data.get('machineType', '').strip()
-    lifting_capacity = data.get('liftingCapacity', '').strip()
-    serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_')
+    machine_type = data.get('machineType', '').strip() if data else ''
+    lifting_capacity = data.get('liftingCapacity', '').strip() if data else ''
+    serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_') if data else 'unknown'
     return f"ML_{machine_type}{lifting_capacity}№{serial_number}"
 
 def generate_protocol_filename(data):
     """Генерирует имя файла протокола"""
-    machine_type = data.get('machineType', '').strip()
-    lifting_capacity = data.get('liftingCapacity', '').strip()
-    serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_')
-    work_type = data.get('workType', '').strip()
-    return f"{machine_type}{lifting_capacity}№{serial_number}_{work_type}.xlsx"
+    machine_type = data.get('machineType', '').strip() if data else ''
+    lifting_capacity = data.get('liftingCapacity', '').strip() if data else ''
+    serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_') if data else 'unknown'
+    work_type = data.get('workType', '').strip() if data else ''
+    
+    # Очищаем имя файла от недопустимых символов
+    filename = f"{machine_type}{lifting_capacity}№{serial_number}_{work_type}.xlsx"
+    filename = "".join(c for c in filename if c.isalnum() or c in ('№', '_', '-', '.', ' '))
+    return filename
 
 # ========== КЛАСС ДЛЯ РАБОТЫ С SUPABASE ==========
 class SupabaseDB:
@@ -129,16 +126,13 @@ class SupabaseDB:
                 print("⚠️ Supabase не инициализирован")
                 return []
             
-            # Базовый запрос
             query = supabase.table('drafts').select('*')
             
-            # Фильтрация по статусу
             if filter_status == 'shipped':
                 query = query.eq('machine_status', 'Отгружен')
             elif filter_status == 'active':
                 query = query.neq('machine_status', 'Отгружен')
             
-            # Сортировка по дате обновления
             response = query.order('updated_at', desc=True).execute()
             
             drafts = []
@@ -211,10 +205,8 @@ class SupabaseDB:
             if not draft_id or draft_id == "_Unknown_Unknown":
                 draft_id = str(uuid.uuid4())
             
-            # Формируем отображаемое имя
             display_name = f"{machine_type}-{lifting_capacity} №{serial_number}"
             
-            # Подготавливаем данные
             draft_data = {
                 'id': draft_id,
                 'data': dict(data),
@@ -226,11 +218,9 @@ class SupabaseDB:
                 'customer_info': {}
             }
             
-            # Сохраняем в Supabase
             supabase.table('drafts').upsert(draft_data).execute()
             print(f"💾 Сохранен черновик: {draft_id}")
             
-            # Сохраняем изображения со сжатием
             saved_images = []
             if images:
                 for img in images:
@@ -239,17 +229,14 @@ class SupabaseDB:
                         img.seek(0)
                         img_data = img.read()
                         
-                        # Сжимаем изображение
                         compressed_data = compress_image(
                             img_data, 
                             max_size=Config.IMAGE_MAX_SIZE, 
                             quality=Config.IMAGE_QUALITY
                         )
                         
-                        # Конвертируем в base64
                         img_base64 = base64.b64encode(compressed_data).decode('utf-8')
                         
-                        # Определяем content type
                         content_type = img.content_type
                         if not content_type or content_type == 'application/octet-stream':
                             ext = filename.lower().split('.')[-1]
@@ -290,25 +277,21 @@ class SupabaseDB:
             if supabase is None:
                 return False, "Supabase не инициализирован"
             
-            # Получаем текущие данные
             draft = SupabaseDB.get_draft(draft_id)
             if not draft:
                 return False, "Черновик не найден"
             
-            # Обновляем данные
             current_data = draft.get('data', {})
             for key, value in dict(data).items():
-                if value:  # Обновляем только непустые значения
+                if value:
                     current_data[key] = value
             
-            # Подготавливаем обновление
             update_data = {
                 'data': current_data,
                 'updated_at': datetime.now().isoformat(),
                 'machine_status': data.get('machineStatus', draft.get('machine_status', 'Сборка'))
             }
             
-            # Обновляем display_name если изменились основные поля
             machine_type = data.get('machineType', current_data.get('machineType', ''))
             lifting_capacity = data.get('liftingCapacity', current_data.get('liftingCapacity', ''))
             serial_number = data.get('serialNumber', current_data.get('serialNumber', ''))
@@ -316,7 +299,6 @@ class SupabaseDB:
             if machine_type and lifting_capacity and serial_number:
                 update_data['display_name'] = f"{machine_type}-{lifting_capacity} №{serial_number}"
             
-            # Сохраняем
             supabase.table('drafts').update(update_data).eq('id', draft_id).execute()
             print(f"📝 Обновлен черновик: {draft_id}")
             
@@ -377,7 +359,6 @@ class SupabaseDB:
             if customer_info:
                 return customer_info
             
-            # Если нет customer_info, возвращаем базовые данные
             customer_name = draft.get('data', {}).get('customer', 'Не указан')
             return {
                 'customerName': customer_name,
@@ -423,6 +404,7 @@ def health_check():
         'service': 'machine-protocol-generator',
         'supabase_configured': supabase is not None,
         'template_exists': os.path.exists(Config.TEMPLATE_PATH),
+        'template_path': Config.TEMPLATE_PATH,
         'image_compression': {
             'enabled': True,
             'max_size': Config.IMAGE_MAX_SIZE,
@@ -606,17 +588,50 @@ def get_draft_image(draft_id, filename):
 def generate_protocol():
     """Генерирует протокол Excel"""
     try:
+        print("="*50)
+        print("🔄 ГЕНЕРАЦИЯ ПРОТОКОЛА")
+        print("="*50)
+        
+        # Проверяем наличие шаблона
         if not os.path.exists(Config.TEMPLATE_PATH):
+            error_msg = f'Шаблон {Config.TEMPLATE_PATH} не найден'
+            print(f"❌ {error_msg}")
+            print(f"📁 Текущая директория: {os.getcwd()}")
+            print(f"📁 Файлы в директории: {os.listdir('.')}")
             return jsonify({
                 'success': False,
-                'error': f'Шаблон {Config.TEMPLATE_PATH} не найден'
+                'error': error_msg
             }), 404
         
-        data = request.form
+        print(f"✅ Шаблон найден: {Config.TEMPLATE_PATH}")
+        
+        # Получаем данные
+        if request.is_json:
+            data = request.get_json()
+            print("📦 Получены JSON данные")
+        else:
+            data = request.form
+            print("📦 Получены Form данные")
+        
+        print(f"📋 Данные: {dict(data) if data else 'Нет данных'}")
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Нет данных для генерации протокола'
+            }), 400
         
         # Загружаем шаблон
-        wb = load_workbook(Config.TEMPLATE_PATH)
-        ws = wb.active
+        try:
+            wb = load_workbook(Config.TEMPLATE_PATH)
+            ws = wb.active
+            print("✅ Шаблон загружен успешно")
+        except Exception as e:
+            print(f"❌ Ошибка загрузки шаблона: {e}")
+            return jsonify({
+                'success': False,
+                'error': f'Ошибка загрузки шаблона: {str(e)}'
+            }), 500
         
         # Маппинг полей на ячейки Excel
         mapping = {
@@ -648,26 +663,53 @@ def generate_protocol():
         }
         
         # Заполняем ячейки
+        filled_fields = []
         for field, cell in mapping.items():
             if field in data and data[field]:
-                ws[cell] = data[field]
+                value = data[field]
+                ws[cell] = value
+                filled_fields.append(f"{field} -> {cell}: {value}")
+                print(f"📝 Заполнено: {cell} = {value}")
         
-        # Сохраняем во временный файл
+        print(f"✅ Заполнено {len(filled_fields)} полей")
+        
+        # Генерируем имя файла
         folder_name = generate_folder_name(data)
         protocol_filename = generate_protocol_filename(data)
-        temp_file = f"/tmp/{protocol_filename}"
-        wb.save(temp_file)
+        
+        # Создаем временный файл
+        temp_dir = tempfile.gettempdir()
+        temp_file = os.path.join(temp_dir, protocol_filename)
+        
+        try:
+            wb.save(temp_file)
+            print(f"💾 Протокол сохранен: {temp_file}")
+            print(f"📁 Размер файла: {os.path.getsize(temp_file)} байт")
+        except Exception as e:
+            print(f"❌ Ошибка сохранения файла: {e}")
+            return jsonify({
+                'success': False,
+                'error': f'Ошибка сохранения файла: {str(e)}'
+            }), 500
         
         # Отправляем файл
-        return send_file(
-            temp_file,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            as_attachment=True,
-            download_name=protocol_filename
-        )
+        try:
+            return send_file(
+                temp_file,
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                as_attachment=True,
+                download_name=protocol_filename
+            )
+        except Exception as e:
+            print(f"❌ Ошибка отправки файла: {e}")
+            return jsonify({
+                'success': False,
+                'error': f'Ошибка отправки файла: {str(e)}'
+            }), 500
         
     except Exception as e:
         print(f"❌ Ошибка генерации протокола: {e}")
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -675,11 +717,10 @@ def generate_protocol():
 
 @app.route('/api/download-full-package/<draft_id>', methods=['GET'])
 def download_full_package(draft_id):
-    """
-    Скачивает полный пакет: протокол Excel + все изображения
-    """
+    """Скачивает полный пакет: протокол Excel + все изображения"""
     try:
-        # Получаем данные черновика
+        print(f"📦 Создание полного пакета для черновика: {draft_id}")
+        
         draft = SupabaseDB.get_draft(draft_id)
         
         if not draft:
@@ -688,7 +729,6 @@ def download_full_package(draft_id):
                 'error': 'Черновик не найден'
             }), 404
         
-        # Получаем данные для генерации протокола
         draft_data = draft.get('data', {})
         
         # Генерируем протокол
@@ -701,7 +741,6 @@ def download_full_package(draft_id):
         wb = load_workbook(Config.TEMPLATE_PATH)
         ws = wb.active
         
-        # Маппинг полей на ячейки Excel
         mapping = {
             'workType': 'I1',
             'machineType': 'C3',
@@ -734,20 +773,16 @@ def download_full_package(draft_id):
             if field in draft_data and draft_data[field]:
                 ws[cell] = draft_data[field]
         
-        # Создаем временную папку для файлов
         with tempfile.TemporaryDirectory() as temp_dir:
             folder_name = generate_folder_name(draft_data)
             protocol_filename = generate_protocol_filename(draft_data)
             
-            # Сохраняем протокол
             protocol_path = os.path.join(temp_dir, protocol_filename)
             wb.save(protocol_path)
             
-            # Создаем папку для изображений
             images_dir = os.path.join(temp_dir, f"{folder_name}_images")
             os.makedirs(images_dir, exist_ok=True)
             
-            # Скачиваем и сохраняем все изображения
             image_files = draft.get('image_files', [])
             downloaded_images = []
             
@@ -764,20 +799,16 @@ def download_full_package(draft_id):
                 except Exception as e:
                     print(f"❌ Ошибка сохранения изображения {filename}: {e}")
             
-            # Создаем ZIP архив
             zip_filename = f"{folder_name}_complete_package.zip"
             zip_path = os.path.join(temp_dir, zip_filename)
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-                # Добавляем протокол
                 zf.write(protocol_path, protocol_filename)
                 
-                # Добавляем изображения
                 for img_file in os.listdir(images_dir):
                     img_full_path = os.path.join(images_dir, img_file)
                     zf.write(img_full_path, f"images/{img_file}")
                 
-                # Добавляем информацию о станке
                 info_content = f"""
 ИНФОРМАЦИЯ О СТАНКЕ
 ===================
@@ -813,7 +844,6 @@ def download_full_package(draft_id):
                 
                 zf.write(info_path, "info.txt")
             
-            # Отправляем ZIP файл
             return send_file(
                 zip_path,
                 mimetype='application/zip',
@@ -876,4 +906,9 @@ def internal_error(error):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
+    print(f"\n🚀 Запуск сервера на порту {port}")
+    print(f"📁 Проверка шаблона: {Config.TEMPLATE_PATH}")
+    print(f"📁 Существует: {os.path.exists(Config.TEMPLATE_PATH)}")
+    print(f"📁 Текущая директория: {os.getcwd()}")
+    print(f"📁 Файлы: {os.listdir('.')}\n")
     app.run(host='0.0.0.0', port=port, debug=False)
