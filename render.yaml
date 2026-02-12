@@ -2,18 +2,16 @@ services:
   - type: web
     name: diamech
     runtime: python
-    region: frankfurt
     plan: free
     buildCommand: |
+      unset POETRY_VERSION
+      unset POETRY_HOME
       pip install --upgrade pip
       pip install --no-cache-dir -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_KEY
-        sync: false
-      - key: PYTHON_VERSION
-        value: 3.11.0
       - key: DISABLE_POETRY
         value: "true"
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      # НЕ ПРОПИСЫВАЙТЕ SUPABASE ЗДЕСЬ! Только через Dashboard!
