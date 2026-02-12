@@ -1,8 +1,10 @@
 services:
   - type: web
-    name: machine-protocol-generator
+    name: diamech
     runtime: python
-    buildCommand: pip install -r requirements.txt
+    region: frankfurt
+    plan: free
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
       - key: SUPABASE_URL
@@ -11,3 +13,5 @@ services:
         sync: false
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: PIP_NO_CACHE_DIR
+        value: 1
