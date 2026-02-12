@@ -13,10 +13,38 @@ from supabase import create_client, Client
 import io
 from PIL import Image
 import base64
-
+from dotenv import load_dotenv
 app = Flask(__name__, static_folder='static')
 CORS(app)
+# Вставьте ЭТОТ КОД сразу после load_dotenv() в самом верху app.py
 
+
+
+load_dotenv()
+
+# ========== СРОЧНАЯ ДИАГНОСТИКА ==========
+print("\n" + "="*50)
+print("🔴 ДИАГНОСТИКА SUPABASE НА RENDER")
+print("="*50)
+
+# Проверяем переменные окружения
+supabase_url = os.environ.get('SUPABASE_URL', '')
+supabase_key = os.environ.get('SUPABASE_KEY', '')
+
+print(f"1. SUPABASE_URL: {'✅ НАЙДЕН' if supabase_url else '❌ ОТСУТСТВУЕТ'}")
+print(f"   Длина: {len(supabase_url)} символов")
+print(f"   Значение: {supabase_url[:20]}...")
+
+print(f"\n2. SUPABASE_KEY: {'✅ НАЙДЕН' if supabase_key else '❌ ОТСУТСТВУЕТ'}")
+print(f"   Длина: {len(supabase_key)} символов")
+print(f"   Начинается с: {supabase_key[:20]}...")
+
+print("\n3. ВСЕ ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ:")
+for key, value in os.environ.items():
+    if 'SUPABASE' in key or 'PYTHON' in key or 'PORT' in key:
+        print(f"   {key}: {'✅' if value else '❌'}")
+print("="*50 + "\n")
+# ========================================
 
 # Конфигурация для Render
 class Config:
