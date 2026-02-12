@@ -4,9 +4,8 @@ services:
     runtime: python
     plan: free
     buildCommand: |
-      unset POETRY_VERSION
-      unset POETRY_HOME
       pip install --upgrade pip
+      pip install --no-cache-dir --force-reinstall supabase==2.12.0
       pip install --no-cache-dir -r requirements.txt
     startCommand: gunicorn app:app
     envVars:
@@ -14,4 +13,3 @@ services:
         value: "true"
       - key: PYTHON_VERSION
         value: 3.11.0
-      # НЕ ПРОПИСЫВАЙТЕ SUPABASE ЗДЕСЬ! Только через Dashboard!
