@@ -5,4 +5,4 @@ supabase==2.12.0
 python-dotenv==1.0.0
 gunicorn==21.2.0
 werkzeug==2.3.8
-# УДАЛИТЕ Pillow - он не нужен!
+Pillow==10.1.0
