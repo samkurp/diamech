@@ -5,7 +5,6 @@ services:
     region: frankfurt
     plan: free
     buildCommand: |
-      python --version
       pip install --upgrade pip
       pip install --no-cache-dir -r requirements.txt
     startCommand: gunicorn app:app
@@ -16,9 +15,5 @@ services:
         sync: false
       - key: PYTHON_VERSION
         value: 3.11.0
-      - key: PIP_NO_CACHE_DIR
-        value: 1
-      - key: POETRY_VERSION
-        value: ""  # Отключаем Poetry
       - key: DISABLE_POETRY
         value: "true"
