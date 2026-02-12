@@ -1,0 +1,908 @@
+// Конфигурация
+const API_BASE = '/api';
+const FIELD_DEPENDENCIES = {
+    'СП': {
+        disabledFields: ['angleSensor', 'angleSensorNumber', 'rightVibrationSensor',
+                       'rightSensitivity', 'rightSensorNumber', 'signalProcessor',
+                       'signalProcessorNumber']
+    }
+};
+
+// Состояние приложения
+const appState = {
+    isFormValid: false,
+    hasImages: false,
+    currentDraft: null,
+    isViewMode: false,
+    currentImages: []
+};
+
+// Инициализация при загрузке
+document.addEventListener('DOMContentLoaded', () => {
+    initForm();
+    setupImagePreview();
+    setupImageModal();
+    loadDraftFromURL();
+    setupEventListeners();
+});
+
+// Инициализация формы
+function initForm() {
+    // Настройка переключателей секций
+    setupSectionToggle('driveSystemToggle', 'driveSystemSection', [
+        'driveType', 'driveNumber', 'brakeResistor', 'resistorCount'
+    ]);
+
+    setupSectionToggle('electricMotorToggle', 'electricMotorSection', [
+        'electricMotor', 'EnginePower', 'motorNumber'
+    ]);
+
+    setupSectionToggle('sensorsToggle', 'sensorsSection', [
+        'angleSensor', 'angleSensorNumber', 'speedSensorNumber'
+    ]);
+
+    // Настройка радиокнопок
+    setupRadioButtons();
+
+    // Настройка зависимостей полей
+    setupFieldDependencies();
+
+    // Настройка поля даты (установить сегодняшнюю дату как минимальную)
+    const shippingDateInput = document.getElementById('shippingDate');
+    if (shippingDateInput) {
+        const today = new Date();
+        shippingDateInput.min = today.toISOString().split('T')[0];
+
+        // Установить дату по умолчанию - через 30 дней от сегодня
+        const defaultDate = new Date();
+        defaultDate.setDate(defaultDate.getDate() + 30);
+        shippingDateInput.value = defaultDate.toISOString().split('T')[0];
+    }
+
+    // Инициализация стилей
+    initializeFieldStyles();
+
+    // Обновление состояния кнопки
+    updateSubmitButton();
+}
+
+// Настройка событий
+function setupEventListeners() {
+    const form = document.getElementById('machineForm');
+    if (form) {
+        form.addEventListener('submit', handleFormSubmit);
+    }
+
+    // Мониторинг изменений в полях
+    const fields = document.querySelectorAll('input, select, textarea');
+    fields.forEach(field => {
+        if (field.type !== 'file') {
+            field.addEventListener('input', handleFieldChange);
+            field.addEventListener('change', handleFieldChange);
+        }
+    });
+
+    // Кнопка сохранения черновика
+    const saveBtn = document.querySelector('.save-draft-btn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', saveDraft);
+    }
+
+    // Зависимость от типа станка
+    const machineTypeSelect = document.getElementById('machineType');
+    if (machineTypeSelect) {
+        machineTypeSelect.addEventListener('change', handleMachineTypeChange);
+    }
+}
+
+// Обработчики событий
+function handleFieldChange(e) {
+    updateFieldBorderColor(e.target);
+    updateSubmitButton();
+
+    if (e.target.name === 'machineType') {
+        handleMachineTypeChange();
+    }
+}
+
+function handleMachineTypeChange() {
+    const machineType = document.getElementById('machineType').value;
+    const config = FIELD_DEPENDENCIES[machineType];
+
+    // Сначала деактивируем все зависимые поля
+    Object.values(FIELD_DEPENDENCIES).flatMap(c => c.disabledFields || [])
+        .forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.disabled = false;
+                field.style.opacity = '1';
+                field.style.cursor = 'auto';
+                // НЕ сбрасываем значение, если оно уже установлено!
+            }
+        });
+
+    // Затем деактивируем поля для текущего типа станка
+    if (config && config.disabledFields) {
+        config.disabledFields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.disabled = true;
+                field.style.opacity = '0.6';
+                field.style.cursor = 'not-allowed';
+
+                // Устанавливаем значение 'Нет' только если поле пустое
+                // и это селект
+                if (field.tagName === 'SELECT' && !field.value) {
+                    field.value = 'Нет';
+                }
+            }
+        });
+    }
+
+    updateSubmitButton();
+}
+
+async function handleFormSubmit(e) {
+    e.preventDefault();
+
+    // Для финальной отправки проверяем с изображениями (forDraft = false)
+    if (!validateForm(false)) {
+        showStatus('❌ Заполните все обязательные поля и загрузите изображения', 'error');
+        return;
+    }
+
+    const status = showLoading('📤 Отправка данных на сервер...');
+
+    try {
+        const formData = new FormData(e.target);
+
+        // Добавляем состояние переключателей
+        const toggles = ['driveSystemToggle', 'electricMotorToggle', 'sensorsToggle'];
+        toggles.forEach(toggleId => {
+            const toggle = document.getElementById(toggleId);
+            if (toggle) {
+                formData.append(toggleId, toggle.checked.toString());
+            }
+        });
+
+        // Добавляем ID черновика если есть
+        if (appState.currentDraft) {
+            formData.append('draft_id', appState.currentDraft);
+        }
+
+        const response = await fetch(`${API_BASE}/generate-protocol`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showStatus(`✅ Протокол успешно создан и сохранен<br>Путь: ${result.saved_path}`, 'success');
+
+            // Сброс формы
+            e.target.reset();
+            document.getElementById('imagePreview').innerHTML = '';
+            appState.currentImages = [];
+            appState.currentDraft = null;
+            appState.hasImages = false;
+
+            // Обновление состояния
+            initializeFieldStyles();
+            updateSubmitButton();
+
+            // Удаляем параметр черновика из URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+
+            // Предложение перейти к списку
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1500);
+
+        } else {
+            throw new Error(result.error);
+        }
+
+    } catch (error) {
+        showStatus(`❌ Ошибка: ${error.message}`, 'error');
+    } finally {
+        status.remove();
+    }
+}
+
+// Валидация
+function validateForm(forDraft = false) {
+    let isValid = true;
+
+    // Проверка радиокнопок
+    const workTypeSelected = document.querySelector('input[name="workType"]:checked');
+    if (!workTypeSelected) {
+        document.getElementById('workTypeError').style.display = 'block';
+        document.getElementById('workTypeGroup').classList.add('invalid');
+        isValid = false;
+    }
+
+    // Проверка обязательных полей
+    const requiredFields = [
+        'machineType',
+        'liftingCapacity',
+        'serialNumber',
+        'customer',
+        'machineStatus'
+    ];
+
+    requiredFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field && !field.value.trim()) {
+            field.style.borderColor = '#ef4444';
+            isValid = false;
+        }
+    });
+
+    // Проверка даты отгрузки (опциональная валидация)
+    const shippingDateInput = document.getElementById('shippingDate');
+    if (shippingDateInput && shippingDateInput.value) {
+        const selectedDate = new Date(shippingDateInput.value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate < today) {
+            showStatus('⚠️ Дата отгрузки не может быть раньше сегодняшней даты', 'warning');
+            shippingDateInput.style.borderColor = '#f59e0b';
+            if (!forDraft) {
+                isValid = false;
+            }
+        }
+    }
+
+    // Проверка изображений - только для финальной отправки, не для черновика
+    if (!forDraft) {
+        const fileInput = document.getElementById('images');
+        if (!fileInput.files || fileInput.files.length === 0) {
+            fileInput.style.borderColor = '#ef4444';
+            isValid = false;
+        }
+    }
+
+    return isValid;
+}
+
+function validateRadioButtons() {
+    const selected = document.querySelector('input[name="workType"]:checked');
+    const errorElement = document.getElementById('workTypeError');
+    const radioGroup = document.getElementById('workTypeGroup');
+
+    if (!selected) {
+        errorElement.style.display = 'block';
+        radioGroup.classList.add('invalid');
+        return false;
+    } else {
+        errorElement.style.display = 'none';
+        radioGroup.classList.remove('invalid');
+        return true;
+    }
+}
+
+// Работа с черновиками
+async function saveDraft() {
+    // Убираем проверку изображений для черновика
+    if (!validateForm(true)) { // true = для черновика (без проверки изображений)
+        showStatus('❌ Заполните все обязательные поля перед сохранением', 'error');
+        return;
+    }
+
+    const status = showLoading('💾 Сохранение черновика...');
+
+    try {
+        const formData = new FormData(document.getElementById('machineForm'));
+
+        // Добавляем состояние переключателей
+        const toggles = ['driveSystemToggle', 'electricMotorToggle', 'sensorsToggle'];
+        toggles.forEach(toggleId => {
+            const toggle = document.getElementById(toggleId);
+            if (toggle) {
+                formData.append(toggleId, toggle.checked.toString());
+            }
+        });
+
+        const response = await fetch(`${API_BASE}/save-draft`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Показываем уведомление
+            showNotification('✅ Черновик успешно сохранен!');
+
+            appState.currentDraft = result.draft_id;
+
+            // Обновляем URL с ID черновика
+            const url = new URL(window.location);
+            url.searchParams.set('draft', result.draft_id);
+            window.history.replaceState({}, '', url);
+
+            // Ждем 1.5 секунды, показываем уведомление, затем редирект
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1500);
+
+        } else {
+            throw new Error(result.error);
+        }
+
+    } catch (error) {
+        showStatus(`❌ Ошибка сохранения: ${error.message}`, 'error');
+    } finally {
+        status.remove();
+    }
+}
+
+async function loadDraftFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const draftId = urlParams.get('draft');
+    const viewMode = urlParams.get('view');
+
+    if (draftId) {
+        appState.currentDraft = draftId;
+        appState.isViewMode = viewMode === 'true';
+
+        const status = showLoading('📥 Загрузка черновика...');
+
+        try {
+            const response = await fetch(`${API_BASE}/drafts/${draftId}`);
+            const result = await response.json();
+
+            if (result.success) {
+                await populateForm(result.draft);
+
+                if (appState.isViewMode) {
+                    disableFormForViewMode();
+                }
+
+                showStatus(`✅ Черновик "${result.draft.display_name}" загружен`, 'success');
+
+            } else {
+                throw new Error(result.error);
+            }
+
+        } catch (error) {
+            showStatus(`❌ Ошибка загрузки: ${error.message}`, 'error');
+        } finally {
+            status.remove();
+        }
+    }
+}
+
+async function populateForm(draft) {
+    const data = draft.data || {};
+
+    console.log('Загружаемые данные черновика:', data);
+
+    // Сначала заполняем тип станка
+    if (data.machineType) {
+        document.getElementById('machineType').value = data.machineType;
+    }
+
+    // Затем заполняем остальные поля
+    Object.keys(data).forEach(fieldName => {
+        const field = document.querySelector(`[name="${fieldName}"]`);
+        if (field) {
+            console.log(`Поле ${fieldName}:`, data[fieldName]);
+
+            if (field.type === 'radio') {
+                const radio = document.querySelector(`[name="${fieldName}"][value="${data[fieldName]}"]`);
+                if (radio) radio.checked = true;
+            } else if (field.type === 'checkbox') {
+                field.checked = data[fieldName] === 'true' || data[fieldName] === true;
+            } else if (field.type === 'date') {
+                // Для полей типа date форматируем дату
+                if (data[fieldName]) {
+                    const date = new Date(data[fieldName]);
+                    if (!isNaN(date.getTime())) {
+                        field.valueAsDate = date;
+                    } else {
+                        field.value = data[fieldName];
+                    }
+                }
+            } else {
+                // ВАЖНО: Сохраняем ВСЕ значения, включая "Нет"
+                if (data[fieldName] !== undefined && data[fieldName] !== null) {
+                    field.value = data[fieldName];
+                }
+            }
+        }
+    });
+
+    // Обновляем переключатели секций
+    const toggles = ['driveSystemToggle', 'electricMotorToggle', 'sensorsToggle'];
+    toggles.forEach(toggleId => {
+        const toggle = document.getElementById(toggleId);
+        if (toggle) {
+            const toggleValue = data[toggleId];
+            if (toggleValue !== undefined) {
+                toggle.checked = toggleValue === 'true' || toggleValue === true;
+                console.log(`Toggle ${toggleId}:`, toggle.checked);
+            }
+            // Вызываем событие change чтобы обновить UI
+            const event = new Event('change');
+            toggle.dispatchEvent(event);
+        }
+    });
+
+    // Только ПОСЛЕ заполнения всех данных применяем зависимости
+    setTimeout(() => {
+        console.log('Применяем зависимости для типа станка:', data.machineType);
+        handleMachineTypeChange();
+
+        // ДОПОЛНИТЕЛЬНО: После применения зависимостей, убедимся, что значения "Нет" сохраняются
+        Object.keys(data).forEach(fieldName => {
+            if (data[fieldName] === 'Нет') {
+                const field = document.getElementById(fieldName);
+                if (field && field.tagName === 'SELECT') {
+                    field.value = 'Нет';
+                }
+            }
+        });
+    }, 100);
+
+    // Загружаем изображения
+    if (draft.image_files && draft.image_files.length > 0) {
+        await loadDraftImages(draft.id, draft.image_files);
+    }
+
+    // Обновляем стили
+    initializeFieldStyles();
+    updateSubmitButton();
+
+    console.log('Загрузка черновика завершена');
+}
+
+async function loadDraftImages(draftId, imageFiles) {
+    const previewContainer = document.getElementById('imagePreview');
+    if (!previewContainer) return;
+
+    previewContainer.innerHTML = '';
+
+    const dataTransfer = new DataTransfer();
+    appState.currentImages = [];
+
+    for (const filename of imageFiles) {
+        try {
+            const img = document.createElement('img');
+            img.className = 'preview-image';
+            img.src = `${API_BASE}/drafts/${draftId}/images/${filename}`;
+            img.alt = filename;
+            img.dataset.filename = filename;
+
+            previewContainer.appendChild(img);
+            appState.currentImages.push(img);
+
+            // Создаем File объект для формы
+            const response = await fetch(img.src);
+            const blob = await response.blob();
+            const file = new File([blob], filename, { type: blob.type });
+            dataTransfer.items.add(file);
+
+        } catch (error) {
+            console.error(`Ошибка загрузки изображения:`, error);
+        }
+    }
+
+    const fileInput = document.getElementById('images');
+    if (fileInput) {
+        fileInput.files = dataTransfer.files;
+        appState.hasImages = fileInput.files.length > 0;
+    }
+
+    updateSubmitButton();
+}
+
+// Утилиты
+function setupSectionToggle(toggleId, sectionId, fields) {
+    const toggle = document.getElementById(toggleId);
+    const section = document.getElementById(sectionId);
+
+    if (!toggle || !section) return;
+
+    const updateSection = function() {
+        const isEnabled = this.checked;
+
+        if (isEnabled) {
+            section.classList.remove('section-disabled');
+            fields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.disabled = false;
+                    // Меняем значение только если оно 'ОТСУТСТВУЕТ' или 'Нет'
+                    // и это стандартное значение для отключенного состояния
+                    if (field.value === 'ОТСУТСТВУЕТ' || field.value === 'Нет') {
+                        field.value = '';
+                    }
+                }
+            });
+        } else {
+            section.classList.add('section-disabled');
+            fields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (field) {
+                    field.disabled = true;
+                    // Устанавливаем стандартное значение только если поле пустое
+                    // или имеет старое стандартное значение
+                    if (!field.value || field.value === '' ||
+                        field.value === 'ОТСУТСТВУЕТ' || field.value === 'Нет') {
+                        field.value = field.tagName === 'SELECT' ? 'Нет' : 'ОТСУТСТВУЕТ';
+                    }
+                }
+            });
+        }
+
+        updateSubmitButton();
+    };
+
+    toggle.addEventListener('change', updateSection);
+    // Вызываем сразу для инициализации
+    updateSection.call(toggle);
+}
+
+function setupRadioButtons() {
+    const radios = document.querySelectorAll('input[name="workType"]');
+    const errorElement = document.getElementById('workTypeError');
+
+    radios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            errorElement.style.display = 'none';
+            document.getElementById('workTypeGroup').classList.remove('invalid');
+            updateSubmitButton();
+        });
+    });
+}
+
+function setupFieldDependencies() {
+    // Инициализация зависимостей полей
+    handleMachineTypeChange();
+}
+
+function initializeFieldStyles() {
+    const fields = document.querySelectorAll('input, select, textarea');
+    fields.forEach(field => updateFieldBorderColor(field));
+}
+
+function updateFieldBorderColor(field) {
+    if (field.disabled) {
+        field.style.borderColor = 'rgba(148, 163, 184, 0.2)';
+        return;
+    }
+
+    if (field.hasAttribute('required')) {
+        field.style.borderColor = field.value.trim() ? '#10b981' : '#ef4444';
+    } else {
+        field.style.borderColor = field.value.trim() ? '#3b82f6' : 'rgba(148, 163, 184, 0.3)';
+    }
+}
+
+function updateSubmitButton() {
+    const submitButton = document.querySelector('button[type="submit"]');
+    if (!submitButton) return;
+
+    const isRadioValid = validateRadioButtons();
+    const fileInput = document.getElementById('images');
+    const hasImages = fileInput && fileInput.files.length > 0;
+
+    // Проверяем обязательные поля
+    const requiredFields = [
+        'machineType',
+        'liftingCapacity',
+        'serialNumber',
+        'customer',
+        'machineStatus'
+    ];
+
+    const allRequiredFilled = requiredFields.every(fieldId => {
+        const field = document.getElementById(fieldId);
+        return field && field.value.trim();
+    });
+
+    appState.isFormValid = isRadioValid && allRequiredFilled && hasImages;
+    appState.hasImages = hasImages;
+
+    if (appState.isFormValid) {
+        submitButton.disabled = false;
+        submitButton.style.opacity = '1';
+        submitButton.style.cursor = 'pointer';
+        submitButton.title = '';
+    } else {
+        submitButton.disabled = true;
+        submitButton.style.opacity = '0.6';
+        submitButton.style.cursor = 'not-allowed';
+
+        if (!hasImages) {
+            submitButton.title = 'Загрузите хотя бы одно изображение';
+        } else if (!isRadioValid) {
+            submitButton.title = 'Выберите тип работы';
+        } else {
+            submitButton.title = 'Заполните все обязательные поля';
+        }
+    }
+}
+
+// Работа с изображениями
+function setupImagePreview() {
+    const fileInput = document.getElementById('images');
+    const previewContainer = document.getElementById('imagePreview');
+
+    if (!fileInput || !previewContainer) return;
+
+    fileInput.addEventListener('change', function() {
+        previewContainer.innerHTML = '';
+        appState.currentImages = [];
+
+        if (this.files && this.files.length > 0) {
+            Array.from(this.files).forEach((file, index) => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    const img = document.createElement('img');
+                    img.className = 'preview-image';
+                    img.alt = file.name;
+                    img.dataset.index = index;
+
+                    reader.onload = function(e) {
+                        img.src = e.target.result;
+                        appState.currentImages.push(img);
+                    };
+
+                    reader.readAsDataURL(file);
+                    previewContainer.appendChild(img);
+                }
+            });
+        }
+
+        updateSubmitButton();
+    });
+}
+
+// Модальное окно для изображений
+function setupImageModal() {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    const caption = document.getElementById('modalCaption');
+    const closeBtn = modal.querySelector('.close');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const counter = document.getElementById('imageCounter');
+
+    if (!modal || !modalImg || !closeBtn) return;
+
+    let currentIndex = 0;
+
+    // Открытие модального окна
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('preview-image')) {
+            const images = Array.from(document.querySelectorAll('.preview-image'));
+            currentIndex = images.indexOf(e.target);
+            openModal(images, currentIndex);
+        }
+    });
+
+    // Закрытие
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) closeModal();
+    });
+
+    // Навигация
+    if (prevBtn) prevBtn.addEventListener('click', () => navigateModal(-1));
+    if (nextBtn) nextBtn.addEventListener('click', () => navigateModal(1));
+
+    // Клавиатура
+    document.addEventListener('keydown', function(e) {
+        if (modal.style.display === 'block') {
+            if (e.key === 'ArrowLeft') navigateModal(-1);
+            else if (e.key === 'ArrowRight') navigateModal(1);
+            else if (e.key === 'Escape') closeModal();
+        }
+    });
+
+    function openModal(images, index) {
+        currentIndex = index;
+        updateModalImage(images);
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        currentIndex = 0;
+    }
+
+    function navigateModal(direction) {
+        const images = Array.from(document.querySelectorAll('.preview-image'));
+        if (images.length === 0) return;
+
+        currentIndex = (currentIndex + direction + images.length) % images.length;
+        updateModalImage(images);
+    }
+
+    function updateModalImage(images) {
+        if (images.length === 0 || currentIndex < 0 || currentIndex >= images.length) return;
+
+        const img = images[currentIndex];
+        modalImg.src = img.src;
+        caption.textContent = img.alt || `Изображение ${currentIndex + 1}`;
+        if (counter) counter.textContent = `${currentIndex + 1} / ${images.length}`;
+
+        if (prevBtn) prevBtn.disabled = images.length <= 1;
+        if (nextBtn) nextBtn.disabled = images.length <= 1;
+    }
+}
+
+// Режим просмотра
+function disableFormForViewMode() {
+    const fields = document.querySelectorAll('input, select, textarea, button');
+    const saveBtn = document.querySelector('.save-draft-btn');
+
+    fields.forEach(field => {
+        if (field.id !== 'machineStatus' && field.type !== 'submit') {
+            field.disabled = true;
+            field.style.opacity = '0.6';
+            field.style.cursor = 'not-allowed';
+        }
+    });
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.style.opacity = '0.4';
+        saveBtn.style.cursor = 'not-allowed';
+    }
+
+    showStatus('🔒 Режим просмотра. Можно изменить только статус станка.', 'warning');
+}
+
+// Вспомогательные функции
+function showLoading(message) {
+    const status = document.getElementById('statusMessage');
+    if (!status) {
+        // Создаем временный элемент для отображения статуса
+        const tempStatus = document.createElement('div');
+        tempStatus.id = 'tempStatusMessage';
+        tempStatus.innerHTML = `<div class="loading">${message}</div>`;
+        tempStatus.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(30, 41, 59, 0.95);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            z-index: 10000;
+            border: 1px solid var(--border);
+        `;
+        document.body.appendChild(tempStatus);
+
+        return {
+            remove: () => {
+                if (tempStatus.parentNode) {
+                    tempStatus.parentNode.removeChild(tempStatus);
+                }
+            }
+        };
+    }
+
+    status.innerHTML = `<div class="loading">${message}</div>`;
+    status.className = 'status-message info';
+    status.style.display = 'block';
+
+    return {
+        remove: () => {
+            status.style.display = 'none';
+        }
+    };
+}
+
+function showStatus(message, type = 'info') {
+    const status = document.getElementById('statusMessage');
+    if (!status) return;
+
+    status.innerHTML = message;
+    status.className = `status-message ${type}`;
+    status.style.display = 'block';
+
+    if (type === 'success' || type === 'error') {
+        setTimeout(() => {
+            status.style.display = 'none';
+        }, 5000);
+    }
+}
+
+function showNotification(message, type = 'success') {
+    // Создаем элемент уведомления
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${type === 'success' ? '✅' : '❌'}</span>
+            <span class="notification-text">${message}</span>
+        </div>
+    `;
+
+    // Добавляем стили
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)'};
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+        animation: slideIn 0.3s ease-out;
+        backdrop-filter: blur(10px);
+        border: 1px solid ${type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'};
+        max-width: 350px;
+        font-family: 'Inter', sans-serif;
+    `;
+
+    document.body.appendChild(notification);
+
+    // Удаляем через 3 секунды
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out forwards';
+        notification.style.animation = 'slideOut 0.3s ease-out forwards';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Добавьте анимации в CSS
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+
+    .loading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .loading::after {
+        content: '';
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);

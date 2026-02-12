@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Информация о станке</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Минималистичная шапка -->
+        <div class="machine-header-minimal">
+            <div id="machineTitle" class="machine-title-minimal">Загрузка...</div>
+            <div id="machineSubtitle" class="machine-subtitle-minimal">Детальная информация</div>
+            <div id="machineStatus" class="machine-status-minimal">Загрузка...</div>
+        </div>
+
+        <div class="machine-view-minimal">
+            <!-- Базовая информация -->
+            <div class="section-minimal">
+                <div class="section-title-minimal">
+                    📋 Базовая информация
+                </div>
+
+                <div class="info-grid-minimal">
+                    <div class="info-card-minimal" onclick="openCustomerModal()">
+                        <div class="info-card-title-minimal">Заказчик</div>
+                        <div id="customer" class="info-value-minimal">Загрузка...</div>
+                    </div>
+
+                    <div class="info-card-minimal">
+                        <div class="info-card-title-minimal">Тип работы</div>
+                        <div id="workType" class="info-value-minimal">Загрузка...</div>
+                    </div>
+
+                    <div class="info-card-minimal">
+                        <div class="info-card-title-minimal">Дата отгрузки</div>
+                        <div id="shippingDate" class="info-value-minimal empty">Не указана</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Привод и двигатели -->
+            <div class="section-minimal">
+                <div class="section-title-minimal">
+                    ⚙️ Приводная система
+                </div>
+
+                <div class="info-card-minimal">
+                    <div class="equipment-item">
+                        <span class="equipment-label">Тип привода:</span>
+                        <span id="driveType" class="equipment-value empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Номер привода:</span>
+                        <span id="driveNumber" class="equipment-value equipment-number empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Электродвигатель:</span>
+                        <span id="electricMotor" class="equipment-value empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Номер двигателя:</span>
+                        <span id="motorNumber" class="equipment-value equipment-number empty">Не указано</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Датчики -->
+            <div class="section-minimal">
+                <div class="section-title-minimal">
+                    📡 Датчики
+                </div>
+
+                <div class="info-card-minimal">
+                    <div class="equipment-item">
+                        <span class="equipment-label">Датчик угла:</span>
+                        <span id="angleSensor" class="equipment-value empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Номер датчика угла:</span>
+                        <span id="angleSensorNumber" class="equipment-value equipment-number empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Номер отметчика:</span>
+                        <span id="speedSensorNumber" class="equipment-value equipment-number empty">Не указано</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Датчики вибрации -->
+            <div class="section-minimal">
+                <div class="section-title-minimal">
+                    📊 Датчики вибрации
+                </div>
+
+                <div class="info-card-minimal">
+                    <div class="equipment-item">
+                        <span class="equipment-label">Левый датчик:</span>
+                        <span id="leftVibrationSensor" class="equipment-value empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Чувствительность:</span>
+                        <span id="leftSensitivity" class="equipment-value empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Номер датчика:</span>
+                        <span id="leftSensorNumber" class="equipment-value equipment-number empty">Не указано</span>
+                    </div>
+
+                    <div style="height: 1px; background: rgba(148, 163, 184, 0.1); margin: 10px 0;"></div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Правый датчик:</span>
+                        <span id="rightVibrationSensor" class="equipment-value empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Чувствительность:</span>
+                        <span id="rightSensitivity" class="equipment-value empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Номер датчика:</span>
+                        <span id="rightSensorNumber" class="equipment-value equipment-number empty">Не указано</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Измерительное оборудование -->
+            <div class="section-minimal">
+                <div class="section-title-minimal">
+                    📐 Измерительное оборудование
+                </div>
+
+                <div class="info-card-minimal">
+                    <div class="equipment-item">
+                        <span class="equipment-label">Измерительный прибор:</span>
+                        <span id="measuringDevice" class="equipment-value empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Номер прибора:</span>
+                        <span id="measuringDeviceNumber" class="equipment-value equipment-number empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Блок обработки сигнала:</span>
+                        <span id="signalProcessor" class="equipment-value empty">Не указано</span>
+                    </div>
+
+                    <div class="equipment-item">
+                        <span class="equipment-label">Номер блока:</span>
+                        <span id="signalProcessorNumber" class="equipment-value equipment-number empty">Не указано</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Дополнительная информация -->
+            <div class="section-minimal">
+                <div class="section-title-minimal">
+                    📝 Примечания
+                </div>
+
+                <div class="info-card-minimal">
+                    <div id="notes" class="info-value-minimal empty">Примечаний нет</div>
+                </div>
+            </div>
+
+            <!-- Фотографии -->
+            <div class="section-minimal">
+                <div class="section-title-minimal">
+                    🖼️ Фотографии
+                </div>
+
+                <div id="machineImages" class="images-grid-minimal">
+                    <!-- Изображения будут загружены через JS -->
+                </div>
+
+                <div id="noImages" class="info-value-minimal empty" style="text-align: center; padding: 20px;">
+                    Фотографии отсутствуют
+                </div>
+            </div>
+
+            <!-- Кнопки действий -->
+            <div class="actions-minimal">
+                <button id="restoreBtn" class="btn-restore-minimal" onclick="restoreToWork()">
+                    🔄 Вернуть в работу
+                </button>
+                <a href="/static/shipped.html" class="btn-back-minimal">
+                    ← Назад к списку
+                </a>
+            </div>
+
+            <div id="statusMessage" class="status-message" style="display: none; margin-top: 20px; font-size: 0.9rem;"></div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для изображений -->
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+        <div class="modal-caption">
+            <span id="modalCaption"></span>
+            <div class="modal-nav">
+                <button id="prevBtn" class="nav-btn">❮</button>
+                <span id="imageCounter"></span>
+                <button id="nextBtn" class="nav-btn">❯</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для редактирования заказчика -->
+    <div id="customerModal" class="customer-modal">
+        <div class="customer-modal-content">
+            <div class="customer-modal-header">
+                <div class="customer-modal-title">
+                    <span class="modal-icon">👥</span>
+                    <h3>Информация о заказчике</h3>
+                </div>
+                <span class="customer-modal-close">&times;</span>
+            </div>
+
+            <div class="customer-modal-body">
+                <form id="customerForm" class="customer-form">
+                    <div class="customer-form-grid">
+                        <div class="customer-form-group">
+                            <label for="customerName">Название компании <span class="required">*</span></label>
+                            <input type="text" id="customerName" name="customerName"
+                                   class="customer-input" placeholder="ООО 'Пример'" required>
+                        </div>
+
+                        <div class="customer-form-group">
+                            <label for="productionAddress">Адрес производства</label>
+                            <textarea id="productionAddress" name="productionAddress"
+                                      class="customer-textarea" rows="2"
+                                      placeholder="г. Москва, ул. Примерная, д. 1"></textarea>
+                        </div>
+
+                        <div class="customer-form-group">
+                            <label for="hotelName">Отель</label>
+                            <input type="text" id="hotelName" name="hotelName"
+                                   class="customer-input" placeholder="Название отеля">
+                        </div>
+
+                        <div class="customer-form-group">
+                            <label for="hotelAddress">Адрес отеля</label>
+                            <textarea id="hotelAddress" name="hotelAddress"
+                                      class="customer-textarea" rows="2"
+                                      placeholder="Адрес отеля"></textarea>
+                        </div>
+
+                        <div class="customer-form-group">
+                            <label for="contactPerson">Контактное лицо</label>
+                            <input type="text" id="contactPerson" name="contactPerson"
+                                   class="customer-input" placeholder="ФИО">
+                        </div>
+
+                        <div class="customer-form-group">
+                            <label for="contactPhone">Телефон</label>
+                            <input type="tel" id="contactPhone" name="contactPhone"
+                                   class="customer-input" placeholder="+7 (999) 123-45-67">
+                        </div>
+
+                        <div class="customer-form-group">
+                            <label for="contactEmail">Email</label>
+                            <input type="email" id="contactEmail" name="contactEmail"
+                                   class="customer-input" placeholder="email@example.com">
+                        </div>
+
+                        <div class="customer-form-group full-width">
+                            <label for="additionalInfo">Дополнительно</label>
+                            <textarea id="additionalInfo" name="additionalInfo"
+                                      class="customer-textarea" rows="3"
+                                      placeholder="Дополнительная информация, комментарии..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="customer-modal-actions">
+                        <button type="submit" class="btn-save-customer">
+                            <span class="btn-icon">💾</span>
+                            Сохранить
+                        </button>
+                        <button type="button" class="btn-cancel-customer">
+                            <span class="btn-icon">✕</span>
+                            Отмена
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/view_machine.js"></script>
+</body>
+</html>

@@ -1,0 +1,492 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавить станок</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Кнопка сохранения черновика -->
+    <button class="save-draft-btn" title="Сохранить черновик">
+        💾
+    </button>
+
+    <div class="container">
+        <div class="main-container">
+            <header>
+                <h1>Добавить станок</h1>
+                <p class="subtitle">Заполните форму для создания маршрутного листа оборудования</p>
+            </header>
+
+            <div class="menu">
+                <a href="/" class="back-button">
+                    ← На главную
+                </a>
+                <a href="/static/shipped.html" class="back-button">
+                    🚚 Отгруженные
+                </a>
+                <a href="/static/frequency_converter.html" class="back-button">
+                    🔌 Частотники
+                </a>
+                <a href="/static/pneumatics.html" class="back-button">
+                    💨 Пневматика
+                </a>
+            </div>
+
+            <div class="form-container">
+                <form id="machineForm" enctype="multipart/form-data">
+                    <!-- Тип работы -->
+                    <div class="form-section">
+                        <h3>Тип работы</h3>
+                        <div class="radio-group" id="workTypeGroup">
+                            <div class="radio-item">
+                                <input type="radio" id="modernization" name="workType" value="Модернизация" required>
+                                <label for="modernization">Модернизация</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="overhaul" name="workType" value="Кап. Ремонт">
+                                <label for="overhaul">Кап. Ремонт</label>
+                            </div>
+                            <div class="radio-item">
+                                <input type="radio" id="new" name="workType" value="Новый">
+                                <label for="new">Новый</label>
+                            </div>
+                        </div>
+                        <small id="workTypeError" class="error-message" style="display: none;">
+                            Пожалуйста, выберите тип работы
+                        </small>
+                    </div>
+
+                    <!-- Основная информация -->
+                    <div class="form-section">
+                        <h3>Основная информация</h3>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="machineType" class="required">Тип станка:</label>
+                                <select id="machineType" name="machineType" required>
+                                    <option value="">Выберите тип</option>
+                                    <option value="ВМ">Балансировочный станок зарезонансный</option>
+                                    <option value="ВТ">Балансировочный станок дорезонансный</option>
+                                    <option value="СП">Стенд входного контроля подшипников</option>
+                                    <option value="В">Балансировочный станок вертикальный</option>
+                                    <option value="ДБС">ДБС</option>
+                                    <option value="ВМВ">ВМВ</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="liftingCapacity" class="required">Грузоподъёмность/Модель:</label>
+                                <input type="number" id="liftingCapacity" name="liftingCapacity"
+                                       placeholder="Например: 10" step="0.1" required
+                                       inputmode="decimal">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="serialNumber" class="required">Заводской номер:</label>
+                                <input type="text" id="serialNumber" name="serialNumber"
+                                       placeholder="Введите заводской номер" required
+                                       inputmode="decimal">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="customer" class="required">Заказчик:</label>
+                                <input type="text" id="customer" name="customer"
+                                       placeholder="Введите заказчика" required
+                                       inputmode="text">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Приводная система -->
+                    <div class="form-section" id="driveSystemSection">
+                        <div class="section-toggle">
+                            <h3>Приводная система</h3>
+                            <label class="checkbox-ios">
+                                <input type="checkbox" id="driveSystemToggle" checked>
+                                <span class="checkbox-ios-switch"></span>
+                            </label>
+                        </div>
+
+                        <div class="section-content">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="driveType">Тип привода:</label>
+                                    <select id="driveType" name="driveType">
+                                        <option value="">Выберите тип привода</option>
+                                        <option value="Toshiba VF-S15">Toshiba VF-S15</option>
+                                        <option value="Toshiba VF-AS3">Toshiba VF-AS3</option>
+                                        <option value="ED3L-75DMA">ED3L-75DMA</option>
+                                        <option value="BIM-500W-2.2G-T4">BIM-500W-2.2G-T4</option>
+                                        <option value="Нет">Нет</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="driveNumber">Номер привода:</label>
+                                    <input type="text" id="driveNumber" name="driveNumber"
+                                           placeholder="Номер привода">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="brakeResistor">Тормозной резистор:</label>
+                                    <select id="brakeResistor" name="brakeResistor">
+                                        <option value="">Выберите тип</option>
+                                        <option value="SR100/15">SR100/15</option>
+                                        <option value="SR100/30">SR100/30</option>
+                                        <option value="SR35/150">SR35/150</option>
+                                        <option value="PCA9200/60">PCA9200/60</option>
+                                        <option value="PCA9200/30">PCA9200/30</option>
+                                        <option value="SRH1800/40">SRH1800/40</option>
+                                        <option value="SRV18-038">SRV18-038</option>
+                                        <option value="SRV15-030">SRV15-030</option>
+                                        <option value="Нет">Нет</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="resistorCount">Количество резисторов:</label>
+                                    <select id="resistorCount" name="resistorCount">
+                                        <option value="">Выберите количество</option>
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="6">6</option>
+                                        <option value="Нет">Нет</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Электродвигатель -->
+                    <div class="form-section" id="electricMotorSection">
+                        <div class="section-toggle">
+                            <h3>Электродвигатель</h3>
+                            <label class="checkbox-ios">
+                                <input type="checkbox" id="electricMotorToggle" checked>
+                                <span class="checkbox-ios-switch"></span>
+                            </label>
+                        </div>
+
+                        <div class="section-content">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="electricMotor">Тип двигателя:</label>
+                                    <select id="electricMotor" name="electricMotor">
+                                        <option value="">Выберите тип</option>
+                                        <option value="EM3A-01ALA">EM3A-01ALA</option>
+                                        <option value="EM3A-01ATA">EM3A-01ATA</option>
+                                        <option value="EM3A-01AFA">EM3A-01AFA</option>
+                                        <option value="SIEMENS">SIEMENS</option>
+                                        <option value="HS132M-4">HS132M-4</option>
+                                        <option value="5АИ180М4ЕТ">5АИ180М4ЕТ</option>
+                                        <option value="АИР 90L4 У1">АИР 90L4 У1</option>
+                                        <option value="5АИ100L2V1У2">5АИ100L2V1У2</option>
+                                        <option value="5АИ180S2У2">5АИ180S2У2</option>
+                                        <option value="АДЧР 80В4 Т4">АДЧР 80В4 Т4</option>
+                                        <option value="АДЧР 80В4 У1">АДЧР 80В4 У1</option>
+                                        <option value="АДЧР 180S2 У1">АДЧР 180S2 У1</option>
+                                        <option value="АДЧР 180M6 У1">АДЧР 180M6 У1</option>
+                                        <option value="АДЧР 132S4 У1">АДЧР 132S4 У1</option>
+                                        <option value="АДЧР 160S4 У1">АДЧР 160S4 У1</option>
+                                        <option value="АДЧР 200М4 У1">АДЧР 200М4 У1</option>
+                                        <option value="АДЧР 225М4 У1">АДЧР 225М4 У1</option>
+                                        <option value="АДЧР 250S6 У1">АДЧР 250S6 У1</option>
+                                        <option value="АДЧРС 100LA4 У1">АДЧРС 100LA4 У1</option>
+                                        <option value="EM3G-75DTA224">EM3G-75DTA224</option>
+                                        <option value="Нет">Нет</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="EnginePower">Мощность:</label>
+                                    <select id="EnginePower" name="EnginePower">
+                                        <option value="">Выберите мощность</option>
+                                        <option value="Нет">Нет</option>
+                                        <option value="0,75кВт">0,75кВт</option>
+                                        <option value="0,1кВт">0,1кВт</option>
+                                        <option value="1,5кВт">1,5кВт</option>
+                                        <option value="2,2кВт">2,2кВт</option>
+                                        <option value="4кВт">4кВт</option>
+                                        <option value="5,5кВт">5,5кВт</option>
+                                        <option value="7,5кВт">7,5кВт</option>
+                                        <option value="15кВт">15кВт</option>
+                                        <option value="15,5кВт">15,5кВт</option>
+                                        <option value="18,5кВт">18,5кВт</option>
+                                        <option value="22кВт">22кВт</option>
+                                        <option value="30кВт">30кВт</option>
+                                        <option value="37кВт">37кВт</option>
+                                        <option value="45кВт">45кВт</option>
+                                        <option value="55кВт">55кВт</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="motorNumber">Номер двигателя:</label>
+                                    <input type="text" id="motorNumber" name="motorNumber"
+                                           placeholder="Номер двигателя"
+                                           inputmode="text">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Датчики -->
+                    <div class="form-section" id="sensorsSection">
+                        <div class="section-toggle">
+                            <h3>Датчики</h3>
+                            <label class="checkbox-ios">
+                                <input type="checkbox" id="sensorsToggle" checked>
+                                <span class="checkbox-ios-switch"></span>
+                            </label>
+                        </div>
+
+                        <div class="section-content">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="angleSensor">Датчик угла:</label>
+                                    <select id="angleSensor" name="angleSensor">
+                                        <option value="">Выберите тип</option>
+                                        <option value="ЛИР15Б">ЛИР158Б</option>
+                                        <option value="Встроенный энкодер">Встроенный энкодер</option>
+                                        <option value="Нет">Нет</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="angleSensorNumber">Номер датчика угла:</label>
+                                    <input type="text" id="angleSensorNumber" name="angleSensorNumber"
+                                           placeholder="Номер датчика"
+                                           inputmode="decimal">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="speedSensorNumber">Номер отметчика:</label>
+                                    <input type="text" id="speedSensorNumber" name="speedSensorNumber"
+                                           placeholder="Номер отметчика"
+                                           inputmode="decimal">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Датчики вибрации -->
+                    <div class="form-section">
+                        <h3>Датчики вибрации</h3>
+
+                        <div id="leftVibrationSection">
+                            <h4>Левый датчик вибрации</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="leftVibrationSensor">Тип датчика:</label>
+                                    <select id="leftVibrationSensor" name="leftVibrationSensor">
+                                        <option value="">Выберите тип</option>
+                                        <option value="BC404">BC404</option>
+                                        <option value="AT1105">AT1105</option>
+                                        <option value="ICP">ICP</option>
+                                        <option value="1V702TA-100">1V702TA-100</option>
+                                        <option value="1V702TA-10">1V702TA-10</option>
+                                        <option value="608А-10">608А-10</option>
+                                        <option value="607А-11">607А-11</option>
+                                        <option value="608А-11">608А-11</option>
+                                        <option value="ДВС-1">ДВС-1</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="leftSensitivity">Чувствительность:</label>
+                                <input type="text" id="leftSensitivity" name="leftSensitivity"
+                                       placeholder="Например: 100"
+                                       inputmode="decimal">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="leftSensorNumber">Номер датчика:</label>
+                                <input type="text" id="leftSensorNumber" name="leftSensorNumber"
+                                       placeholder="Номер левого датчика"
+                                       inputmode="decimal">
+                            </div>
+                        </div>
+
+                        <div id="rightVibrationSection">
+                            <h4>Правый датчик вибрации</h4>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="rightVibrationSensor">Тип датчика:</label>
+                                    <select id="rightVibrationSensor" name="rightVibrationSensor">
+                                        <option value="">Выберите тип</option>
+                                        <option value="608А-11">608А-11</option>
+                                        <option value="607А-11">607А-11</option>
+                                        <option value="BC404">BC404</option>
+                                        <option value="AT1105">AT1105</option>
+                                        <option value="Нет">Нет</option>
+                                        <option value="ДВС-1">ДВС-1</option>
+                                        <option value="ICP">ICP</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="rightSensitivity">Чувствительность:</label>
+                                <input type="text" id="rightSensitivity" name="rightSensitivity"
+                                       placeholder="Например: 100"
+                                       inputmode="decimal">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="rightSensorNumber">Номер датчика:</label>
+                                <input type="text" id="rightSensorNumber" name="rightSensorNumber"
+                                       placeholder="Номер правого датчика"
+                                       inputmode="decimal">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Измерительное оборудование -->
+                    <div class="form-section" id="signalProcessingSection">
+                        <h3>Измерительное оборудование</h3>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="measuringDevice">Измерительный прибор:</label>
+                                <select id="measuringDevice" name="measuringDevice">
+                                    <option value="">Выберите прибор</option>
+                                    <option value="Сапфир-3">Сапфир-3</option>
+                                    <option value="Сапфир-2">Сапфир-2</option>
+                                    <option value="КиС">КиС</option>
+                                    <option value="БИВК-5">БИВК-5</option>
+                                    <option value="Яшма">Яшма</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="measuringDeviceNumber">Номер прибора:</label>
+                                <input type="text" id="measuringDeviceNumber" name="measuringDeviceNumber"
+                                       placeholder="Номер измерительного прибора"
+                                       inputmode="decimal">
+                            </div>
+                        </div>
+
+                        <div id="signalProcessorSection">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="signalProcessor">Блок обработки сигнала:</label>
+                                    <select id="signalProcessor" name="signalProcessor">
+                                        <option value="">Выберите блок</option>
+                                        <option value="БОС-5">БОС-5</option>
+                                        <option value="БОС-4">БОС-4</option>
+                                        <option value="БОС-3">БОС-3</option>
+                                        <option value="Нет">Нет</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="signalProcessorNumber">Номер блока:</label>
+                                    <input type="text" id="signalProcessorNumber" name="signalProcessorNumber"
+                                           placeholder="Номер блока обработки"
+                                           inputmode="decimal">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Фотографии -->
+                    <div class="form-section">
+                        <h3>Фотографии оборудования</h3>
+
+                        <div class="form-group">
+                            <label for="images" >Выберите фотографии:</label>
+                            <input type="file" id="images" name="images" multiple
+                                   accept="image/*" class="file-input" >
+                            <small>Поддерживаемые форматы: PNG, JPG, JPEG, GIF, BMP</small>
+                        </div>
+
+                        <div id="imagePreview" class="image-preview"></div>
+                    </div>
+
+                    <!-- Дополнительная информация -->
+                    <div class="form-section">
+                        <h3>Дополнительная информация</h3>
+
+                        <div class="form-group">
+                            <label for="notes">Примечания:</label>
+                            <textarea id="notes" name="notes" rows="3"
+                                      placeholder="Дополнительная информация о оборудовании"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Статус станка -->
+                    <div class="form-section">
+                        <h3>Статус станка</h3>
+
+                        <div class="form-group">
+                            <label for="machineStatus" class="required">Текущий статус:</label>
+                            <select id="machineStatus" name="machineStatus" required>
+                                <option value="">Выберите статус</option>
+                                <option value="Сборка">Сборка</option>
+                                <option value="Собран">Собран</option>
+                                <option value="На испытании">На испытании</option>
+                                <option value="Испытан">Испытан</option>
+                                <option value="На упаковке">На упаковке</option>
+                                <option value="Упакован">Упакован</option>
+                                <option value="Отгружен">Отгружен</option>
+                            </select>
+                            <small>Станки со статусом "Отгружен" автоматически перемещаются в архив</small>
+                        </div>
+                    </div>
+                    <!-- Вставьте этот блок после поля "Статус станка" -->
+
+                    <!-- Дата отгрузки -->
+                    <div class="form-section">
+                        <h3>Дата отгрузки</h3>
+
+                        <div class="form-group">
+                            <label for="shippingDate">Планируемая дата отгрузки:</label>
+                            <input type="date" id="shippingDate" name="shippingDate"
+                                   placeholder="Выберите дату"
+                                   class="date-input">
+                            <small>Укажите планируемую дату отгрузки оборудования</small>
+                        </div>
+                    </div>
+                    <!-- Кнопка отправки -->
+                    <button type="submit">
+                        📄 Сформировать протокол
+                    </button>
+                </form>
+
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+
+            <footer>
+                <p>Система учета оборудования станков</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Модальное окно для изображений -->
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+        <div class="modal-caption">
+            <span id="modalCaption"></span>
+            <div class="modal-nav">
+                <button id="prevBtn" class="nav-btn">❮</button>
+                <span id="imageCounter"></span>
+                <button id="nextBtn" class="nav-btn">❯</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
