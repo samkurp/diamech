@@ -47,13 +47,11 @@ function initForm() {
     // Настройка зависимостей полей
     setupFieldDependencies();
 
-    // Настройка поля даты (установить сегодняшнюю дату как минимальную)
+    // Настройка поля даты
     const shippingDateInput = document.getElementById('shippingDate');
     if (shippingDateInput) {
         const today = new Date();
         shippingDateInput.min = today.toISOString().split('T')[0];
-
-        // Установить дату по умолчанию - через 30 дней от сегодня
         const defaultDate = new Date();
         defaultDate.setDate(defaultDate.getDate() + 30);
         shippingDateInput.value = defaultDate.toISOString().split('T')[0];
@@ -61,8 +59,6 @@ function initForm() {
 
     // Инициализация стилей
     initializeFieldStyles();
-
-    // Обновление состояния кнопки
     updateSubmitButton();
 }
 
@@ -73,7 +69,6 @@ function setupEventListeners() {
         form.addEventListener('submit', handleFormSubmit);
     }
 
-    // Мониторинг изменений в полях
     const fields = document.querySelectorAll('input, select, textarea');
     fields.forEach(field => {
         if (field.type !== 'file') {
@@ -82,13 +77,11 @@ function setupEventListeners() {
         }
     });
 
-    // Кнопка сохранения черновика
     const saveBtn = document.querySelector('.save-draft-btn');
     if (saveBtn) {
         saveBtn.addEventListener('click', saveDraft);
     }
 
-    // Зависимость от типа станка
     const machineTypeSelect = document.getElementById('machineType');
     if (machineTypeSelect) {
         machineTypeSelect.addEventListener('change', handleMachineTypeChange);
@@ -109,7 +102,6 @@ function handleMachineTypeChange() {
     const machineType = document.getElementById('machineType').value;
     const config = FIELD_DEPENDENCIES[machineType];
 
-    // Сначала деактивируем все зависимые поля
     Object.values(FIELD_DEPENDENCIES).flatMap(c => c.disabledFields || [])
         .forEach(fieldId => {
             const field = document.getElementById(fieldId);
@@ -117,11 +109,9 @@ function handleMachineTypeChange() {
                 field.disabled = false;
                 field.style.opacity = '1';
                 field.style.cursor = 'auto';
-                // НЕ сбрасываем значение, если оно уже установлено!
             }
         });
 
-    // Затем деактивируем поля для текущего типа станка
     if (config && config.disabledFields) {
         config.disabledFields.forEach(fieldId => {
             const field = document.getElementById(fieldId);
@@ -130,8 +120,6 @@ function handleMachineTypeChange() {
                 field.style.opacity = '0.6';
                 field.style.cursor = 'not-allowed';
 
-                // Устанавливаем значение 'Нет' только если поле пустое
-                // и это селект
                 if (field.tagName === 'SELECT' && !field.value) {
                     field.value = 'Нет';
                 }
@@ -142,16 +130,16 @@ function handleMachineTypeChange() {
     updateSubmitButton();
 }
 
+// ОСНОВНОЙ ОБРАБОТЧИК - ФОРМИРОВАНИЕ ПРОТОКОЛА И СКАЧИВАНИЕ АРХИВА
 async function handleFormSubmit(e) {
     e.preventDefault();
 
-    // Для финальной отправки проверяем с изображениями (forDraft = false)
     if (!validateForm(false)) {
         showStatus('❌ Заполните все обязательные поля и загрузите изображения', 'error');
         return;
     }
 
-    const status = showLoading('📤 Отправка данных на сервер...');
+    const status = showLoading('📦 Формирование протокола и подготовка архива...');
 
     try {
         const formData = new FormData(e.target);
@@ -170,7 +158,90 @@ async function handleFormSubmit(e) {
             formData.append('draft_id', appState.currentDraft);
         }
 
+        // Отправляем запрос на генерацию протокола и получение архива
         const response = await fetch(`${API_BASE}/generate-protocol`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Ошибка сервера: ${response.status} - ${errorText || response.statusText}`);
+        }
+
+        // Получаем имя файла из заголовков
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'protocol_package.zip';
+        
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (match && match[1]) {
+                filename = match[1].replace(/['"]/g, '');
+            }
+        }
+
+        // Скачиваем ZIP архив
+        const blob = await response.blob();
+        
+        // Проверяем, что это ZIP архив
+        if (!blob.type.includes('zip') && !filename.endsWith('.zip')) {
+            const text = await blob.text();
+            try {
+                const errorData = JSON.parse(text);
+                throw new Error(errorData.error || 'Не удалось создать архив');
+            } catch {
+                throw new Error('Получен некорректный формат файла');
+            }
+        }
+
+        // Инициируем скачивание
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        showStatus(`✅ Архив "${filename}" успешно загружен`, 'success');
+
+        // Сохраняем черновик после успешной генерации протокола
+        if (!appState.currentDraft) {
+            await autoSaveDraft(formData);
+        }
+
+        // Сброс формы
+        e.target.reset();
+        document.getElementById('imagePreview').innerHTML = '';
+        appState.currentImages = [];
+        appState.currentDraft = null;
+        appState.hasImages = false;
+
+        initializeFieldStyles();
+        updateSubmitButton();
+
+        window.history.replaceState({}, document.title, window.location.pathname);
+
+        // Предложение перейти к списку
+        setTimeout(() => {
+            if (confirm('Архив скачан. Перейти к списку станков?')) {
+                window.location.href = '/';
+            }
+        }, 1000);
+
+    } catch (error) {
+        console.error('Ошибка при формировании протокола:', error);
+        showStatus(`❌ Ошибка: ${error.message}`, 'error');
+    } finally {
+        status.remove();
+    }
+}
+
+// Автосохранение черновика
+async function autoSaveDraft(formData) {
+    try {
+        const response = await fetch(`${API_BASE}/save-draft`, {
             method: 'POST',
             body: formData
         });
@@ -178,35 +249,11 @@ async function handleFormSubmit(e) {
         const result = await response.json();
 
         if (result.success) {
-            showStatus(`✅ Протокол успешно создан и сохранен<br>Путь: ${result.saved_path}`, 'success');
-
-            // Сброс формы
-            e.target.reset();
-            document.getElementById('imagePreview').innerHTML = '';
-            appState.currentImages = [];
-            appState.currentDraft = null;
-            appState.hasImages = false;
-
-            // Обновление состояния
-            initializeFieldStyles();
-            updateSubmitButton();
-
-            // Удаляем параметр черновика из URL
-            window.history.replaceState({}, document.title, window.location.pathname);
-
-            // Предложение перейти к списку
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1500);
-
-        } else {
-            throw new Error(result.error);
+            console.log('✅ Черновик автоматически сохранен:', result.draft_id);
+            appState.currentDraft = result.draft_id;
         }
-
     } catch (error) {
-        showStatus(`❌ Ошибка: ${error.message}`, 'error');
-    } finally {
-        status.remove();
+        console.error('❌ Ошибка автосохранения:', error);
     }
 }
 
@@ -214,7 +261,6 @@ async function handleFormSubmit(e) {
 function validateForm(forDraft = false) {
     let isValid = true;
 
-    // Проверка радиокнопок
     const workTypeSelected = document.querySelector('input[name="workType"]:checked');
     if (!workTypeSelected) {
         document.getElementById('workTypeError').style.display = 'block';
@@ -222,7 +268,6 @@ function validateForm(forDraft = false) {
         isValid = false;
     }
 
-    // Проверка обязательных полей
     const requiredFields = [
         'machineType',
         'liftingCapacity',
@@ -239,7 +284,6 @@ function validateForm(forDraft = false) {
         }
     });
 
-    // Проверка даты отгрузки (опциональная валидация)
     const shippingDateInput = document.getElementById('shippingDate');
     if (shippingDateInput && shippingDateInput.value) {
         const selectedDate = new Date(shippingDateInput.value);
@@ -255,7 +299,7 @@ function validateForm(forDraft = false) {
         }
     }
 
-    // Проверка изображений - только для финальной отправки, не для черновика
+    // Для финальной отправки проверяем наличие изображений
     if (!forDraft) {
         const fileInput = document.getElementById('images');
         if (!fileInput.files || fileInput.files.length === 0) {
@@ -283,10 +327,9 @@ function validateRadioButtons() {
     }
 }
 
-// Работа с черновиками
+// Сохранение черновика
 async function saveDraft() {
-    // Убираем проверку изображений для черновика
-    if (!validateForm(true)) { // true = для черновика (без проверки изображений)
+    if (!validateForm(true)) {
         showStatus('❌ Заполните все обязательные поля перед сохранением', 'error');
         return;
     }
@@ -296,7 +339,6 @@ async function saveDraft() {
     try {
         const formData = new FormData(document.getElementById('machineForm'));
 
-        // Добавляем состояние переключателей
         const toggles = ['driveSystemToggle', 'electricMotorToggle', 'sensorsToggle'];
         toggles.forEach(toggleId => {
             const toggle = document.getElementById(toggleId);
@@ -313,25 +355,19 @@ async function saveDraft() {
         const result = await response.json();
 
         if (result.success) {
-            // Показываем уведомление
             showNotification('✅ Черновик успешно сохранен!');
-
             appState.currentDraft = result.draft_id;
 
-            // Обновляем URL с ID черновика
             const url = new URL(window.location);
             url.searchParams.set('draft', result.draft_id);
             window.history.replaceState({}, '', url);
 
-            // Ждем 1.5 секунды, показываем уведомление, затем редирект
             setTimeout(() => {
                 window.location.href = '/';
             }, 1500);
-
         } else {
             throw new Error(result.error);
         }
-
     } catch (error) {
         showStatus(`❌ Ошибка сохранения: ${error.message}`, 'error');
     } finally {
@@ -339,6 +375,7 @@ async function saveDraft() {
     }
 }
 
+// Загрузка черновика из URL
 async function loadDraftFromURL() {
     const urlParams = new URLSearchParams(window.location.search);
     const draftId = urlParams.get('draft');
@@ -362,11 +399,9 @@ async function loadDraftFromURL() {
                 }
 
                 showStatus(`✅ Черновик "${result.draft.display_name}" загружен`, 'success');
-
             } else {
                 throw new Error(result.error);
             }
-
         } catch (error) {
             showStatus(`❌ Ошибка загрузки: ${error.message}`, 'error');
         } finally {
@@ -378,26 +413,19 @@ async function loadDraftFromURL() {
 async function populateForm(draft) {
     const data = draft.data || {};
 
-    console.log('Загружаемые данные черновика:', data);
-
-    // Сначала заполняем тип станка
     if (data.machineType) {
         document.getElementById('machineType').value = data.machineType;
     }
 
-    // Затем заполняем остальные поля
     Object.keys(data).forEach(fieldName => {
         const field = document.querySelector(`[name="${fieldName}"]`);
         if (field) {
-            console.log(`Поле ${fieldName}:`, data[fieldName]);
-
             if (field.type === 'radio') {
                 const radio = document.querySelector(`[name="${fieldName}"][value="${data[fieldName]}"]`);
                 if (radio) radio.checked = true;
             } else if (field.type === 'checkbox') {
                 field.checked = data[fieldName] === 'true' || data[fieldName] === true;
             } else if (field.type === 'date') {
-                // Для полей типа date форматируем дату
                 if (data[fieldName]) {
                     const date = new Date(data[fieldName]);
                     if (!isNaN(date.getTime())) {
@@ -407,7 +435,6 @@ async function populateForm(draft) {
                     }
                 }
             } else {
-                // ВАЖНО: Сохраняем ВСЕ значения, включая "Нет"
                 if (data[fieldName] !== undefined && data[fieldName] !== null) {
                     field.value = data[fieldName];
                 }
@@ -415,7 +442,6 @@ async function populateForm(draft) {
         }
     });
 
-    // Обновляем переключатели секций
     const toggles = ['driveSystemToggle', 'electricMotorToggle', 'sensorsToggle'];
     toggles.forEach(toggleId => {
         const toggle = document.getElementById(toggleId);
@@ -423,20 +449,15 @@ async function populateForm(draft) {
             const toggleValue = data[toggleId];
             if (toggleValue !== undefined) {
                 toggle.checked = toggleValue === 'true' || toggleValue === true;
-                console.log(`Toggle ${toggleId}:`, toggle.checked);
             }
-            // Вызываем событие change чтобы обновить UI
             const event = new Event('change');
             toggle.dispatchEvent(event);
         }
     });
 
-    // Только ПОСЛЕ заполнения всех данных применяем зависимости
     setTimeout(() => {
-        console.log('Применяем зависимости для типа станка:', data.machineType);
         handleMachineTypeChange();
 
-        // ДОПОЛНИТЕЛЬНО: После применения зависимостей, убедимся, что значения "Нет" сохраняются
         Object.keys(data).forEach(fieldName => {
             if (data[fieldName] === 'Нет') {
                 const field = document.getElementById(fieldName);
@@ -447,16 +468,12 @@ async function populateForm(draft) {
         });
     }, 100);
 
-    // Загружаем изображения
     if (draft.image_files && draft.image_files.length > 0) {
         await loadDraftImages(draft.id, draft.image_files);
     }
 
-    // Обновляем стили
     initializeFieldStyles();
     updateSubmitButton();
-
-    console.log('Загрузка черновика завершена');
 }
 
 async function loadDraftImages(draftId, imageFiles) {
@@ -479,12 +496,10 @@ async function loadDraftImages(draftId, imageFiles) {
             previewContainer.appendChild(img);
             appState.currentImages.push(img);
 
-            // Создаем File объект для формы
             const response = await fetch(img.src);
             const blob = await response.blob();
             const file = new File([blob], filename, { type: blob.type });
             dataTransfer.items.add(file);
-
         } catch (error) {
             console.error(`Ошибка загрузки изображения:`, error);
         }
@@ -515,8 +530,6 @@ function setupSectionToggle(toggleId, sectionId, fields) {
                 const field = document.getElementById(fieldId);
                 if (field) {
                     field.disabled = false;
-                    // Меняем значение только если оно 'ОТСУТСТВУЕТ' или 'Нет'
-                    // и это стандартное значение для отключенного состояния
                     if (field.value === 'ОТСУТСТВУЕТ' || field.value === 'Нет') {
                         field.value = '';
                     }
@@ -528,8 +541,6 @@ function setupSectionToggle(toggleId, sectionId, fields) {
                 const field = document.getElementById(fieldId);
                 if (field) {
                     field.disabled = true;
-                    // Устанавливаем стандартное значение только если поле пустое
-                    // или имеет старое стандартное значение
                     if (!field.value || field.value === '' ||
                         field.value === 'ОТСУТСТВУЕТ' || field.value === 'Нет') {
                         field.value = field.tagName === 'SELECT' ? 'Нет' : 'ОТСУТСТВУЕТ';
@@ -542,7 +553,6 @@ function setupSectionToggle(toggleId, sectionId, fields) {
     };
 
     toggle.addEventListener('change', updateSection);
-    // Вызываем сразу для инициализации
     updateSection.call(toggle);
 }
 
@@ -560,7 +570,6 @@ function setupRadioButtons() {
 }
 
 function setupFieldDependencies() {
-    // Инициализация зависимостей полей
     handleMachineTypeChange();
 }
 
@@ -590,7 +599,6 @@ function updateSubmitButton() {
     const fileInput = document.getElementById('images');
     const hasImages = fileInput && fileInput.files.length > 0;
 
-    // Проверяем обязательные поля
     const requiredFields = [
         'machineType',
         'liftingCapacity',
@@ -676,7 +684,6 @@ function setupImageModal() {
 
     let currentIndex = 0;
 
-    // Открытие модального окна
     document.addEventListener('click', function(e) {
         if (e.target.classList.contains('preview-image')) {
             const images = Array.from(document.querySelectorAll('.preview-image'));
@@ -685,17 +692,14 @@ function setupImageModal() {
         }
     });
 
-    // Закрытие
     closeBtn.addEventListener('click', closeModal);
     modal.addEventListener('click', function(e) {
         if (e.target === modal) closeModal();
     });
 
-    // Навигация
     if (prevBtn) prevBtn.addEventListener('click', () => navigateModal(-1));
     if (nextBtn) nextBtn.addEventListener('click', () => navigateModal(1));
 
-    // Клавиатура
     document.addEventListener('keydown', function(e) {
         if (modal.style.display === 'block') {
             if (e.key === 'ArrowLeft') navigateModal(-1);
@@ -764,7 +768,6 @@ function disableFormForViewMode() {
 function showLoading(message) {
     const status = document.getElementById('statusMessage');
     if (!status) {
-        // Создаем временный элемент для отображения статуса
         const tempStatus = document.createElement('div');
         tempStatus.id = 'tempStatusMessage';
         tempStatus.innerHTML = `<div class="loading">${message}</div>`;
@@ -818,7 +821,6 @@ function showStatus(message, type = 'info') {
 }
 
 function showNotification(message, type = 'success') {
-    // Создаем элемент уведомления
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.innerHTML = `
@@ -828,7 +830,6 @@ function showNotification(message, type = 'success') {
         </div>
     `;
 
-    // Добавляем стили
     notification.style.cssText = `
         position: fixed;
         top: 20px;
@@ -848,9 +849,7 @@ function showNotification(message, type = 'success') {
 
     document.body.appendChild(notification);
 
-    // Удаляем через 3 секунды
     setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-out forwards';
         notification.style.animation = 'slideOut 0.3s ease-out forwards';
         setTimeout(() => {
             if (notification.parentNode) {
@@ -860,7 +859,6 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-// Добавьте анимации в CSS
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideIn {
