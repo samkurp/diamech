@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
-// Инициализация формы
+// обновленная функция initForm
 function initForm() {
     // Настройка переключателей секций
     setupSectionToggle('driveSystemToggle', 'driveSystemSection', [
@@ -47,11 +47,13 @@ function initForm() {
     // Настройка зависимостей полей
     setupFieldDependencies();
 
-    // Настройка поля даты
+    // Настройка поля даты - УБИРАЕМ ОГРАНИЧЕНИЯ
     const shippingDateInput = document.getElementById('shippingDate');
     if (shippingDateInput) {
-        const today = new Date();
-        shippingDateInput.min = today.toISOString().split('T')[0];
+        // Убираем атрибут min, чтобы можно было выбрать любую дату
+        shippingDateInput.removeAttribute('min');
+        
+        // Устанавливаем значение по умолчанию (текущая дата + 30 дней)
         const defaultDate = new Date();
         defaultDate.setDate(defaultDate.getDate() + 30);
         shippingDateInput.value = defaultDate.toISOString().split('T')[0];
@@ -235,7 +237,33 @@ async function handleFormSubmit(e) {
         status.remove();
     }
 }
+// Автосохранение черновика
+// обновленная функция autoSaveDraft
+async function autoSaveDraft(formData) {
+    try {
+        const response = await fetch(`${API_BASE}/save-draft`, {
+            method: 'POST',
+            body: formData
+        });
 
+        const result = await response.json();
+
+        if (result.success) {
+            console.log('✅ Черновик автоматически сохранен:', result.draft_id);
+            appState.currentDraft = result.draft_id;
+            
+            // Проверяем статус для перехода
+            const machineStatus = formData.get('machineStatus');
+            if (machineStatus === 'Отгружен') {
+                setTimeout(() => {
+                    window.location.href = '/static/shipped.html';
+                }, 1500);
+            }
+        }
+    } catch (error) {
+        console.error('❌ Ошибка автосохранения:', error);
+    }
+}
 //  обновленная функция saveDraft
 async function saveDraft() {
     if (!validateForm(true)) {
@@ -293,7 +321,7 @@ async function saveDraft() {
         status.remove();
     }
 }
-// Валидация
+// script.js - обновленная функция validateForm
 function validateForm(forDraft = false) {
     let isValid = true;
 
@@ -320,20 +348,21 @@ function validateForm(forDraft = false) {
         }
     });
 
-    const shippingDateInput = document.getElementById('shippingDate');
-    if (shippingDateInput && shippingDateInput.value) {
-        const selectedDate = new Date(shippingDateInput.value);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (selectedDate < today) {
-            showStatus('⚠️ Дата отгрузки не может быть раньше сегодняшней даты', 'warning');
-            shippingDateInput.style.borderColor = '#f59e0b';
-            if (!forDraft) {
-                isValid = false;
-            }
-        }
-    }
+    // УБИРАЕМ ПРОВЕРКУ ДАТЫ ОТГРУЗКИ - теперь можно любую дату
+    // const shippingDateInput = document.getElementById('shippingDate');
+    // if (shippingDateInput && shippingDateInput.value) {
+    //     const selectedDate = new Date(shippingDateInput.value);
+    //     const today = new Date();
+    //     today.setHours(0, 0, 0, 0);
+    //
+    //     if (selectedDate < today) {
+    //         showStatus('⚠️ Дата отгрузки не может быть раньше сегодняшней даты', 'warning');
+    //         shippingDateInput.style.borderColor = '#f59e0b';
+    //         if (!forDraft) {
+    //             isValid = false;
+    //         }
+    //     }
+    // }
 
     // Для финальной отправки проверяем наличие изображений
     if (!forDraft) {
@@ -856,6 +885,7 @@ function showStatus(message, type = 'info') {
     }
 }
 
+// script.js - улучшенная функция showNotification
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
@@ -881,6 +911,7 @@ function showNotification(message, type = 'success') {
         border: 1px solid ${type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'};
         max-width: 350px;
         font-family: 'Inter', sans-serif;
+        font-weight: 500;
     `;
 
     document.body.appendChild(notification);
@@ -894,49 +925,3 @@ function showNotification(message, type = 'success') {
         }, 300);
     }, 3000);
 }
-
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-
-    .loading {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .loading::after {
-        content: '';
-        width: 16px;
-        height: 16px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        border-top-color: white;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        to { transform: rotate(360deg); }
-    }
-`;
-document.head.appendChild(style);
