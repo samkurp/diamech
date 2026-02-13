@@ -112,13 +112,34 @@ def generate_folder_name(data):
     serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_')
     return f"ML_{machine_type}{lifting_capacity}№{serial_number}"
 
+def transliterate_machine_type(machine_type):
+    """Транслитерирует тип станка для имени ZIP файла"""
+    translit_map = {
+        'В': 'B',
+        'ВТ': 'BT',
+        'ВМ': 'BM',
+        'СП': 'SP',
+        'ДБС': 'DBS'
+    }
+    return translit_map.get(machine_type, machine_type)
+
 def generate_protocol_filename(data):
-    """Генерирует имя файла протокола"""
+    """Генерирует имя файла протокола (кириллица)"""
     machine_type = data.get('machineType', '').strip()
     lifting_capacity = data.get('liftingCapacity', '').strip()
     serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_')
-    work_type = data.get('workType', '').strip()
     return f"{machine_type}{lifting_capacity}№{serial_number}.xlsx"
+
+def generate_zip_filename(data):
+    """Генерирует имя ZIP файла (латиница)"""
+    machine_type = data.get('machineType', '').strip()
+    lifting_capacity = data.get('liftingCapacity', '').strip()
+    serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_')
+    
+    # Транслитерируем тип станка
+    machine_type_lat = transliterate_machine_type(machine_type)
+    
+    return f"{machine_type_lat}{lifting_capacity}№{serial_number}.zip"
 
 # ========== КЛАСС ДЛЯ РАБОТЫ С SUPABASE ==========
 class SupabaseDB:
@@ -897,7 +918,7 @@ def generate_protocol():
             
             # 6. Создаем ZIP архив - ИСПОЛЬЗУЕМ РАНЕЕ ОПРЕДЕЛЕННЫЕ ПЕРЕМЕННЫЕ
             # 6. Создаем ZIP архив
-            zip_filename = protocol_filename.replace('.xlsx', '.zip')
+            zip_filename = generate_zip_filename(data)
             zip_path = os.path.join(temp_dir, zip_filename)
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -915,16 +936,13 @@ def generate_protocol():
             print(f"✅ ZIP архив создан: {zip_filename}, размер: {os.path.getsize(zip_path)} байт")
             
             # 7. Отправляем ZIP файл клиенту с правильной кодировкой кириллицы
-            response = send_file(
+            # Отправляем ZIP файл
+            return send_file(
                 zip_path,
                 mimetype='application/zip',
                 as_attachment=True,
-                download_name=zip_filename  # оставляем для совместимости
+                download_name=zip_filename  # Теперь здесь латиница, проблем с кодировкой нет
             )
-            
-            # Переопределяем заголовок с правильной кодировкой UTF-8
-            response.headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{urllib.parse.quote(zip_filename)}"
-            return response
             
     except Exception as e:
         print(f"❌ Ошибка генерации пакета: {e}")
