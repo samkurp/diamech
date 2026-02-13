@@ -899,7 +899,8 @@ def generate_protocol():
                 f.write(info_content.strip())
             
             # 6. Создаем ZIP архив - ИСПОЛЬЗУЕМ РАНЕЕ ОПРЕДЕЛЕННЫЕ ПЕРЕМЕННЫЕ
-            zip_filename = f"{machine_type}_{lifting_capacity}_{serial_number}.zip"
+            # 6. Создаем ZIP архив
+            zip_filename = protocol_filename.replace('.xlsx', '.zip')
             zip_path = os.path.join(temp_dir, zip_filename)
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
