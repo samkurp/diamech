@@ -130,7 +130,7 @@ function handleMachineTypeChange() {
     updateSubmitButton();
 }
 
-// ОСНОВНОЙ ОБРАБОТЧИК - ФОРМИРОВАНИЕ ПРОТОКОЛА И СКАЧИВАНИЕ АРХИВА
+//обновленная функция handleFormSubmit
 async function handleFormSubmit(e) {
     e.preventDefault();
 
@@ -204,7 +204,7 @@ async function handleFormSubmit(e) {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
-        showStatus(`✅ Архив "${filename}" успешно загружен`, 'success');
+        showNotification(`✅ Архив "${filename}" успешно загружен`, 'success');
 
         // Сохраняем черновик после успешной генерации протокола
         if (!appState.currentDraft) {
@@ -223,12 +223,10 @@ async function handleFormSubmit(e) {
 
         window.history.replaceState({}, document.title, window.location.pathname);
 
-        // Предложение перейти к списку
+        // ОТКРЫВАЕМ ГЛАВНУЮ СТРАНИЦУ ПОСЛЕ СКАЧИВАНИЯ
         setTimeout(() => {
-            if (confirm('Архив скачан. Перейти к списку станков?')) {
-                window.location.href = '/';
-            }
-        }, 1000);
+            window.location.href = '/';
+        }, 1500);
 
     } catch (error) {
         console.error('Ошибка при формировании протокола:', error);
@@ -238,9 +236,26 @@ async function handleFormSubmit(e) {
     }
 }
 
-// Автосохранение черновика
-async function autoSaveDraft(formData) {
+//  обновленная функция saveDraft
+async function saveDraft() {
+    if (!validateForm(true)) {
+        showStatus('❌ Заполните все обязательные поля перед сохранением', 'error');
+        return;
+    }
+
+    const status = showLoading('💾 Сохранение черновика...');
+
     try {
+        const formData = new FormData(document.getElementById('machineForm'));
+
+        const toggles = ['driveSystemToggle', 'electricMotorToggle', 'sensorsToggle'];
+        toggles.forEach(toggleId => {
+            const toggle = document.getElementById(toggleId);
+            if (toggle) {
+                formData.append(toggleId, toggle.checked.toString());
+            }
+        });
+
         const response = await fetch(`${API_BASE}/save-draft`, {
             method: 'POST',
             body: formData
@@ -249,14 +264,35 @@ async function autoSaveDraft(formData) {
         const result = await response.json();
 
         if (result.success) {
-            console.log('✅ Черновик автоматически сохранен:', result.draft_id);
+            // Показываем красивое уведомление
+            showNotification('✅ Черновик успешно сохранен!', 'success');
+            
             appState.currentDraft = result.draft_id;
+
+            const url = new URL(window.location);
+            url.searchParams.set('draft', result.draft_id);
+            window.history.replaceState({}, '', url);
+
+            // Проверяем статус - если "Отгружен", переходим на страницу отгруженных
+            const machineStatus = document.getElementById('machineStatus')?.value;
+            if (machineStatus === 'Отгружен') {
+                setTimeout(() => {
+                    window.location.href = '/static/shipped.html';
+                }, 1500);
+            } else {
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+            }
+        } else {
+            throw new Error(result.error);
         }
     } catch (error) {
-        console.error('❌ Ошибка автосохранения:', error);
+        showStatus(`❌ Ошибка сохранения: ${error.message}`, 'error');
+    } finally {
+        status.remove();
     }
 }
-
 // Валидация
 function validateForm(forDraft = false) {
     let isValid = true;
