@@ -193,95 +193,109 @@ class SupabaseDB:
             print(f"❌ Ошибка загрузки черновика {draft_id}: {e}")
             return None
     
-    @staticmethod
-    def save_draft(data, images=None):
-        """Сохраняет новый черновик со сжатыми изображениями"""
-        try:
-            if supabase is None:
-                return False, "Supabase не инициализирован", None
-            
-            # Генерируем ID из данных станка
-            machine_type = data.get('machineType', 'Unknown')
-            lifting_capacity = data.get('liftingCapacity', 'Unknown')
-            serial_number = data.get('serialNumber', 'Unknown')
-            
-            draft_id = f"{machine_type}_{lifting_capacity}_{serial_number}"
-            draft_id = "".join(c for c in draft_id if c.isalnum() or c in ('_', '-'))
-            
-            if not draft_id or draft_id == "_Unknown_Unknown":
-                draft_id = str(uuid.uuid4())
-            
-            # Формируем отображаемое имя
-            display_name = f"{machine_type}-{lifting_capacity} №{serial_number}"
-            
-            # Подготавливаем данные
-            draft_data = {
-                'id': draft_id,
-                'data': dict(data),
-                'created_at': datetime.now().isoformat(),
-                'updated_at': datetime.now().isoformat(),
-                'display_name': display_name,
-                'machine_status': data.get('machineStatus', 'Сборка'),
-                'shipping_date': data.get('shippingDate', ''),
-                'customer_info': {}
-            }
-            
-            # Сохраняем в Supabase
-            supabase.table('drafts').upsert(draft_data).execute()
-            print(f"💾 Сохранен черновик: {draft_id}")
-            
-            # Сохраняем изображения со сжатием
-            saved_images = []
-            if images:
-                for img in images:
-                    if img and allowed_file(img.filename):
-                        filename = secure_filename(img.filename)
-                        img.seek(0)
-                        img_data = img.read()
-                        
-                        # Сжимаем изображение
-                        compressed_data = compress_image(
-                            img_data, 
-                            max_size=Config.IMAGE_MAX_SIZE, 
-                            quality=Config.IMAGE_QUALITY
-                        )
-                        
-                        # Конвертируем в base64
-                        img_base64 = base64.b64encode(compressed_data).decode('utf-8')
-                        
-                        # Определяем content type
-                        content_type = img.content_type
-                        if not content_type or content_type == 'application/octet-stream':
-                            ext = filename.lower().split('.')[-1]
-                            if ext in ['jpg', 'jpeg']:
-                                content_type = 'image/jpeg'
-                            elif ext == 'png':
-                                content_type = 'image/png'
-                            else:
-                                content_type = f'image/{ext}'
-                        
-                        image_data = {
-                            'draft_id': draft_id,
-                            'filename': filename,
-                            'image_data': img_base64,
-                            'content_type': content_type,
-                            'uploaded_at': datetime.now().isoformat()
-                        }
-                        
+   # app.py - простой вариант с upsert
+
+@staticmethod
+def save_draft(data, images=None):
+    """Сохраняет новый черновик со сжатыми изображениями"""
+    try:
+        if supabase is None:
+            return False, "Supabase не инициализирован", None
+        
+        # Генерируем ID из данных станка
+        machine_type = data.get('machineType', 'Unknown')
+        lifting_capacity = data.get('liftingCapacity', 'Unknown')
+        serial_number = data.get('serialNumber', 'Unknown')
+        
+        draft_id = f"{machine_type}_{lifting_capacity}_{serial_number}"
+        draft_id = "".join(c for c in draft_id if c.isalnum() or c in ('_', '-'))
+        
+        if not draft_id or draft_id == "_Unknown_Unknown":
+            draft_id = str(uuid.uuid4())
+        
+        # Формируем отображаемое имя
+        display_name = f"{machine_type}-{lifting_capacity} №{serial_number}"
+        
+        # Подготавливаем данные
+        draft_data = {
+            'id': draft_id,
+            'data': dict(data),
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+            'display_name': display_name,
+            'machine_status': data.get('machineStatus', 'Сборка'),
+            'shipping_date': data.get('shippingDate', ''),
+            'customer_info': {}
+        }
+        
+        # Сохраняем в Supabase
+        supabase.table('drafts').upsert(draft_data).execute()
+        print(f"💾 Сохранен черновик: {draft_id}")
+        
+        # Сохраняем изображения со сжатием
+        saved_images = []
+        if images:
+            for img in images:
+                if img and allowed_file(img.filename):
+                    filename = secure_filename(img.filename)
+                    img.seek(0)
+                    img_data = img.read()
+                    
+                    # Сжимаем изображение
+                    compressed_data = compress_image(
+                        img_data, 
+                        max_size=Config.IMAGE_MAX_SIZE, 
+                        quality=Config.IMAGE_QUALITY
+                    )
+                    
+                    # Конвертируем в base64
+                    img_base64 = base64.b64encode(compressed_data).decode('utf-8')
+                    
+                    # Определяем content type
+                    content_type = img.content_type
+                    if not content_type or content_type == 'application/octet-stream':
+                        ext = filename.lower().split('.')[-1]
+                        if ext in ['jpg', 'jpeg']:
+                            content_type = 'image/jpeg'
+                        elif ext == 'png':
+                            content_type = 'image/png'
+                        else:
+                            content_type = f'image/{ext}'
+                    
+                    image_data = {
+                        'draft_id': draft_id,
+                        'filename': filename,
+                        'image_data': img_base64,
+                        'content_type': content_type,
+                        'uploaded_at': datetime.now().isoformat()
+                    }
+                    
+                    # ИСПОЛЬЗУЕМ upsert - если файл с таким именем уже есть, он обновится
+                    # Если нет - создастся новый
+                    try:
                         supabase.table('images').upsert(image_data).execute()
                         saved_images.append(filename)
-                        print(f"🖼️ Сохранено сжатое изображение: {filename}")
-            
-            return True, {
-                'id': draft_id, 
-                'display_name': display_name, 
-                'saved_images': saved_images
-            }, None
-            
-        except Exception as e:
-            print(f"❌ Ошибка сохранения: {e}")
-            traceback.print_exc()
-            return False, str(e), None
+                        print(f"🖼️ Сохранено изображение: {filename}")
+                    except Exception as e:
+                        print(f"⚠️ Ошибка при сохранении изображения {filename}: {e}")
+                        # Если upsert не сработал, пробуем insert
+                        try:
+                            supabase.table('images').insert(image_data).execute()
+                            saved_images.append(filename)
+                            print(f"🖼️ Сохранено через insert: {filename}")
+                        except Exception as e2:
+                            print(f"❌ Не удалось сохранить {filename}: {e2}")
+        
+        return True, {
+            'id': draft_id, 
+            'display_name': display_name, 
+            'saved_images': saved_images
+        }, None
+        
+    except Exception as e:
+        print(f"❌ Ошибка сохранения: {e}")
+        traceback.print_exc()
+        return False, str(e), None
     
     @staticmethod
     def update_draft(draft_id, data):
