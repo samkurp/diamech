@@ -323,6 +323,7 @@ function validateRadioButtons() {
 }
 
 // Сохранение черновика
+// script.js - обновленная функция saveDraft
 async function saveDraft() {
     if (!validateForm(true)) {
         showStatus('❌ Заполните все обязательные поля перед сохранением', 'error');
@@ -350,8 +351,14 @@ async function saveDraft() {
         const result = await response.json();
 
         if (result.success) {
+            // УБЕДИМСЯ, ЧТО УВЕДОМЛЕНИЕ ПОКАЗЫВАЕТСЯ
+            console.log('✅ Черновик сохранен, показываем уведомление');
+            
             // Показываем красивое уведомление
             showNotification('✅ Черновик успешно сохранен!', 'success');
+            
+            // ДОПОЛНИТЕЛЬНО показываем статус для надежности
+            showStatus('✅ Черновик успешно сохранен!', 'success');
             
             appState.currentDraft = result.draft_id;
 
@@ -825,38 +832,47 @@ function showStatus(message, type = 'info') {
     }
 }
 
+// script.js - исправленная функция showNotification
 function showNotification(message, type = 'success') {
+    // Удаляем предыдущее уведомление, если есть
+    const existingNotification = document.querySelector('.notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
     const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
+    notification.className = 'notification';
     notification.innerHTML = `
-        <div class="notification-content">
-            <span class="notification-icon">${type === 'success' ? '✅' : '❌'}</span>
-            <span class="notification-text">${message}</span>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="font-size: 20px;">${type === 'success' ? '✅' : '❌'}</span>
+            <span style="font-size: 15px; font-weight: 500;">${message}</span>
         </div>
     `;
 
+    // Применяем стили напрямую
     notification.style.cssText = `
         position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)'};
+        top: 30px;
+        right: 30px;
+        background: ${type === 'success' ? '#10b981' : '#ef4444'};
         color: white;
-        padding: 15px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        z-index: 10000;
-        animation: slideIn 0.3s ease-out;
+        padding: 16px 24px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        z-index: 999999;
+        animation: slideInRight 0.3s ease-out;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        border: 1px solid rgba(255, 255, 255, 0.2);
         backdrop-filter: blur(10px);
-        border: 1px solid ${type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'};
-        max-width: 350px;
-        font-family: 'Inter', sans-serif;
-        font-weight: 500;
+        max-width: 400px;
+        pointer-events: none;
     `;
 
     document.body.appendChild(notification);
 
+    // Автоматически скрываем через 3 секунды
     setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-out forwards';
+        notification.style.animation = 'slideOutRight 0.3s ease-out forwards';
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
@@ -865,9 +881,10 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
+// Добавляем анимации в style
 const style = document.createElement('style');
 style.textContent = `
-    @keyframes slideIn {
+    @keyframes slideInRight {
         from {
             transform: translateX(100%);
             opacity: 0;
@@ -878,7 +895,7 @@ style.textContent = `
         }
     }
 
-    @keyframes slideOut {
+    @keyframes slideOutRight {
         from {
             transform: translateX(0);
             opacity: 1;
