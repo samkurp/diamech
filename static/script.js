@@ -47,16 +47,6 @@ function initForm() {
     // Настройка зависимостей полей
     setupFieldDependencies();
 
-    // Настройка поля даты
-    const shippingDateInput = document.getElementById('shippingDate');
-    if (shippingDateInput) {
-        const today = new Date();
-        shippingDateInput.min = today.toISOString().split('T')[0];
-        const defaultDate = new Date();
-        defaultDate.setDate(defaultDate.getDate() + 30);
-        shippingDateInput.value = defaultDate.toISOString().split('T')[0];
-    }
-
     // Инициализация стилей
     initializeFieldStyles();
     updateSubmitButton();
@@ -283,21 +273,6 @@ function validateForm(forDraft = false) {
             isValid = false;
         }
     });
-
-    const shippingDateInput = document.getElementById('shippingDate');
-    if (shippingDateInput && shippingDateInput.value) {
-        const selectedDate = new Date(shippingDateInput.value);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        if (selectedDate < today) {
-            showStatus('⚠️ Дата отгрузки не может быть раньше сегодняшней даты', 'warning');
-            shippingDateInput.style.borderColor = '#f59e0b';
-            if (!forDraft) {
-                isValid = false;
-            }
-        }
-    }
 
     // Для финальной отправки проверяем наличие изображений
     if (!forDraft) {
