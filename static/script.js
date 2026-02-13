@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
-// обновленная функция initForm
+// Инициализация формы
 function initForm() {
     // Настройка переключателей секций
     setupSectionToggle('driveSystemToggle', 'driveSystemSection', [
@@ -132,7 +132,7 @@ function handleMachineTypeChange() {
     updateSubmitButton();
 }
 
-//обновленная функция handleFormSubmit
+// ОСНОВНОЙ ОБРАБОТЧИК - ФОРМИРОВАНИЕ ПРОТОКОЛА И СКАЧИВАНИЕ АРХИВА
 async function handleFormSubmit(e) {
     e.preventDefault();
 
@@ -237,8 +237,8 @@ async function handleFormSubmit(e) {
         status.remove();
     }
 }
+
 // Автосохранение черновика
-// обновленная функция autoSaveDraft
 async function autoSaveDraft(formData) {
     try {
         const response = await fetch(`${API_BASE}/save-draft`, {
@@ -264,64 +264,8 @@ async function autoSaveDraft(formData) {
         console.error('❌ Ошибка автосохранения:', error);
     }
 }
-//  обновленная функция saveDraft
-async function saveDraft() {
-    if (!validateForm(true)) {
-        showStatus('❌ Заполните все обязательные поля перед сохранением', 'error');
-        return;
-    }
 
-    const status = showLoading('💾 Сохранение черновика...');
-
-    try {
-        const formData = new FormData(document.getElementById('machineForm'));
-
-        const toggles = ['driveSystemToggle', 'electricMotorToggle', 'sensorsToggle'];
-        toggles.forEach(toggleId => {
-            const toggle = document.getElementById(toggleId);
-            if (toggle) {
-                formData.append(toggleId, toggle.checked.toString());
-            }
-        });
-
-        const response = await fetch(`${API_BASE}/save-draft`, {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            // Показываем красивое уведомление
-            showNotification('✅ Черновик успешно сохранен!', 'success');
-            
-            appState.currentDraft = result.draft_id;
-
-            const url = new URL(window.location);
-            url.searchParams.set('draft', result.draft_id);
-            window.history.replaceState({}, '', url);
-
-            // Проверяем статус - если "Отгружен", переходим на страницу отгруженных
-            const machineStatus = document.getElementById('machineStatus')?.value;
-            if (machineStatus === 'Отгружен') {
-                setTimeout(() => {
-                    window.location.href = '/static/shipped.html';
-                }, 1500);
-            } else {
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 1500);
-            }
-        } else {
-            throw new Error(result.error);
-        }
-    } catch (error) {
-        showStatus(`❌ Ошибка сохранения: ${error.message}`, 'error');
-    } finally {
-        status.remove();
-    }
-}
-// script.js - обновленная функция validateForm
+// Валидация
 function validateForm(forDraft = false) {
     let isValid = true;
 
@@ -349,20 +293,6 @@ function validateForm(forDraft = false) {
     });
 
     // УБИРАЕМ ПРОВЕРКУ ДАТЫ ОТГРУЗКИ - теперь можно любую дату
-    // const shippingDateInput = document.getElementById('shippingDate');
-    // if (shippingDateInput && shippingDateInput.value) {
-    //     const selectedDate = new Date(shippingDateInput.value);
-    //     const today = new Date();
-    //     today.setHours(0, 0, 0, 0);
-    //
-    //     if (selectedDate < today) {
-    //         showStatus('⚠️ Дата отгрузки не может быть раньше сегодняшней даты', 'warning');
-    //         shippingDateInput.style.borderColor = '#f59e0b';
-    //         if (!forDraft) {
-    //             isValid = false;
-    //         }
-    //     }
-    // }
 
     // Для финальной отправки проверяем наличие изображений
     if (!forDraft) {
@@ -420,16 +350,26 @@ async function saveDraft() {
         const result = await response.json();
 
         if (result.success) {
-            showNotification('✅ Черновик успешно сохранен!');
+            // Показываем красивое уведомление
+            showNotification('✅ Черновик успешно сохранен!', 'success');
+            
             appState.currentDraft = result.draft_id;
 
             const url = new URL(window.location);
             url.searchParams.set('draft', result.draft_id);
             window.history.replaceState({}, '', url);
 
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1500);
+            // Проверяем статус - если "Отгружен", переходим на страницу отгруженных
+            const machineStatus = document.getElementById('machineStatus')?.value;
+            if (machineStatus === 'Отгружен') {
+                setTimeout(() => {
+                    window.location.href = '/static/shipped.html';
+                }, 1500);
+            } else {
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1500);
+            }
         } else {
             throw new Error(result.error);
         }
@@ -885,7 +825,6 @@ function showStatus(message, type = 'info') {
     }
 }
 
-// script.js - улучшенная функция showNotification
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
@@ -925,3 +864,49 @@ function showNotification(message, type = 'success') {
         }, 300);
     }, 3000);
 }
+
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+
+    .loading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .loading::after {
+        content: '';
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(style);
