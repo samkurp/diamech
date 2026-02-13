@@ -734,6 +734,11 @@ def generate_protocol():
         data = request.form
         draft_id = data.get('draft_id')
         
+        # ПОЛУЧАЕМ ДАННЫЕ ДЛЯ ИМЕН ФАЙЛОВ ЗДЕСЬ, В НАЧАЛЕ
+        machine_type = data.get('machineType', '').strip()
+        lifting_capacity = data.get('liftingCapacity', '').strip()
+        serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_')
+        
         # Создаем временную директорию
         with tempfile.TemporaryDirectory() as temp_dir:
             folder_name = generate_folder_name(data)
@@ -893,8 +898,8 @@ def generate_protocol():
             with open(info_path, 'w', encoding='utf-8') as f:
                 f.write(info_content.strip())
             
-            # 6. Создаем ZIP архив
-            zip_filename = f"{machine_type}{lifting_capacity}№{serial_number}.zip"
+            # 6. Создаем ZIP архив - ИСПОЛЬЗУЕМ РАНЕЕ ОПРЕДЕЛЕННЫЕ ПЕРЕМЕННЫЕ
+            zip_filename = f"{machine_type}_{lifting_capacity}_{serial_number}.zip"
             zip_path = os.path.join(temp_dir, zip_filename)
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -926,6 +931,7 @@ def generate_protocol():
             'success': False,
             'error': f'Ошибка генерации протокола: {str(e)}'
         }), 500
+        
 @app.route('/api/download-full-package/<draft_id>', methods=['GET'])
 def download_full_package(draft_id):
     """
