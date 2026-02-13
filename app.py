@@ -192,7 +192,7 @@ class SupabaseDB:
         except Exception as e:
             print(f"❌ Ошибка загрузки черновика {draft_id}: {e}")
             return None
-    
+
     @staticmethod
     def save_draft(data, images=None):
         """Сохраняет новый черновик со сжатыми изображениями"""
@@ -260,17 +260,62 @@ class SupabaseDB:
                             else:
                                 content_type = f'image/{ext}'
                         
-                        image_data = {
-                            'draft_id': draft_id,
-                            'filename': filename,
-                            'image_data': img_base64,
-                            'content_type': content_type,
-                            'uploaded_at': datetime.now().isoformat()
-                        }
-                        
-                        supabase.table('images').upsert(image_data).execute()
-                        saved_images.append(filename)
-                        print(f"🖼️ Сохранено сжатое изображение: {filename}")
+                        # ПРОВЕРЯЕМ, СУЩЕСТВУЕТ ЛИ УЖЕ ТАКОЕ ИЗОБРАЖЕНИЕ
+                        try:
+                            existing = supabase.table('images') \
+                                .select('*') \
+                                .eq('draft_id', draft_id) \
+                                .eq('filename', filename) \
+                                .execute()
+                            
+                            if existing.data:
+                                # Обновляем существующее изображение
+                                supabase.table('images') \
+                                    .update({
+                                        'image_data': img_base64,
+                                        'content_type': content_type,
+                                        'uploaded_at': datetime.now().isoformat()
+                                    }) \
+                                    .eq('draft_id', draft_id) \
+                                    .eq('filename', filename) \
+                                    .execute()
+                                print(f"🔄 Обновлено существующее изображение: {filename}")
+                            else:
+                                # Вставляем новое изображение
+                                image_data = {
+                                    'draft_id': draft_id,
+                                    'filename': filename,
+                                    'image_data': img_base64,
+                                    'content_type': content_type,
+                                    'uploaded_at': datetime.now().isoformat()
+                                }
+                                supabase.table('images').insert(image_data).execute()
+                                print(f"🖼️ Сохранено новое изображение: {filename}")
+                            
+                            saved_images.append(filename)
+                            
+                        except Exception as e:
+                            print(f"❌ Ошибка при сохранении изображения {filename}: {e}")
+                            # Пробуем альтернативный подход - удаляем старое и вставляем новое
+                            try:
+                                supabase.table('images') \
+                                    .delete() \
+                                    .eq('draft_id', draft_id) \
+                                    .eq('filename', filename) \
+                                    .execute()
+                                
+                                image_data = {
+                                    'draft_id': draft_id,
+                                    'filename': filename,
+                                    'image_data': img_base64,
+                                    'content_type': content_type,
+                                    'uploaded_at': datetime.now().isoformat()
+                                }
+                                supabase.table('images').insert(image_data).execute()
+                                print(f"♻️ Перезаписано изображение: {filename}")
+                                saved_images.append(filename)
+                            except Exception as e2:
+                                print(f"❌ Критическая ошибка при сохранении {filename}: {e2}")
             
             return True, {
                 'id': draft_id, 
@@ -282,9 +327,9 @@ class SupabaseDB:
             print(f"❌ Ошибка сохранения: {e}")
             traceback.print_exc()
             return False, str(e), None
-    
+
     @staticmethod
-    def update_draft(draft_id, data):
+    def update_draft(draft_id, data, images=None):
         """Обновляет существующий черновик"""
         try:
             if supabase is None:
@@ -320,10 +365,81 @@ class SupabaseDB:
             supabase.table('drafts').update(update_data).eq('id', draft_id).execute()
             print(f"📝 Обновлен черновик: {draft_id}")
             
-            return True, update_data
+            # ОБРАБАТЫВАЕМ ИЗОБРАЖЕНИЯ ПРИ ОБНОВЛЕНИИ
+            saved_images = []
+            if images:
+                for img in images:
+                    if img and allowed_file(img.filename):
+                        filename = secure_filename(img.filename)
+                        img.seek(0)
+                        img_data = img.read()
+                        
+                        # Сжимаем изображение
+                        compressed_data = compress_image(
+                            img_data,
+                            max_size=Config.IMAGE_MAX_SIZE,
+                            quality=Config.IMAGE_QUALITY
+                        )
+                        
+                        # Конвертируем в base64
+                        img_base64 = base64.b64encode(compressed_data).decode('utf-8')
+                        
+                        # Определяем content type
+                        content_type = img.content_type
+                        if not content_type or content_type == 'application/octet-stream':
+                            ext = filename.lower().split('.')[-1]
+                            if ext in ['jpg', 'jpeg']:
+                                content_type = 'image/jpeg'
+                            elif ext == 'png':
+                                content_type = 'image/png'
+                            else:
+                                content_type = f'image/{ext}'
+                        
+                        # Проверяем существование изображения
+                        try:
+                            existing = supabase.table('images') \
+                                .select('*') \
+                                .eq('draft_id', draft_id) \
+                                .eq('filename', filename) \
+                                .execute()
+                            
+                            if existing.data:
+                                # Обновляем существующее
+                                supabase.table('images') \
+                                    .update({
+                                        'image_data': img_base64,
+                                        'content_type': content_type,
+                                        'uploaded_at': datetime.now().isoformat()
+                                    }) \
+                                    .eq('draft_id', draft_id) \
+                                    .eq('filename', filename) \
+                                    .execute()
+                                print(f"🔄 Обновлено изображение при обновлении: {filename}")
+                            else:
+                                # Вставляем новое
+                                image_data = {
+                                    'draft_id': draft_id,
+                                    'filename': filename,
+                                    'image_data': img_base64,
+                                    'content_type': content_type,
+                                    'uploaded_at': datetime.now().isoformat()
+                                }
+                                supabase.table('images').insert(image_data).execute()
+                                print(f"🖼️ Добавлено новое изображение при обновлении: {filename}")
+                            
+                            saved_images.append(filename)
+                            
+                        except Exception as e:
+                            print(f"❌ Ошибка при обновлении изображения {filename}: {e}")
+            
+            return True, {
+                'draft_data': update_data,
+                'saved_images': saved_images
+            }
             
         except Exception as e:
             print(f"❌ Ошибка обновления: {e}")
+            traceback.print_exc()
             return False, str(e)
     
     @staticmethod
@@ -510,7 +626,8 @@ def update_draft(draft_id):
     """Обновляет черновик"""
     try:
         data = request.form
-        success, result = SupabaseDB.update_draft(draft_id, data)
+        images = request.files.getlist('images')  # Добавляем получение изображений
+        success, result = SupabaseDB.update_draft(draft_id, data, images)
         
         if success:
             return jsonify({
@@ -528,7 +645,6 @@ def update_draft(draft_id):
             'success': False,
             'error': str(e)
         }), 500
-
 @app.route('/api/drafts/<draft_id>/customer', methods=['GET', 'POST', 'PUT'])
 def manage_customer_data(draft_id):
     """Управление данными заказчика"""
