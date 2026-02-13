@@ -830,10 +830,10 @@ def generate_protocol():
             
             # 5. Создаем информационный файл README.txt
             info_content = f"""
-ПРОТОКОЛ СОГЛАСОВАНИЯ КОМПЛЕКТУЮЩИХ
+ПРОТОКОЛ
+
 =====================================
 
-ДАТА ФОРМИРОВАНИЯ: {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}
 
 1. ОСНОВНАЯ ИНФОРМАЦИЯ
 -----------------------
@@ -881,10 +881,6 @@ def generate_protocol():
 Блок обработки:       {data.get('signalProcessor', 'Не указан')}
 Номер блока:          {data.get('signalProcessorNumber', 'Не указан')}
 
-7. ФОТОГРАФИИ
---------------
-Всего изображений:    {len(saved_images)}
-Файлы:                {', '.join(saved_images) if saved_images else 'нет'}
 
 8. ПРИМЕЧАНИЯ
 -------------
@@ -917,13 +913,17 @@ def generate_protocol():
             
             print(f"✅ ZIP архив создан: {zip_filename}, размер: {os.path.getsize(zip_path)} байт")
             
-            # 7. Отправляем ZIP файл клиенту
-            return send_file(
+            # 7. Отправляем ZIP файл клиенту с правильной кодировкой кириллицы
+            response = send_file(
                 zip_path,
                 mimetype='application/zip',
                 as_attachment=True,
-                download_name=zip_filename
+                download_name=zip_filename  # оставляем для совместимости
             )
+            
+            # Переопределяем заголовок с правильной кодировкой UTF-8
+            response.headers["Content-Disposition"] = f"attachment; filename*=UTF-8''{urllib.parse.quote(zip_filename)}"
+            return response
             
     except Exception as e:
         print(f"❌ Ошибка генерации пакета: {e}")
