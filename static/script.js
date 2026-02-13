@@ -215,10 +215,8 @@ async function handleFormSubmit(e) {
 
         // Предложение перейти к списку
         setTimeout(() => {
-            if (confirm('Архив скачан. Перейти к списку станков?')) {
-                window.location.href = '/';
-            }
-        }, 1000);
+    window.location.href = '/';
+}, 1000); // Задержка 1.5 секунды, чтобы пользователь увидел сообщение об успехе
 
     } catch (error) {
         console.error('Ошибка при формировании протокола:', error);
