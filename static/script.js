@@ -47,13 +47,11 @@ function initForm() {
     // Настройка зависимостей полей
     setupFieldDependencies();
 
-    // Настройка поля даты - УБИРАЕМ ОГРАНИЧЕНИЯ
+    // Настройка поля даты
     const shippingDateInput = document.getElementById('shippingDate');
     if (shippingDateInput) {
-        // Убираем атрибут min, чтобы можно было выбрать любую дату
-        shippingDateInput.removeAttribute('min');
-        
-        // Устанавливаем значение по умолчанию (текущая дата + 30 дней)
+        const today = new Date();
+        shippingDateInput.min = today.toISOString().split('T')[0];
         const defaultDate = new Date();
         defaultDate.setDate(defaultDate.getDate() + 30);
         shippingDateInput.value = defaultDate.toISOString().split('T')[0];
@@ -206,7 +204,7 @@ async function handleFormSubmit(e) {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
-        showNotification(`✅ Архив "${filename}" успешно загружен`, 'success');
+        showStatus(`✅ Архив "${filename}" успешно загружен`, 'success');
 
         // Сохраняем черновик после успешной генерации протокола
         if (!appState.currentDraft) {
@@ -225,10 +223,12 @@ async function handleFormSubmit(e) {
 
         window.history.replaceState({}, document.title, window.location.pathname);
 
-        // ОТКРЫВАЕМ ГЛАВНУЮ СТРАНИЦУ ПОСЛЕ СКАЧИВАНИЯ
+        // Предложение перейти к списку
         setTimeout(() => {
-            window.location.href = '/';
-        }, 1500);
+            if (confirm('Архив скачан. Перейти к списку станков?')) {
+                window.location.href = '/';
+            }
+        }, 1000);
 
     } catch (error) {
         console.error('Ошибка при формировании протокола:', error);
@@ -251,14 +251,6 @@ async function autoSaveDraft(formData) {
         if (result.success) {
             console.log('✅ Черновик автоматически сохранен:', result.draft_id);
             appState.currentDraft = result.draft_id;
-            
-            // Проверяем статус для перехода
-            const machineStatus = formData.get('machineStatus');
-            if (machineStatus === 'Отгружен') {
-                setTimeout(() => {
-                    window.location.href = '/static/shipped.html';
-                }, 1500);
-            }
         }
     } catch (error) {
         console.error('❌ Ошибка автосохранения:', error);
@@ -292,7 +284,20 @@ function validateForm(forDraft = false) {
         }
     });
 
-    // УБИРАЕМ ПРОВЕРКУ ДАТЫ ОТГРУЗКИ - теперь можно любую дату
+    const shippingDateInput = document.getElementById('shippingDate');
+    if (shippingDateInput && shippingDateInput.value) {
+        const selectedDate = new Date(shippingDateInput.value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate < today) {
+            showStatus('⚠️ Дата отгрузки не может быть раньше сегодняшней даты', 'warning');
+            shippingDateInput.style.borderColor = '#f59e0b';
+            if (!forDraft) {
+                isValid = false;
+            }
+        }
+    }
 
     // Для финальной отправки проверяем наличие изображений
     if (!forDraft) {
@@ -323,7 +328,6 @@ function validateRadioButtons() {
 }
 
 // Сохранение черновика
-// script.js - обновленная функция saveDraft
 async function saveDraft() {
     if (!validateForm(true)) {
         showStatus('❌ Заполните все обязательные поля перед сохранением', 'error');
@@ -351,32 +355,16 @@ async function saveDraft() {
         const result = await response.json();
 
         if (result.success) {
-            // УБЕДИМСЯ, ЧТО УВЕДОМЛЕНИЕ ПОКАЗЫВАЕТСЯ
-            console.log('✅ Черновик сохранен, показываем уведомление');
-            
-            // Показываем красивое уведомление
-            showNotification('✅ Черновик успешно сохранен!', 'success');
-            
-            // ДОПОЛНИТЕЛЬНО показываем статус для надежности
-            showStatus('✅ Черновик успешно сохранен!', 'success');
-            
+            showNotification('✅ Черновик успешно сохранен!');
             appState.currentDraft = result.draft_id;
 
             const url = new URL(window.location);
             url.searchParams.set('draft', result.draft_id);
             window.history.replaceState({}, '', url);
 
-            // Проверяем статус - если "Отгружен", переходим на страницу отгруженных
-            const machineStatus = document.getElementById('machineStatus')?.value;
-            if (machineStatus === 'Отгружен') {
-                setTimeout(() => {
-                    window.location.href = '/static/shipped.html';
-                }, 1500);
-            } else {
-                setTimeout(() => {
-                    window.location.href = '/';
-                }, 1500);
-            }
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1500);
         } else {
             throw new Error(result.error);
         }
@@ -832,47 +820,37 @@ function showStatus(message, type = 'info') {
     }
 }
 
-// script.js - исправленная функция showNotification
 function showNotification(message, type = 'success') {
-    // Удаляем предыдущее уведомление, если есть
-    const existingNotification = document.querySelector('.notification');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-
     const notification = document.createElement('div');
-    notification.className = 'notification';
+    notification.className = `notification ${type}`;
     notification.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 20px;">${type === 'success' ? '✅' : '❌'}</span>
-            <span style="font-size: 15px; font-weight: 500;">${message}</span>
+        <div class="notification-content">
+            <span class="notification-icon">${type === 'success' ? '✅' : '❌'}</span>
+            <span class="notification-text">${message}</span>
         </div>
     `;
 
-    // Применяем стили напрямую
     notification.style.cssText = `
         position: fixed;
-        top: 30px;
-        right: 30px;
-        background: ${type === 'success' ? '#10b981' : '#ef4444'};
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? 'rgba(16, 185, 129, 0.95)' : 'rgba(239, 68, 68, 0.95)'};
         color: white;
-        padding: 16px 24px;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-        z-index: 999999;
-        animation: slideInRight 0.3s ease-out;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 10000;
+        animation: slideIn 0.3s ease-out;
         backdrop-filter: blur(10px);
-        max-width: 400px;
-        pointer-events: none;
+        border: 1px solid ${type === 'success' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'};
+        max-width: 350px;
+        font-family: 'Inter', sans-serif;
     `;
 
     document.body.appendChild(notification);
 
-    // Автоматически скрываем через 3 секунды
     setTimeout(() => {
-        notification.style.animation = 'slideOutRight 0.3s ease-out forwards';
+        notification.style.animation = 'slideOut 0.3s ease-out forwards';
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.parentNode.removeChild(notification);
@@ -881,10 +859,9 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
-// Добавляем анимации в style
 const style = document.createElement('style');
 style.textContent = `
-    @keyframes slideInRight {
+    @keyframes slideIn {
         from {
             transform: translateX(100%);
             opacity: 0;
@@ -895,7 +872,7 @@ style.textContent = `
         }
     }
 
-    @keyframes slideOutRight {
+    @keyframes slideOut {
         from {
             transform: translateX(0);
             opacity: 1;
