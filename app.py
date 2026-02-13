@@ -227,7 +227,8 @@ class SupabaseDB:
             }
             
             # Сохраняем в Supabase
-            supabase.table('drafts').upsert(draft_data).execute()
+            # Вместо insert используйте upsert с on_conflict
+            supabase.table('images').upsert(image_data, on_conflict='draft_id,filename').execute()
             print(f"💾 Сохранен черновик: {draft_id}")
             
             # Сохраняем изображения со сжатием
