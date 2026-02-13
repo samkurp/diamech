@@ -894,7 +894,7 @@ def generate_protocol():
                 f.write(info_content.strip())
             
             # 6. Создаем ZIP архив
-            zip_filename = f"{folder_name}.zip"
+            zip_filename = f"{machine_type}{lifting_capacity}№{serial_number}.zip"
             zip_path = os.path.join(temp_dir, zip_filename)
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -1018,7 +1018,7 @@ def download_full_package(draft_id):
                     print(f"❌ Ошибка сохранения изображения {filename}: {e}")
             
             # Создаем ZIP архив
-            zip_filename = f"{folder_name}_complete_package.zip"
+            zip_filename = f"ML_{machine_type}{lifting_capacity}№{serial_number}.zip"
             zip_path = os.path.join(temp_dir, zip_filename)
             
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
