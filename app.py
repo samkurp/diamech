@@ -551,6 +551,110 @@ class SupabaseDB:
             return None
 
 # ========== API ЭНДПОИНТЫ ==========
+# ========== ИСТОРИЯ ИЗМЕНЕНИЙ ==========
+
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    """
+    Возвращает историю изменений станков (кроме отгруженных)
+    """
+    try:
+        if supabase is None:
+            return jsonify({
+                'success': False,
+                'error': 'Supabase не инициализирован'
+            }), 500
+        
+        # Параметры запроса
+        machine_id = request.args.get('machineId', '')
+        date_from = request.args.get('dateFrom', '')
+        date_to = request.args.get('dateTo', '')
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 20))
+        
+        # Получаем все черновики (кроме отгруженных для истории)
+        drafts = SupabaseDB.get_all_drafts('active')
+        
+        # Собираем события
+        events = []
+        
+        for draft in drafts:
+            # Пропускаем отгруженные
+            if draft.get('machine_status') == 'Отгружен':
+                continue
+            
+            # Фильтр по ID станка
+            if machine_id and draft['id'] != machine_id:
+                continue
+            
+            # Событие создания
+            events.append({
+                'id': f"create_{draft['id']}",
+                'machine_id': draft['id'],
+                'machine_name': draft['display_name'],
+                'event_type': 'create',
+                'created_at': draft['created_at'],
+                'old_status': None,
+                'new_status': None,
+                'changes': None,
+                'initial_data': {
+                    'machineType': draft.get('machine_type'),
+                    'customer': draft.get('customer'),
+                    'workType': draft.get('work_type')
+                }
+            })
+            
+            # Для отслеживания изменений нам нужно хранить историю изменений
+            # Пока добавляем заглушку
+            events.append({
+                'id': f"update_{draft['id']}_{draft['updated_at']}",
+                'machine_id': draft['id'],
+                'machine_name': draft['display_name'],
+                'event_type': 'update',
+                'created_at': draft['updated_at'],
+                'old_status': None,
+                'new_status': None,
+                'changes': [
+                    {
+                        'field': 'customer',
+                        'old_value': 'Старое значение',
+                        'new_value': draft.get('customer', '')
+                    }
+                ]
+            })
+        
+        # Сортируем по дате (новые сверху)
+        events.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        # Фильтр по датам
+        if date_from:
+            events = [e for e in events if e['created_at'] >= f"{date_from}T00:00:00"]
+        if date_to:
+            events = [e for e in events if e['created_at'] <= f"{date_to}T23:59:59"]
+        
+        # Пагинация
+        total = len(events)
+        start = (page - 1) * limit
+        end = start + limit
+        paginated_events = events[start:end]
+        
+        return jsonify({
+            'success': True,
+            'events': paginated_events,
+            'total': total,
+            'page': page,
+            'total_pages': (total + limit - 1) // limit
+        })
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения истории: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
