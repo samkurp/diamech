@@ -1434,7 +1434,66 @@ def download_full_package(draft_id):
             'success': False,
             'error': f'Ошибка создания пакета: {str(e)}'
         }), 500
+# ========== API ЭНДПОИНТЫ ДЛЯ ИСТОРИИ ==========
 
+@app.route('/api/history/<draft_id>', methods=['GET'])
+def get_draft_history(draft_id):
+    """Получает историю изменений для конкретного черновика"""
+    try:
+        history = ChangeHistory.get_history(draft_id)
+        
+        # Форматируем даты для фронтенда
+        for item in history:
+            if 'created_at' in item:
+                try:
+                    dt = datetime.fromisoformat(item['created_at'].replace('Z', '+00:00'))
+                    item['created_at_formatted'] = dt.strftime('%d.%m.%Y %H:%M')
+                except:
+                    item['created_at_formatted'] = item['created_at']
+        
+        return jsonify({
+            'success': True,
+            'history': history,
+            'count': len(history)
+        })
+        
+    except Exception as e:
+        print(f"❌ Ошибка в /api/history/{draft_id}: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/history', methods=['GET'])
+def get_all_history():
+    """Получает всю историю изменений"""
+    try:
+        limit = request.args.get('limit', 100, type=int)
+        history = ChangeHistory.get_all_history(limit)
+        
+        # Форматируем даты
+        for item in history:
+            if 'created_at' in item:
+                try:
+                    dt = datetime.fromisoformat(item['created_at'].replace('Z', '+00:00'))
+                    item['created_at_formatted'] = dt.strftime('%d.%m.%Y %H:%M')
+                except:
+                    item['created_at_formatted'] = item['created_at']
+        
+        return jsonify({
+            'success': True,
+            'history': history,
+            'count': len(history)
+        })
+        
+    except Exception as e:
+        print(f"❌ Ошибка в /api/history: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 # ========== СТАТИЧЕСКИЕ ФАЙЛЫ ==========
 
 @app.route('/')
