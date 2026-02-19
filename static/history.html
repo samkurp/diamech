@@ -114,17 +114,18 @@
             color: var(--primary);
         }
         
-        .-date {
+        .change-date {
             color: var(--text-secondary);
             font-size: 0.9rem;
         }
         
-        .s-list {
-            display: grid;
-            gap: 10px;
+        .changes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
         
-        .-item {
+        .change-item {
             display: grid;
             grid-template-columns: 200px 1fr 1fr;
             gap: 20px;
@@ -136,25 +137,45 @@
         }
         
         .change-field {
+            grid-column: 1;
             font-weight: 600;
             color: var(--text-primary);
         }
         
         .change-old {
+            grid-column: 2;
             color: #ef4444;
             text-decoration: line-through;
             opacity: 0.8;
         }
         
         .change-new {
+            grid-column: 3;
             color: #10b981;
             font-weight: 500;
         }
         
+        .change-addition {
+            display: grid;
+            grid-template-columns: 200px 1fr 1fr;
+            gap: 20px;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .change-addition-field {
+            grid-column: 1;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
         .change-addition-text {
+            grid-column: 2 / span 2;
             color: #10b981;
             font-weight: 500;
-            grid-column: span 2;
         }
         
         .pagination {
@@ -219,9 +240,24 @@
         }
         
         @media (max-width: 768px) {
-            .change-item {
+            .change-item,
+            .change-addition {
                 grid-template-columns: 1fr;
                 gap: 8px;
+            }
+            
+            .change-field,
+            .change-addition-field {
+                grid-column: 1;
+            }
+            
+            .change-old,
+            .change-new {
+                grid-column: 1;
+            }
+            
+            .change-addition-text {
+                grid-column: 1;
             }
             
             .history-filters {
@@ -365,9 +401,9 @@
                             additionText = changeInfo.добавлено;
                         }
                         
-                        changesHtml = changesHtml + '<div class="change-item">' +
-                            '<div class="change-field">' + field + '</div>' +
-                            '<div class="change-addition-text" colspan="2">➕ ' + additionText.trim() + '</div>' +
+                        changesHtml = changesHtml + '<div class="change-addition">' +
+                            '<div class="change-addition-field">' + field + '</div>' +
+                            '<div class="change-addition-text">➕ ' + additionText.trim() + '</div>' +
                             '</div>';
                     } else {
                         changesHtml = changesHtml + '<div class="change-item">' +
