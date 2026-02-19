@@ -141,198 +141,6 @@ def generate_zip_filename(data):
     
     return f"{machine_type_lat}{lifting_capacity}№{serial_number}.zip"
 
-
-# ========== КЛАСС ДЛЯ РАБОТЫ С ИСТОРИЕЙ ИЗМЕНЕНИЙ ==========
-class ChangeHistory:
-    @staticmethod
-    def record_change(draft_id, old_data, new_data, action_type='update', user_id=None):
-        """
-        Записывает изменение в историю
-        """
-        try:
-            if supabase is None:
-                print("⚠️ Supabase не инициализирован, история не сохраняется")
-                return False
-            
-            # Находим измененные поля
-            changed_fields = {}
-            previous_values = {}
-            new_values = {}
-            
-            # Сравниваем старые и новые данные
-            all_keys = set(old_data.keys()) | set(new_data.keys())
-            
-            for key in all_keys:
-                old_value = old_data.get(key)
-                new_value = new_data.get(key)
-                
-                # Пропускаем служебные поля
-                if key in ['updated_at', 'created_at', 'id']:
-                    continue
-                
-                # Сравниваем значения
-                if old_value != new_value:
-                    changed_fields[key] = {
-                        'old': old_value,
-                        'new': new_value
-                    }
-                    previous_values[key] = old_value
-                    new_values[key] = new_value
-            
-            # Если нет изменений, не записываем
-            if not changed_fields:
-                return False
-            
-            # Формируем описание для отображения
-            description = ChangeHistory._generate_description(changed_fields, action_type)
-            
-            # Записываем в базу
-            history_record = {
-                'draft_id': draft_id,
-                'user_id': user_id,
-                'changed_fields': changed_fields,
-                'previous_values': previous_values,
-                'new_values': new_values,
-                'action_type': action_type,
-                'description': description,
-                'created_at': datetime.now().isoformat()
-            }
-            
-            supabase.table('change_history').insert(history_record).execute()
-            print(f"📝 Записано изменение в историю: {draft_id} - {description[:50]}...")
-            
-            return True
-            
-        except Exception as e:
-            print(f"❌ Ошибка записи истории: {e}")
-            traceback.print_exc()
-            return False
-    
-    @staticmethod
-    def _generate_description(changed_fields, action_type):
-        """Генерирует человекочитаемое описание изменений"""
-        if action_type == 'create':
-            return "Создан черновик"
-        
-        if action_type == 'status_change':
-            status_data = changed_fields.get('machineStatus', {})
-            if status_data:
-                old_status = status_data.get('old', 'неизвестно')
-                new_status = status_data.get('new', 'неизвестно')
-                return f"Статус изменен: {old_status} → {new_status}"
-        
-        if action_type == 'customer_update':
-            return "Обновлена информация о заказчике"
-        
-        # Для обычных обновлений
-        field_names = {
-            'workType': 'Тип работы',
-            'machineType': 'Тип станка',
-            'liftingCapacity': 'Грузоподъемность',
-            'serialNumber': 'Заводской номер',
-            'customer': 'Заказчик',
-            'notes': 'Примечания',
-            'driveType': 'Тип привода',
-            'driveNumber': 'Номер привода',
-            'electricMotor': 'Электродвигатель',
-            'motorNumber': 'Номер двигателя',
-            'angleSensor': 'Датчик угла',
-            'angleSensorNumber': 'Номер датчика угла',
-            'leftVibrationSensor': 'Левый датчик вибрации',
-            'leftSensitivity': 'Чувствительность левого',
-            'leftSensorNumber': 'Номер левого датчика',
-            'rightVibrationSensor': 'Правый датчик вибрации',
-            'rightSensitivity': 'Чувствительность правого',
-            'rightSensorNumber': 'Номер правого датчика',
-            'shippingDate': 'Дата отгрузки'
-        }
-        
-        changed_list = []
-        for field, values in changed_fields.items():
-            ru_name = field_names.get(field, field)
-            old_val = values.get('old')
-            new_val = values.get('new')
-            
-            # Если одно из значений пустое
-            if not old_val and new_val:
-                changed_list.append(f"Добавлено поле '{ru_name}': {new_val}")
-            elif old_val and not new_val:
-                changed_list.append(f"Удалено поле '{ru_name}': было {old_val}")
-            elif old_val != new_val:
-                changed_list.append(f"Изменено поле '{ru_name}': {old_val} → {new_val}")
-        
-        if len(changed_list) == 1:
-            return changed_list[0]
-        elif len(changed_list) > 1:
-            return f"Изменено {len(changed_list)} полей: {', '.join(changed_list[:2])}" + ("..." if len(changed_list) > 2 else "")
-        
-        return "Обновлен черновик"
-    
-    @staticmethod
-    def record_image_change(draft_id, filename, action='add'):
-        """Записывает изменение изображений"""
-        try:
-            if supabase is None:
-                return False
-            
-            action_type = 'image_add' if action == 'add' else 'image_remove'
-            description = f"{'Добавлено' if action == 'add' else 'Удалено'} изображение: {filename}"
-            
-            history_record = {
-                'draft_id': draft_id,
-                'changed_fields': {filename: {'action': action}},
-                'action_type': action_type,
-                'description': description,
-                'created_at': datetime.now().isoformat()
-            }
-            
-            supabase.table('change_history').insert(history_record).execute()
-            return True
-            
-        except Exception as e:
-            print(f"❌ Ошибка записи истории изображения: {e}")
-            return False
-    
-    @staticmethod
-    def get_history(draft_id, limit=50):
-        """Получает историю изменений для черновика"""
-        try:
-            if supabase is None:
-                return []
-            
-            response = supabase.table('change_history') \
-                .select('*') \
-                .eq('draft_id', draft_id) \
-                .order('created_at', desc=True) \
-                .limit(limit) \
-                .execute()
-            
-            return response.data
-            
-        except Exception as e:
-            print(f"❌ Ошибка получения истории: {e}")
-            return []
-    
-    @staticmethod
-    def get_all_history(limit=100):
-        """Получает всю историю изменений (для общей ленты)"""
-        try:
-            if supabase is None:
-                return []
-            
-            response = supabase.table('change_history') \
-                .select('*, drafts(display_name, data->machineType, data->serialNumber)') \
-                .order('created_at', desc=True) \
-                .limit(limit) \
-                .execute()
-            
-            return response.data
-            
-        except Exception as e:
-            print(f"❌ Ошибка получения всей истории: {e}")
-            return []
-
-
 # ========== КЛАСС ДЛЯ РАБОТЫ С SUPABASE ==========
 class SupabaseDB:
     @staticmethod
@@ -474,7 +282,7 @@ class SupabaseDB:
                             else:
                                 content_type = f'image/{ext}'
                         
-                        # Проверяем, существует ли уже такое изображение
+                        # ПРОВЕРЯЕМ, СУЩЕСТВУЕТ ЛИ УЖЕ ТАКОЕ ИЗОБРАЖЕНИЕ
                         try:
                             existing = supabase.table('images') \
                                 .select('*') \
@@ -531,32 +339,6 @@ class SupabaseDB:
                             except Exception as e2:
                                 print(f"❌ Критическая ошибка при сохранении {filename}: {e2}")
             
-            # ========== ЗАПИСЫВАЕМ В ИСТОРИЮ СОЗДАНИЕ ==========
-            try:
-                # Импортируем класс истории (если он в другом файле)
-                # from change_history import ChangeHistory
-                
-                # Записываем создание черновика
-                if 'ChangeHistory' in globals():
-                    ChangeHistory.record_change(
-                        draft_id=draft_id,
-                        old_data={},
-                        new_data=dict(data),
-                        action_type='create'
-                    )
-                    print(f"📝 Записано создание в историю: {draft_id}")
-                    
-                    # Если есть изображения, записываем их добавление
-                    for filename in saved_images:
-                        ChangeHistory.record_image_change(
-                            draft_id=draft_id,
-                            filename=filename,
-                            action='add'
-                        )
-            except Exception as e:
-                print(f"⚠️ Ошибка записи истории (не критично): {e}")
-            # ==================================================
-            
             return True, {
                 'id': draft_id, 
                 'display_name': display_name, 
@@ -580,14 +362,8 @@ class SupabaseDB:
             if not draft:
                 return False, "Черновик не найден"
             
-            # ========== СОХРАНЯЕМ СТАРЫЕ ДАННЫЕ ДЛЯ ИСТОРИИ ==========
-            old_data = draft.get('data', {}).copy()
-            old_status = draft.get('machine_status')
-            old_images = draft.get('image_files', [])
-            # =========================================================
-            
             # Обновляем данные
-            current_data = old_data.copy()
+            current_data = draft.get('data', {})
             for key, value in dict(data).items():
                 if value:  # Обновляем только непустые значения
                     current_data[key] = value
@@ -611,7 +387,7 @@ class SupabaseDB:
             supabase.table('drafts').update(update_data).eq('id', draft_id).execute()
             print(f"📝 Обновлен черновик: {draft_id}")
             
-            # Обрабатываем изображения
+            # ОБРАБАТЫВАЕМ ИЗОБРАЖЕНИЯ ПРИ ОБНОВЛЕНИИ
             saved_images = []
             if images:
                 for img in images:
@@ -678,51 +454,6 @@ class SupabaseDB:
                         except Exception as e:
                             print(f"❌ Ошибка при обновлении изображения {filename}: {e}")
             
-            # ========== ЗАПИСЫВАЕМ ИЗМЕНЕНИЯ В ИСТОРИЮ ==========
-            try:
-                # Импортируем класс истории (если он в другом файле)
-                # from change_history import ChangeHistory
-                
-                if 'ChangeHistory' in globals():
-                    # Записываем изменения данных
-                    if old_data != current_data:
-                        ChangeHistory.record_change(
-                            draft_id=draft_id,
-                            old_data=old_data,
-                            new_data=current_data,
-                            action_type='update'
-                        )
-                    
-                    # Записываем изменение статуса отдельно
-                    if old_status != update_data['machine_status']:
-                        ChangeHistory.record_change(
-                            draft_id=draft_id,
-                            old_data={'machineStatus': old_status},
-                            new_data={'machineStatus': update_data['machine_status']},
-                            action_type='status_change'
-                        )
-                    
-                    # Записываем добавленные изображения
-                    new_images = [f for f in saved_images if f not in old_images]
-                    for filename in new_images:
-                        ChangeHistory.record_image_change(
-                            draft_id=draft_id,
-                            filename=filename,
-                            action='add'
-                        )
-                    
-                    # Записываем удаленные изображения (если нужно отслеживать)
-                    # removed_images = [f for f in old_images if f not in saved_images]
-                    # for filename in removed_images:
-                    #     ChangeHistory.record_image_change(
-                    #         draft_id=draft_id,
-                    #         filename=filename,
-                    #         action='remove'
-                    #     )
-            except Exception as e:
-                print(f"⚠️ Ошибка записи истории (не критично): {e}")
-            # ======================================================
-            
             return True, {
                 'draft_data': update_data,
                 'saved_images': saved_images
@@ -744,13 +475,7 @@ class SupabaseDB:
             if not draft:
                 return False, "Черновик не найден"
             
-            # ========== СОХРАНЯЕМ СТАРЫЕ ДАННЫЕ ДЛЯ ИСТОРИИ ==========
-            old_customer_info = draft.get('customer_info', {}).copy()
-            old_data = draft.get('data', {}).copy()
-            old_customer_name = old_data.get('customer')
-            # =========================================================
-            
-            customer_info = old_customer_info.copy()
+            customer_info = draft.get('customer_info', {})
             customer_info.update(customer_data)
             customer_info['updated_at'] = datetime.now().isoformat()
             
@@ -763,62 +488,10 @@ class SupabaseDB:
                 .execute()
             
             print(f"👥 Обновлены данные заказчика: {draft_id}")
-            
-            # ========== ЗАПИСЫВАЕМ ИЗМЕНЕНИЕ В ИСТОРИЮ ==========
-            try:
-                # Импортируем класс истории (если он в другом файле)
-                # from change_history import ChangeHistory
-                
-                if 'ChangeHistory' in globals():
-                    if old_customer_info != customer_info:
-                        # Формируем понятное описание изменений
-                        changes = {}
-                        for key, new_value in customer_info.items():
-                            if key != 'updated_at':
-                                old_value = old_customer_info.get(key)
-                                if old_value != new_value:
-                                    changes[key] = {
-                                        'old': old_value,
-                                        'new': new_value
-                                    }
-                        
-                        if changes:
-                            ChangeHistory.record_change(
-                                draft_id=draft_id,
-                                old_data={'customer_info': old_customer_info},
-                                new_data={'customer_info': customer_info},
-                                action_type='customer_update'
-                            )
-                            
-                            # Если изменилось имя заказчика, запишем и это
-                            new_customer_name = customer_info.get('customerName')
-                            if new_customer_name and new_customer_name != old_customer_name:
-                                # Обновим имя в основных данных для согласованности
-                                current_data = old_data.copy()
-                                current_data['customer'] = new_customer_name
-                                
-                                supabase.table('drafts') \
-                                    .update({
-                                        'data': current_data
-                                    }) \
-                                    .eq('id', draft_id) \
-                                    .execute()
-                                
-                                ChangeHistory.record_change(
-                                    draft_id=draft_id,
-                                    old_data={'customer': old_customer_name},
-                                    new_data={'customer': new_customer_name},
-                                    action_type='update'
-                                )
-            except Exception as e:
-                print(f"⚠️ Ошибка записи истории заказчика: {e}")
-            # ======================================================
-            
             return True, draft
             
         except Exception as e:
             print(f"❌ Ошибка обновления данных заказчика: {e}")
-            traceback.print_exc()
             return False, str(e)
     
     @staticmethod
@@ -1434,66 +1107,7 @@ def download_full_package(draft_id):
             'success': False,
             'error': f'Ошибка создания пакета: {str(e)}'
         }), 500
-# ========== API ЭНДПОИНТЫ ДЛЯ ИСТОРИИ ==========
 
-@app.route('/api/history/<draft_id>', methods=['GET'])
-def get_draft_history(draft_id):
-    """Получает историю изменений для конкретного черновика"""
-    try:
-        history = ChangeHistory.get_history(draft_id)
-        
-        # Форматируем даты для фронтенда
-        for item in history:
-            if 'created_at' in item:
-                try:
-                    dt = datetime.fromisoformat(item['created_at'].replace('Z', '+00:00'))
-                    item['created_at_formatted'] = dt.strftime('%d.%m.%Y %H:%M')
-                except:
-                    item['created_at_formatted'] = item['created_at']
-        
-        return jsonify({
-            'success': True,
-            'history': history,
-            'count': len(history)
-        })
-        
-    except Exception as e:
-        print(f"❌ Ошибка в /api/history/{draft_id}: {e}")
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
-
-@app.route('/api/history', methods=['GET'])
-def get_all_history():
-    """Получает всю историю изменений"""
-    try:
-        limit = request.args.get('limit', 100, type=int)
-        history = ChangeHistory.get_all_history(limit)
-        
-        # Форматируем даты
-        for item in history:
-            if 'created_at' in item:
-                try:
-                    dt = datetime.fromisoformat(item['created_at'].replace('Z', '+00:00'))
-                    item['created_at_formatted'] = dt.strftime('%d.%m.%Y %H:%M')
-                except:
-                    item['created_at_formatted'] = item['created_at']
-        
-        return jsonify({
-            'success': True,
-            'history': history,
-            'count': len(history)
-        })
-        
-    except Exception as e:
-        print(f"❌ Ошибка в /api/history: {e}")
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 # ========== СТАТИЧЕСКИЕ ФАЙЛЫ ==========
 
 @app.route('/')
