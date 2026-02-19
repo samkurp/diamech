@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>История изменений</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Дополнительные стили для страницы истории */
+        .history-container {
+            padding: 20px 30px 30px;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .history-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .history-title .icon {
+            font-size: 1.8rem;
+        }
+
+        .history-filters {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .machine-select {
+            min-width: 250px;
+            padding: 10px 14px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .date-filter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(15, 23, 42, 0.4);
+            padding: 5px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .date-filter input {
+            width: 140px;
+            padding: 8px 10px;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .refresh-btn {
+            padding: 10px 16px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            color: var(--primary);
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(59, 130, 246, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .timeline {
+            position: relative;
+            margin-top: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--primary), transparent);
+            opacity: 0.3;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 50px;
+            margin-bottom: 25px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: 11px;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 3px solid rgba(59, 130, 246, 0.3);
+            z-index: 2;
+        }
+
+        .timeline-marker.create {
+            background: #10b981;
+        }
+
+        .timeline-marker.update {
+            background: #3b82f6;
+        }
+
+        .timeline-marker.status {
+            background: #f59e0b;
+        }
+
+        .timeline-marker.shipped {
+            background: #8b5cf6;
+        }
+
+        .timeline-content {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 10px;
+            padding: 18px 20px;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+        }
+
+        .timeline-content:hover {
+            border-color: var(--primary);
+            background: rgba(30, 41, 59, 0.7);
+        }
+
+        .timeline-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .timeline-machine {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .timeline-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-create {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-update {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .badge-status {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .badge-shipped {
+            background: rgba(139, 92, 246, 0.2);
+            color: #8b5cf6;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .timeline-date {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .timeline-body {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .changes-list {
+            margin-top: 12px;
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .change-item {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.05);
+            font-size: 0.9rem;
+        }
+
+        .change-item:last-child {
+            border-bottom: none;
+        }
+
+        .change-field {
+            min-width: 180px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .change-values {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+        }
+
+        .change-old {
+            color: #ef4444;
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+
+        .change-new {
+            color: #10b981;
+            font-weight: 500;
+        }
+
+        .change-arrow {
+            color: var(--text-muted);
+            margin: 0 8px;
+        }
+
+        .status-change {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-from {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .status-to {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+
+        .history-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .loading-history {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-secondary);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .page-btn {
+            padding: 8px 16px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .history-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .history-filters {
+                flex-direction: column;
+            }
+
+            .machine-select {
+                width: 100%;
+            }
+
+            .date-filter {
+                width: 100%;
+            }
+
+            .date-filter input {
+                flex: 1;
+            }
+
+            .timeline::before {
+                left: 15px;
+            }
+
+            .timeline-item {
+                padding-left: 40px;
+            }
+
+            .timeline-marker {
+                left: 6px;
+                width: 16px;
+                height: 16px;
+            }
+
+            .change-item {
+                flex-direction: column;
+                gap: 5px;
+            }
+
+            .change-field {
+                min-width: auto;
+            }
+
+            .change-values {
+                flex-direction: column;
+                gap: 5px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-container">
+            <header>
+                <h1>История изменений</h1>
+                <p class="subtitle">Хронология всех операций со станками</p>
+            </header>
+
+            <div class="menu">
+                <a href="/" class="back-button">
+                    ← На главную
+                </a>
+                <a href="/add-draft" class="back-button">
+                    + Добавить станок
+                </a>
+                <a href="/static/shipped.html" class="back-button">
+                    🚚 Отгруженные
+                </a>
+                <a href="/static/frequency_converter.html" class="back-button">
+                    🔌 Частотники
+                </a>
+                <a href="/static/pneumatics.html" class="back-button">
+                    💨 Пневматика
+                </a>
+            </div>
+
+            <div class="history-container">
+                <!-- Заголовок с фильтрами -->
+                <div class="history-header">
+                    <div class="history-title">
+                        <span class="icon">📜</span>
+                        Лента событий
+                    </div>
+
+                    <div class="history-filters">
+                        <select id="machineFilter" class="machine-select">
+                            <option value="">Все станки</option>
+                        </select>
+
+                        <div class="date-filter">
+                            <input type="date" id="dateFrom" placeholder="С">
+                            <span>-</span>
+                            <input type="date" id="dateTo" placeholder="По">
+                        </div>
+
+                        <button id="refreshBtn" class="refresh-btn">
+                            🔄 Обновить
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Статистика -->
+                <div class="history-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalEvents">0</div>
+                        <div class="stat-label">Всего событий</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="statusChanges">0</div>
+                        <div class="stat-label">Изменений статуса</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="machinesCount">0</div>
+                        <div class="stat-label">Станков</div>
+                    </div>
+                </div>
+
+                <!-- Лента событий -->
+                <div id="timeline" class="timeline">
+                    <div class="loading-history">
+                        <div class="loading">Загрузка истории...</div>
+                    </div>
+                </div>
+
+                <!-- Пагинация -->
+                <div id="pagination" class="pagination" style="display: none;">
+                    <button id="prevPage" class="page-btn" disabled>← Предыдущая</button>
+                    <span id="pageInfo" class="page-info">Страница 1 из 1</span>
+                    <button id="nextPage" class="page-btn" disabled>Следующая →</button>
+                </div>
+
+                <div id="statusMessage" class="status-message" style="display: none;"></div>
+            </div>
+
+            <footer>
+                <p>Система учета оборудования станков</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Конфигурация
+        const API_BASE = '/api';
+        
+        // Состояние
+        let currentPage = 1;
+        let totalPages = 1;
+        let totalEvents = 0;
+        let events = [];
+        let machines = [];
+        let filters = {
+            machineId: '',
+            dateFrom: '',
+            dateTo: ''
+        };
+
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', () => {
+            loadMachines();
+            loadHistory();
+            setupEventListeners();
+        });
+
+        // Настройка обработчиков
+        function setupEventListeners() {
+            document.getElementById('refreshBtn').addEventListener('click', () => {
+                currentPage = 1;
+                loadHistory();
+            });
+
+            document.getElementById('machineFilter').addEventListener('change', (e) => {
+                filters.machineId = e.target.value;
+                currentPage = 1;
+                loadHistory();
+            });
+
+            document.getElementById('dateFrom').addEventListener('change', (e) => {
+                filters.dateFrom = e.target.value;
+                currentPage = 1;
+                loadHistory();
+            });
+
+            document.getElementById('dateTo').addEventListener('change', (e) => {
+                filters.dateTo = e.target.value;
+                currentPage = 1;
+                loadHistory();
+            });
+
+            document.getElementById('prevPage').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadHistory();
+                }
+            });
+
+            document.getElementById('nextPage').addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadHistory();
+                }
+            });
+        }
+
+        // Загрузка списка станков для фильтра
+        async function loadMachines() {
+            try {
+                const response = await fetch(`${API_BASE}/drafts?status=all`);
+                const result = await response.json();
+
+                if (result.success) {
+                    machines = result.drafts;
+                    const select = document.getElementById('machineFilter');
+                    
+                    machines.forEach(machine => {
+                        const option = document.createElement('option');
+                        option.value = machine.id;
+                        option.textContent = machine.display_name;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки станков:', error);
+            }
+        }
+
+        // Загрузка истории
+        async function loadHistory() {
+            const timeline = document.getElementById('timeline');
+            
+            try {
+                // Формируем URL с параметрами
+                let url = `${API_BASE}/history?page=${currentPage}&limit=20`;
+                
+                if (filters.machineId) {
+                    url += `&machineId=${filters.machineId}`;
+                }
+                
+                if (filters.dateFrom) {
+                    url += `&dateFrom=${filters.dateFrom}`;
+                }
+                
+                if (filters.dateTo) {
+                    url += `&dateTo=${filters.dateTo}`;
+                }
+
+                const response = await fetch(url);
+                const result = await response.json();
+
+                if (result.success) {
+                    events = result.events;
+                    totalPages = result.totalPages;
+                    totalEvents = result.total;
+                    currentPage = result.currentPage;
+
+                    displayEvents(events);
+                    updateStats();
+                    updatePagination();
+                } else {
+                    throw new Error(result.error);
+                }
+
+            } catch (error) {
+                showStatus(`❌ Ошибка загрузки: ${error.message}`, 'error');
+                timeline.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">❌</div>
+                        <h3>Ошибка загрузки</h3>
+                        <p>${error.message}</p>
+                        <button onclick="loadHistory()" class="action-btn" style="margin-top: 15px;">
+                            🔄 Повторить
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Отображение событий
+        function displayEvents(events) {
+            const timeline = document.getElementById('timeline');
+
+            if (!events || events.length === 0) {
+                timeline.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📭</div>
+                        <h3>Нет событий</h3>
+                        <p>За выбранный период изменений не найдено</p>
+                    </div>
+                `;
+                return;
+            }
+
+            timeline.innerHTML = events.map(event => createEventElement(event)).join('');
+        }
+
+        // Создание элемента события
+        function createEventElement(event) {
+            const date = new Date(event.created_at);
+            const formattedDate = date.toLocaleString('ru-RU', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            let markerClass = 'update';
+            let badgeClass = 'badge-update';
+            let badgeText = 'Изменение';
+
+            if (event.event_type === 'create') {
+                markerClass = 'create';
+                badgeClass = 'badge-create';
+                badgeText = 'Создание';
+            } else if (event.event_type === 'status_change') {
+                markerClass = 'status';
+                badgeClass = 'badge-status';
+                badgeText = 'Статус';
+            } else if (event.event_type === 'shipped') {
+                markerClass = 'shipped';
+                badgeClass = 'badge-shipped';
+                badgeText = 'Отгрузка';
+            }
+
+            return `
+                <div class="timeline-item">
+                    <div class="timeline-marker ${markerClass}"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-header">
+                            <div class="timeline-machine">
+                                ${event.machine_name}
+                                <span class="timeline-badge ${badgeClass}">${badgeText}</span>
+                            </div>
+                            <div class="timeline-date">
+                                <span>📅</span> ${formattedDate}
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-body">
+                            ${formatEventDetails(event)}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Форматирование деталей события
+        function formatEventDetails(event) {
+            if (event.event_type === 'status_change') {
+                return `
+                    <div class="status-change">
+                        <span class="status-from">${event.old_status}</span>
+                        <span class="change-arrow">→</span>
+                        <span class="status-to">${event.new_status}</span>
+                    </div>
+                `;
+            }
+
+            if (event.event_type === 'create') {
+                return `
+                    <div>✅ Станок добавлен в систему</div>
+                    ${event.initial_data ? `
+                        <div class="changes-list">
+                            ${Object.entries(event.initial_data)
+                                .filter(([key, value]) => value && key !== 'id' && key !== 'created_at')
+                                .map(([key, value]) => `
+                                    <div class="change-item">
+                                        <span class="change-field">${formatFieldName(key)}:</span>
+                                        <span class="change-new">${value}</span>
+                                    </div>
+                                `).join('')}
+                        </div>
+                    ` : ''}
+                `;
+            }
+
+            if (event.changes && event.changes.length > 0) {
+                return `
+                    <div class="changes-list">
+                        ${event.changes.map(change => `
+                            <div class="change-item">
+                                <span class="change-field">${formatFieldName(change.field)}:</span>
+                                <div class="change-values">
+                                    <span class="change-old">${change.old_value || 'пусто'}</span>
+                                    <span class="change-arrow">→</span>
+                                    <span class="change-new">${change.new_value}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            return '<div>Нет данных об изменениях</div>';
+        }
+
+        // Форматирование названия поля
+        function formatFieldName(field) {
+            const fieldNames = {
+                'machineType': 'Тип станка',
+                'liftingCapacity': 'Грузоподъемность',
+                'serialNumber': 'Зав. номер',
+                'customer': 'Заказчик',
+                'workType': 'Тип работы',
+                'machineStatus': 'Статус',
+                'driveType': 'Привод',
+                'driveNumber': 'Номер привода',
+                'electricMotor': 'Двигатель',
+                'motorNumber': 'Номер двигателя',
+                'angleSensor': 'Датчик угла',
+                'angleSensorNumber': 'Номер датчика угла',
+                'speedSensorNumber': 'Номер отметчика',
+                'leftVibrationSensor': 'Левый датчик',
+                'leftSensitivity': 'Чувствительность левого',
+                'leftSensorNumber': 'Номер левого',
+                'rightVibrationSensor': 'Правый датчик',
+                'rightSensitivity': 'Чувствительность правого',
+                'rightSensorNumber': 'Номер правого',
+                'measuringDevice': 'Измерительный прибор',
+                'measuringDeviceNumber': 'Номер прибора',
+                'signalProcessor': 'БОС',
+                'signalProcessorNumber': 'Номер БОС',
+                'notes': 'Примечания',
+                'shippingDate': 'Дата отгрузки'
+            };
+            
+            return fieldNames[field] || field;
+        }
+
+        // Обновление статистики
+        function updateStats() {
+            document.getElementById('totalEvents').textContent = totalEvents;
+            
+            // Считаем изменения статусов
+            const statusChanges = events.filter(e => e.event_type === 'status_change').length;
+            document.getElementById('statusChanges').textContent = statusChanges;
+            
+            // Уникальные станки
+            const uniqueMachines = new Set(events.map(e => e.machine_id)).size;
+            document.getElementById('machinesCount').textContent = uniqueMachines;
+        }
+
+        // Обновление пагинации
+        function updatePagination() {
+            const pagination = document.getElementById('pagination');
+            
+            if (totalPages <= 1) {
+                pagination.style.display = 'none';
+                return;
+            }
+
+            pagination.style.display = 'flex';
+            document.getElementById('pageInfo').textContent = `Страница ${currentPage} из ${totalPages}`;
+            
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage === totalPages;
+        }
+
+        // Показ статуса
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.innerHTML = message;
+            statusElement.className = `status-message ${type}`;
+            statusElement.style.display = 'block';
+
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 3000);
+        }
+
+        // Добавляем стили для загрузки
+        const style = document.createElement('style');
+        style.textContent = `
+            .loading {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+            }
+
+            .loading::after {
+                content: '';
+                width: 16px;
+                height: 16px;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                border-top-color: white;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
