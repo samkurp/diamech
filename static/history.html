@@ -16,53 +16,68 @@
         }
         
         .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            text-align: center;
             margin-bottom: 30px;
-            flex-wrap: wrap;
-            gap: 15px;
+        }
+        
+        .history-header h2 {
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            margin-bottom: 20px;
         }
         
         .history-filters {
             display: flex;
             gap: 15px;
             align-items: center;
+            justify-content: center;
             flex-wrap: wrap;
+            max-width: 600px;
+            margin: 0 auto;
         }
         
         .history-filters input[type="date"] {
-            padding: 8px 12px;
+            padding: 10px 16px;
             border: 1px solid var(--border);
             border-radius: 8px;
-            background: var(--input-bg);
-            color: var(--text);
-            font-size: 14px;
+            background: rgba(15, 23, 42, 0.6);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .history-filters input[type="date"]:focus {
+            border-color: var(--primary);
+            outline: none;
         }
         
         .history-filters button {
-            padding: 8px 16px;
-            background: var(--accent);
+            padding: 10px 24px;
+            background: var(--primary);
             color: white;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 0.95rem;
+            font-weight: 500;
             transition: all 0.2s;
         }
         
         .history-filters button:hover {
-            background: var(--accent-hover);
+            background: var(--primary-dark);
+            transform: translateY(-1px);
         }
         
         .history-filters button.clear {
-            background: var(--card-bg);
+            background: rgba(30, 41, 59, 0.6);
             border: 1px solid var(--border);
-            color: var(--text);
+            color: var(--text-primary);
         }
         
         .history-filters button.clear:hover {
-            background: var(--border);
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--primary);
         }
         
         .history-item {
@@ -75,7 +90,7 @@
         }
         
         .history-item:hover {
-            border-color: var(--accent);
+            border-color: var(--primary);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
         
@@ -89,19 +104,19 @@
         }
         
         .draft-title {
-            font-size: 18px;
+            font-size: 1.1rem;
             font-weight: 600;
-            color: var(--text);
+            color: var(--text-primary);
             text-decoration: none;
         }
         
         .draft-title:hover {
-            color: var(--accent);
+            color: var(--primary);
         }
         
         .change-date {
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: 0.9rem;
         }
         
         .changes-list {
@@ -113,15 +128,16 @@
             display: grid;
             grid-template-columns: 200px 1fr 1fr;
             gap: 20px;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.02);
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.4);
             border-radius: 8px;
-            font-size: 14px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(148, 163, 184, 0.1);
         }
         
         .change-field {
             font-weight: 600;
-            color: var(--text);
+            color: var(--text-primary);
         }
         
         .change-old {
@@ -144,24 +160,26 @@
         .pagination {
             display: flex;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
             margin-top: 30px;
         }
         
         .pagination button {
-            padding: 8px 12px;
-            background: var(--card-bg);
+            padding: 8px 14px;
+            background: rgba(30, 41, 59, 0.6);
             border: 1px solid var(--border);
             border-radius: 6px;
-            color: var(--text);
+            color: var(--text-primary);
             cursor: pointer;
             transition: all 0.2s;
+            font-size: 0.9rem;
+            min-width: 40px;
         }
         
         .pagination button:hover:not(:disabled) {
-            background: var(--accent);
+            background: var(--primary);
             color: white;
-            border-color: var(--accent);
+            border-color: var(--primary);
         }
         
         .pagination button:disabled {
@@ -170,9 +188,9 @@
         }
         
         .pagination .active {
-            background: var(--accent);
+            background: var(--primary);
             color: white;
-            border-color: var(--accent);
+            border-color: var(--primary);
         }
         
         .empty-state {
@@ -186,10 +204,12 @@
         .empty-state .icon {
             font-size: 48px;
             margin-bottom: 20px;
+            opacity: 0.5;
         }
         
         .empty-state h3 {
-            font-size: 20px;
+            font-size: 1.3rem;
+            color: var(--text-primary);
             margin-bottom: 10px;
         }
         
@@ -198,24 +218,26 @@
             margin-bottom: 20px;
         }
         
-        .stats-badge {
-            background: var(--accent);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            margin-left: 10px;
-        }
-        
         @media (max-width: 768px) {
             .change-item {
                 grid-template-columns: 1fr;
-                gap: 5px;
+                gap: 8px;
             }
             
-            .history-header {
+            .history-filters {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .history-filters input[type="date"],
+            .history-filters button {
+                width: 100%;
+            }
+            
+            .history-item-header {
                 flex-direction: column;
                 align-items: flex-start;
+                gap: 8px;
             }
         }
     </style>
@@ -238,18 +260,21 @@
                 <a href="/static/shipped.html" class="back-button">
                     🚚 Отгруженные
                 </a>
-                <a href="/static/history.html" class="back-button">
-                    📜 История
+                <a href="/static/frequency_converter.html" class="back-button">
+                    🔌 Частотники
+                </a>
+                <a href="/static/pneumatics.html" class="back-button">
+                    💨 Пневматика
                 </a>
             </div>
 
             <div class="history-container">
                 <div class="history-header">
-                    <h2>История изменений <span id="totalCount" class="stats-badge">0</span></h2>
+                    <h2>История изменений</h2>
                     
                     <div class="history-filters">
                         <input type="date" id="dateFilter">
-                        <button onclick="applyDateFilter()">Применить</button>
+                        <button onclick="applyDateFilter()">Применить фильтр</button>
                         <button class="clear" onclick="clearFilter()">Сбросить</button>
                     </div>
                 </div>
@@ -293,8 +318,6 @@
                 if (result.success) {
                     renderHistory(result.history);
                     renderPagination(result.pagination);
-                    
-                    document.getElementById('totalCount').textContent = result.pagination.total || 0;
                 } else {
                     throw new Error(result.error);
                 }
