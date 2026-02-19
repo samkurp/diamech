@@ -114,17 +114,17 @@
             color: var(--primary);
         }
         
-        .change-date {
+        .-date {
             color: var(--text-secondary);
             font-size: 0.9rem;
         }
         
-        .changes-list {
+        .s-list {
             display: grid;
             gap: 10px;
         }
         
-        .change-item {
+        .-item {
             display: grid;
             grid-template-columns: 200px 1fr 1fr;
             gap: 20px;
@@ -368,7 +368,6 @@
                         changesHtml = changesHtml + '<div class="change-item">' +
                             '<div class="change-field">' + field + '</div>' +
                             '<div class="change-addition-text" colspan="2">➕ ' + additionText.trim() + '</div>' +
-                            '<div></div>' +
                             '</div>';
                     } else {
                         changesHtml = changesHtml + '<div class="change-item">' +
