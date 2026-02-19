@@ -135,6 +135,54 @@
             font-weight: 500;
         }
         
+        .change-item.addition {
+            background: rgba(16, 185, 129, 0.05);
+            border-left: 3px solid #10b981;
+            display: block;
+        }
+        
+        .addition-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            margin-bottom: 8px;
+        }
+        
+        .addition-text {
+            color: #10b981;
+            font-weight: 500;
+            margin-bottom: 10px;
+            padding: 8px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 4px;
+        }
+        
+        .show-full-btn {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 5px;
+        }
+        
+        .show-full-btn:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        
+        .change-item.full-change {
+            background: rgba(239, 68, 68, 0.05);
+            border-left: 3px solid #ef4444;
+        }
+        
         .pagination {
             display: flex;
             justify-content: center;
@@ -150,6 +198,7 @@
             color: var(--text);
             cursor: pointer;
             transition: all 0.2s;
+            min-width: 40px;
         }
         
         .pagination button:hover:not(:disabled) {
@@ -201,8 +250,79 @@
             margin-left: 10px;
         }
         
+        .text-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+        
+        .text-modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+        }
+        
+        .text-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .text-modal-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .close-modal:hover {
+            color: var(--text);
+        }
+        
+        .text-modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: calc(80vh - 70px);
+        }
+        
+        .text-modal-body pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: inherit;
+            line-height: 1.5;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
         @media (max-width: 768px) {
-            .change-item {
+            .change-item:not(.addition):not(.full-change) {
                 grid-template-columns: 1fr;
                 gap: 5px;
             }
@@ -210,6 +330,14 @@
             .history-header {
                 flex-direction: column;
                 align-items: flex-start;
+            }
+            
+            .history-filters {
+                width: 100%;
+            }
+            
+            .history-filters input[type="date"] {
+                flex: 1;
             }
         }
     </style>
@@ -231,6 +359,9 @@
                 </a>
                 <a href="/static/shipped.html" class="back-button">
                     🚚 Отгруженные
+                </a>
+                <a href="/static/history.html" class="back-button active">
+                    📜 История
                 </a>
             </div>
 
@@ -264,18 +395,18 @@
         let currentDate = '';
         let totalPages = 1;
 
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', function() {
             loadHistory();
         });
 
         async function loadHistory() {
-            showLoading('📜 Загрузка истории...');
+            showLoading('Загрузка истории...');
 
             try {
-                let url = `${API_BASE}/history?page=${currentPage}&per_page=50`;
+                let url = API_BASE + '/history?page=' + currentPage + '&per_page=50';
                 
                 if (currentDate) {
-                    url += `&date=${currentDate}`;
+                    url += '&date=' + currentDate;
                 }
 
                 const response = await fetch(url);
@@ -291,9 +422,9 @@
                     throw new Error(result.error);
                 }
             } catch (error) {
-                showStatus(`❌ Ошибка: ${error.message}`, 'error');
+                showStatus('Ошибка: ' + error.message, 'error');
             } finally {
-                document.querySelector('.loading')?.remove();
+                hideLoading();
             }
         }
 
@@ -310,8 +441,11 @@
                 `;
                 return;
             }
-        
-            container.innerHTML = history.map(item => {
+
+            let html = '';
+            
+            for (let i = 0; i < history.length; i++) {
+                const item = history[i];
                 const date = new Date(item.created_at);
                 const formattedDate = date.toLocaleString('ru-RU', {
                     day: '2-digit',
@@ -320,85 +454,104 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-        
-                const changes = Object.entries(item.changed_fields || {})
-                    .map(([field, changeInfo]) => {
-                        // Для примечаний с дополнениями
-                        if (field === 'Примечания' && changeInfo.type === 'addition') {
-                            return `
-                                <div class="change-item addition">
-                                    <div class="change-field">${field}</div>
-                                    <div class="change-addition">
-                                        <span class="addition-badge">➕ Дополнено:</span>
-                                        <div class="addition-text">${changeInfo.добавлено.map(a => a.text).join(' ')}</div>
-                                        <button class="show-full-btn" onclick="showFullText('${field}', '${changeInfo.полный_текст.replace(/'/g, "\\'")}')">
-                                            Показать полный текст
-                                        </button>
-                                    </div>
-                                </div>
-                            `;
+
+                let changesHtml = '';
+                const changedFields = item.changed_fields || {};
+                
+                for (const [field, changeInfo] of Object.entries(changedFields)) {
+                    if (field === 'Примечания' && changeInfo.type === 'addition') {
+                        let additionsText = '';
+                        if (Array.isArray(changeInfo.добавлено)) {
+                            for (let j = 0; j < changeInfo.добавлено.length; j++) {
+                                additionsText += changeInfo.добавлено[j].text + ' ';
+                            }
+                        } else {
+                            additionsText = changeInfo.добавлено || '';
                         }
-                        // Для полной замены текста
-                        else if (field === 'Примечания' && changeInfo.type === 'full_change') {
-                            return `
-                                <div class="change-item full-change">
-                                    <div class="change-field">${field}</div>
-                                    <div class="change-old">${changeInfo.было}</div>
-                                    <div class="change-new">${changeInfo.стало}</div>
+                        
+                        changesHtml += `
+                            <div class="change-item addition">
+                                <div class="change-field">${field}</div>
+                                <div class="change-addition">
+                                    <span class="addition-badge">➕ Дополнено:</span>
+                                    <div class="addition-text">${additionsText.trim()}</div>
+                                    <button class="show-full-btn" onclick="showFullText('${field}', '${escapeString(changeInfo.полный_текст || '')}')">
+                                        Показать полный текст
+                                    </button>
                                 </div>
-                            `;
-                        }
-                        // Для обычных полей
-                        else {
-                            return `
-                                <div class="change-item">
-                                    <div class="change-field">${field}</div>
-                                    <div class="change-old">${changeInfo.было || '<пусто>'}</div>
-                                    <div class="change-new">${changeInfo.стало || '<пусто>'}</div>
-                                </div>
-                            `;
-                        }
-                    }).join('');
-        
-                return `
+                            </div>
+                        `;
+                    }
+                    else if (field === 'Примечания' && changeInfo.type === 'full_change') {
+                        changesHtml += `
+                            <div class="change-item full-change">
+                                <div class="change-field">${field}</div>
+                                <div class="change-old">${escapeString(changeInfo.было || '<пусто>')}</div>
+                                <div class="change-new">${escapeString(changeInfo.стало || '<пусто>')}</div>
+                            </div>
+                        `;
+                    }
+                    else {
+                        changesHtml += `
+                            <div class="change-item">
+                                <div class="change-field">${field}</div>
+                                <div class="change-old">${escapeString(changeInfo.было || '<пусто>')}</div>
+                                <div class="change-new">${escapeString(changeInfo.стало || '<пусто>')}</div>
+                            </div>
+                        `;
+                    }
+                }
+
+                html += `
                     <div class="history-item">
                         <div class="history-item-header">
                             <a href="/add-draft?draft=${item.draft_id}&view=true" class="draft-title">
-                                ${item.draft_display_name || 'Неизвестный черновик'}
+                                ${escapeString(item.draft_display_name || 'Неизвестный черновик')}
                             </a>
                             <span class="change-date">${formattedDate}</span>
                         </div>
                         <div class="changes-list">
-                            ${changes}
+                            ${changesHtml}
                         </div>
                     </div>
                 `;
-            }).join('');
+            }
+            
+            container.innerHTML = html;
         }
-        
-        // Функция для показа полного текста
+
+        function escapeString(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         function showFullText(field, fullText) {
             const modal = document.createElement('div');
             modal.className = 'text-modal';
             modal.innerHTML = `
                 <div class="text-modal-content">
                     <div class="text-modal-header">
-                        <h3>${field} - полный текст</h3>
+                        <h3>${escapeString(field)} - полный текст</h3>
                         <button class="close-modal">&times;</button>
                     </div>
                     <div class="text-modal-body">
-                        <pre>${fullText}</pre>
+                        <pre>${escapeString(fullText)}</pre>
                     </div>
                 </div>
             `;
             
             document.body.appendChild(modal);
             
-            modal.querySelector('.close-modal').addEventListener('click', () => {
+            modal.querySelector('.close-modal').addEventListener('click', function() {
                 modal.remove();
             });
             
-            modal.addEventListener('click', (e) => {
+            modal.addEventListener('click', function(e) {
                 if (e.target === modal) {
                     modal.remove();
                 }
@@ -416,7 +569,6 @@
             totalPages = pagination.total_pages;
             let buttons = '';
 
-            // Кнопка "Предыдущая"
             buttons += `
                 <button onclick="changePage(${currentPage - 1})" 
                         ${currentPage === 1 ? 'disabled' : ''}>
@@ -424,7 +576,6 @@
                 </button>
             `;
 
-            // Номера страниц
             for (let i = 1; i <= pagination.total_pages; i++) {
                 if (
                     i === 1 || 
@@ -445,7 +596,6 @@
                 }
             }
 
-            // Кнопка "Следующая"
             buttons += `
                 <button onclick="changePage(${currentPage + 1})" 
                         ${currentPage === pagination.total_pages ? 'disabled' : ''}>
@@ -478,18 +628,23 @@
 
         function showLoading(message) {
             const status = document.getElementById('statusMessage');
-            status.innerHTML = `<div class="loading">${message}</div>`;
+            status.innerHTML = '<div class="loading">' + message + '</div>';
             status.className = 'status-message info';
             status.style.display = 'block';
+        }
+
+        function hideLoading() {
+            const status = document.getElementById('statusMessage');
+            status.style.display = 'none';
         }
 
         function showStatus(message, type) {
             const status = document.getElementById('statusMessage');
             status.innerHTML = message;
-            status.className = `status-message ${type}`;
+            status.className = 'status-message ' + type;
             status.style.display = 'block';
             
-            setTimeout(() => {
+            setTimeout(function() {
                 status.style.display = 'none';
             }, 3000);
         }
