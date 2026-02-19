@@ -143,6 +143,235 @@ def generate_zip_filename(data):
 
 # ========== КЛАСС ДЛЯ РАБОТЫ С SUPABASE ==========
 class SupabaseDB:
+
+    # Добавить после класса SupabaseDB новые методы для работы с историей
+
+    @staticmethod
+    def save_history(draft_id, old_data, new_data, changed_by=None):
+        """
+        Сохраняет изменения в историю
+        Сравнивает старые и новые данные и сохраняет только изменившиеся поля
+        """
+        try:
+            if supabase is None:
+                print("⚠️ Supabase не инициализирован, история не сохраняется")
+                return False
+
+            # Получаем отображаемое имя черновика
+            draft = SupabaseDB.get_draft(draft_id)
+            if not draft:
+                display_name = "Неизвестный черновик"
+            else:
+                display_name = draft.get('display_name', 'Неизвестный черновик')
+
+            # Сравниваем и находим изменившиеся поля
+            changed_fields = {}
+
+            # Все ключи из обоих словарей
+            all_keys = set(old_data.keys()) | set(new_data.keys())
+
+            for key in all_keys:
+                old_value = old_data.get(key, '')
+                new_value = new_data.get(key, '')
+
+                # Сравниваем значения (приводим к строке для надежности)
+                if str(old_value) != str(new_value):
+                    # Пропускаем пустые значения, если они не были заполнены
+                    if old_value == '' and new_value == '':
+                        continue
+
+                    changed_fields[key] = {
+                        'old': old_value,
+                        'new': new_value
+                    }
+
+            # Если нет изменений - выходим
+            if not changed_fields:
+                print("ℹ️ Нет изменений для сохранения в истории")
+                return True
+
+            # Форматируем changed_fields для удобочитаемости
+            formatted_fields = {}
+            field_names = {
+                'workType': 'Тип работы',
+                'machineType': 'Тип станка',
+                'liftingCapacity': 'Грузоподъемность',
+                'serialNumber': 'Заводской номер',
+                'customer': 'Заказчик',
+                'driveType': 'Тип привода',
+                'driveNumber': 'Номер привода',
+                'brakeResistor': 'Тормозной резистор',
+                'resistorCount': 'Кол-во резисторов',
+                'electricMotor': 'Электродвигатель',
+                'motorNumber': 'Номер двигателя',
+                'EnginePower': 'Мощность',
+                'angleSensor': 'Датчик угла',
+                'angleSensorNumber': 'Номер датчика угла',
+                'speedSensorNumber': 'Номер отметчика',
+                'leftVibrationSensor': 'Левый датчик вибрации',
+                'leftSensitivity': 'Чувствительность левого',
+                'leftSensorNumber': 'Номер левого датчика',
+                'rightVibrationSensor': 'Правый датчик вибрации',
+                'rightSensitivity': 'Чувствительность правого',
+                'rightSensorNumber': 'Номер правого датчика',
+                'measuringDevice': 'Измерительный прибор',
+                'measuringDeviceNumber': 'Номер прибора',
+                'signalProcessor': 'Блок обработки',
+                'signalProcessorNumber': 'Номер блока',
+                'notes': 'Примечания',
+                'machineStatus': 'Статус станка',
+                'shippingDate': 'Дата отгрузки'
+            }
+
+            for key, values in changed_fields.items():
+                field_display = field_names.get(key, key)
+                formatted_fields[field_display] = {
+                    'было': values['old'],
+                    'стало': values['new']
+                }
+
+            # Сохраняем в историю
+            history_data = {
+                'draft_id': draft_id,
+                'draft_display_name': display_name,
+                'changed_fields': formatted_fields,
+                'changed_by': changed_by or 'system',
+                'created_at': datetime.now().isoformat()
+            }
+
+            supabase.table('draft_history').insert(history_data).execute()
+            print(f"📝 История изменений сохранена для {draft_id}, изменено полей: {len(formatted_fields)}")
+
+            return True
+
+        except Exception as e:
+            print(f"❌ Ошибка сохранения истории: {e}")
+            traceback.print_exc()
+            return False
+
+    @staticmethod
+    def get_history(draft_id=None, page=1, per_page=50):
+        """
+        Получает историю изменений
+        Если draft_id указан - для конкретного черновика
+        Если нет - общую историю всех черновиков
+        """
+        try:
+            if supabase is None:
+                return []
+
+            # Базовый запрос
+            query = supabase.table('draft_history').select('*')
+
+            # Фильтр по черновику если указан
+            if draft_id:
+                query = query.eq('draft_id', draft_id)
+
+            # Пагинация
+            offset = (page - 1) * per_page
+
+            # Получаем данные с сортировкой по дате (сначала новые)
+            response = query.order('created_at', desc=True) \
+                .range(offset, offset + per_page - 1) \
+                .execute()
+
+            # Получаем общее количество для пагинации
+            count_query = supabase.table('draft_history').select('count', count='exact')
+            if draft_id:
+                count_query = count_query.eq('draft_id', draft_id)
+            count_response = count_query.execute()
+
+            total = count_response.count if hasattr(count_response, 'count') else 0
+
+            history = []
+            for item in response.data:
+                history.append({
+                    'id': item.get('id'),
+                    'draft_id': item.get('draft_id'),
+                    'draft_display_name': item.get('draft_display_name'),
+                    'changed_fields': item.get('changed_fields', {}),
+                    'changed_by': item.get('changed_by'),
+                    'created_at': item.get('created_at')
+                })
+
+            return {
+                'items': history,
+                'total': total,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': (total + per_page - 1) // per_page
+            }
+
+        except Exception as e:
+            print(f"❌ Ошибка получения истории: {e}")
+            return {
+                'items': [],
+                'total': 0,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': 0
+            }
+
+    @staticmethod
+    def get_history_by_date(date, page=1, per_page=50):
+        """
+        Получает историю изменений за конкретную дату
+        date в формате YYYY-MM-DD
+        """
+        try:
+            if supabase is None:
+                return []
+
+            start_date = f"{date}T00:00:00"
+            end_date = f"{date}T23:59:59"
+
+            offset = (page - 1) * per_page
+
+            response = supabase.table('draft_history') \
+                .select('*') \
+                .gte('created_at', start_date) \
+                .lte('created_at', end_date) \
+                .order('created_at', desc=True) \
+                .range(offset, offset + per_page - 1) \
+                .execute()
+
+            count_response = supabase.table('draft_history') \
+                .select('count', count='exact') \
+                .gte('created_at', start_date) \
+                .lte('created_at', end_date) \
+                .execute()
+
+            total = count_response.count if hasattr(count_response, 'count') else 0
+
+            history = []
+            for item in response.data:
+                history.append({
+                    'id': item.get('id'),
+                    'draft_id': item.get('draft_id'),
+                    'draft_display_name': item.get('draft_display_name'),
+                    'changed_fields': item.get('changed_fields', {}),
+                    'changed_by': item.get('changed_by'),
+                    'created_at': item.get('created_at')
+                })
+
+            return {
+                'items': history,
+                'total': total,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': (total + per_page - 1) // per_page
+            }
+
+        except Exception as e:
+            print(f"❌ Ошибка получения истории по дате: {e}")
+            return {
+                'items': [],
+                'total': 0,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': 0
+            }
+
     @staticmethod
     def get_all_drafts(filter_status=None):
         """Получает все черновики с фильтрацией"""
@@ -352,41 +581,46 @@ class SupabaseDB:
 
     @staticmethod
     def update_draft(draft_id, data, images=None):
-        """Обновляет существующий черновик"""
+        """Обновляет существующий черновик с сохранением истории изменений"""
         try:
             if supabase is None:
                 return False, "Supabase не инициализирован"
-            
-            # Получаем текущие данные
+
+            # Получаем текущие данные ДО обновления
             draft = SupabaseDB.get_draft(draft_id)
             if not draft:
                 return False, "Черновик не найден"
-            
+
+            old_data = draft.get('data', {}).copy()
+
             # Обновляем данные
             current_data = draft.get('data', {})
             for key, value in dict(data).items():
                 if value:  # Обновляем только непустые значения
                     current_data[key] = value
-            
+
             # Подготавливаем обновление
             update_data = {
                 'data': current_data,
                 'updated_at': datetime.now().isoformat(),
                 'machine_status': data.get('machineStatus', draft.get('machine_status', 'Сборка'))
             }
-            
+
             # Обновляем display_name если изменились основные поля
             machine_type = data.get('machineType', current_data.get('machineType', ''))
             lifting_capacity = data.get('liftingCapacity', current_data.get('liftingCapacity', ''))
             serial_number = data.get('serialNumber', current_data.get('serialNumber', ''))
-            
+
             if machine_type and lifting_capacity and serial_number:
                 update_data['display_name'] = f"{machine_type}-{lifting_capacity} №{serial_number}"
-            
+
             # Сохраняем
             supabase.table('drafts').update(update_data).eq('id', draft_id).execute()
             print(f"📝 Обновлен черновик: {draft_id}")
-            
+
+            # СОХРАНЯЕМ ИСТОРИЮ ИЗМЕНЕНИЙ
+            SupabaseDB.save_history(draft_id, old_data, current_data)
+
             # ОБРАБАТЫВАЕМ ИЗОБРАЖЕНИЯ ПРИ ОБНОВЛЕНИИ
             saved_images = []
             if images:
@@ -395,17 +629,17 @@ class SupabaseDB:
                         filename = secure_filename(img.filename)
                         img.seek(0)
                         img_data = img.read()
-                        
+
                         # Сжимаем изображение
                         compressed_data = compress_image(
                             img_data,
                             max_size=Config.IMAGE_MAX_SIZE,
                             quality=Config.IMAGE_QUALITY
                         )
-                        
+
                         # Конвертируем в base64
                         img_base64 = base64.b64encode(compressed_data).decode('utf-8')
-                        
+
                         # Определяем content type
                         content_type = img.content_type
                         if not content_type or content_type == 'application/octet-stream':
@@ -416,7 +650,7 @@ class SupabaseDB:
                                 content_type = 'image/png'
                             else:
                                 content_type = f'image/{ext}'
-                        
+
                         # Проверяем существование изображения
                         try:
                             existing = supabase.table('images') \
@@ -424,15 +658,15 @@ class SupabaseDB:
                                 .eq('draft_id', draft_id) \
                                 .eq('filename', filename) \
                                 .execute()
-                            
+
                             if existing.data:
                                 # Обновляем существующее
                                 supabase.table('images') \
                                     .update({
-                                        'image_data': img_base64,
-                                        'content_type': content_type,
-                                        'uploaded_at': datetime.now().isoformat()
-                                    }) \
+                                    'image_data': img_base64,
+                                    'content_type': content_type,
+                                    'uploaded_at': datetime.now().isoformat()
+                                }) \
                                     .eq('draft_id', draft_id) \
                                     .eq('filename', filename) \
                                     .execute()
@@ -448,17 +682,17 @@ class SupabaseDB:
                                 }
                                 supabase.table('images').insert(image_data).execute()
                                 print(f"🖼️ Добавлено новое изображение при обновлении: {filename}")
-                            
+
                             saved_images.append(filename)
-                            
+
                         except Exception as e:
                             print(f"❌ Ошибка при обновлении изображения {filename}: {e}")
-            
+
             return True, {
                 'draft_data': update_data,
                 'saved_images': saved_images
             }
-            
+
         except Exception as e:
             print(f"❌ Ошибка обновления: {e}")
             traceback.print_exc()
@@ -1108,6 +1342,71 @@ def download_full_package(draft_id):
             'error': f'Ошибка создания пакета: {str(e)}'
         }), 500
 
+
+# Добавить после существующих эндпоинтов
+
+@app.route('/api/history', methods=['GET'])
+def get_history():
+    """
+    Получает историю изменений всех черновиков
+    Поддерживает пагинацию и фильтрацию по дате
+    """
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 50))
+        date = request.args.get('date')
+
+        if date:
+            history = SupabaseDB.get_history_by_date(date, page, per_page)
+        else:
+            history = SupabaseDB.get_history(page=page, per_page=per_page)
+
+        return jsonify({
+            'success': True,
+            'history': history['items'],
+            'pagination': {
+                'page': history['page'],
+                'per_page': history['per_page'],
+                'total': history['total'],
+                'total_pages': history['total_pages']
+            }
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/history/<draft_id>', methods=['GET'])
+def get_draft_history(draft_id):
+    """
+    Получает историю изменений конкретного черновика
+    """
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 50))
+
+        history = SupabaseDB.get_history(draft_id, page, per_page)
+
+        return jsonify({
+            'success': True,
+            'draft_id': draft_id,
+            'history': history['items'],
+            'pagination': {
+                'page': history['page'],
+                'per_page': history['per_page'],
+                'total': history['total'],
+                'total_pages': history['total_pages']
+            }
+        })
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 # ========== СТАТИЧЕСКИЕ ФАЙЛЫ ==========
 
 @app.route('/')
