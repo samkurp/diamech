@@ -450,21 +450,24 @@ class SupabaseDB:
         try:
             if supabase is None:
                 return False, "Supabase не инициализирован", None
-            
+
             # Генерируем ID из данных станка
             machine_type = data.get('machineType', 'Unknown')
             lifting_capacity = data.get('liftingCapacity', 'Unknown')
             serial_number = data.get('serialNumber', 'Unknown')
-            
+
             draft_id = f"{machine_type}_{lifting_capacity}_{serial_number}"
             draft_id = "".join(c for c in draft_id if c.isalnum() or c in ('_', '-'))
-            
+
             if not draft_id or draft_id == "_Unknown_Unknown":
                 draft_id = str(uuid.uuid4())
-            
+
             # Формируем отображаемое имя
             display_name = f"{machine_type}-{lifting_capacity} №{serial_number}"
-            
+
+            # Проверяем, существует ли уже черновик с таким ID
+            existing_draft = SupabaseDB.get_draft(draft_id)
+
             # Подготавливаем данные
             draft_data = {
                 'id': draft_id,
@@ -476,11 +479,17 @@ class SupabaseDB:
                 'shipping_date': data.get('shippingDate', ''),
                 'customer_info': {}
             }
-            
+
+            # ЕСЛИ ЧЕРНОВИК УЖЕ СУЩЕСТВУЕТ - СОХРАНЯЕМ ИСТОРИЮ
+            if existing_draft:
+                old_data = existing_draft.get('data', {})
+                SupabaseDB.save_history(draft_id, old_data, dict(data))
+                print(f"📝 История изменений сохранена при обновлении через save_draft")
+
             # Сохраняем в Supabase
             supabase.table('drafts').upsert(draft_data).execute()
             print(f"💾 Сохранен черновик: {draft_id}")
-            
+
             # Сохраняем изображения со сжатием
             saved_images = []
             if images:
@@ -489,17 +498,17 @@ class SupabaseDB:
                         filename = secure_filename(img.filename)
                         img.seek(0)
                         img_data = img.read()
-                        
+
                         # Сжимаем изображение
                         compressed_data = compress_image(
-                            img_data, 
-                            max_size=Config.IMAGE_MAX_SIZE, 
+                            img_data,
+                            max_size=Config.IMAGE_MAX_SIZE,
                             quality=Config.IMAGE_QUALITY
                         )
-                        
+
                         # Конвертируем в base64
                         img_base64 = base64.b64encode(compressed_data).decode('utf-8')
-                        
+
                         # Определяем content type
                         content_type = img.content_type
                         if not content_type or content_type == 'application/octet-stream':
@@ -510,7 +519,7 @@ class SupabaseDB:
                                 content_type = 'image/png'
                             else:
                                 content_type = f'image/{ext}'
-                        
+
                         # ПРОВЕРЯЕМ, СУЩЕСТВУЕТ ЛИ УЖЕ ТАКОЕ ИЗОБРАЖЕНИЕ
                         try:
                             existing = supabase.table('images') \
@@ -518,15 +527,15 @@ class SupabaseDB:
                                 .eq('draft_id', draft_id) \
                                 .eq('filename', filename) \
                                 .execute()
-                            
+
                             if existing.data:
                                 # Обновляем существующее изображение
                                 supabase.table('images') \
                                     .update({
-                                        'image_data': img_base64,
-                                        'content_type': content_type,
-                                        'uploaded_at': datetime.now().isoformat()
-                                    }) \
+                                    'image_data': img_base64,
+                                    'content_type': content_type,
+                                    'uploaded_at': datetime.now().isoformat()
+                                }) \
                                     .eq('draft_id', draft_id) \
                                     .eq('filename', filename) \
                                     .execute()
@@ -542,9 +551,9 @@ class SupabaseDB:
                                 }
                                 supabase.table('images').insert(image_data).execute()
                                 print(f"🖼️ Сохранено новое изображение: {filename}")
-                            
+
                             saved_images.append(filename)
-                            
+
                         except Exception as e:
                             print(f"❌ Ошибка при сохранении изображения {filename}: {e}")
                             # Пробуем альтернативный подход - удаляем старое и вставляем новое
@@ -554,7 +563,7 @@ class SupabaseDB:
                                     .eq('draft_id', draft_id) \
                                     .eq('filename', filename) \
                                     .execute()
-                                
+
                                 image_data = {
                                     'draft_id': draft_id,
                                     'filename': filename,
@@ -567,13 +576,14 @@ class SupabaseDB:
                                 saved_images.append(filename)
                             except Exception as e2:
                                 print(f"❌ Критическая ошибка при сохранении {filename}: {e2}")
-            
+
             return True, {
-                'id': draft_id, 
-                'display_name': display_name, 
-                'saved_images': saved_images
+                'id': draft_id,
+                'display_name': display_name,
+                'saved_images': saved_images,
+                'is_update': bool(existing_draft)
             }, None
-            
+
         except Exception as e:
             print(f"❌ Ошибка сохранения: {e}")
             traceback.print_exc()
