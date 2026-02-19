@@ -149,46 +149,90 @@ class SupabaseDB:
     @staticmethod
     def save_history(draft_id, old_data, new_data, changed_by=None):
         """
-        Сохраняет изменения в историю
-        Сравнивает старые и новые данные и сохраняет только изменившиеся поля
+        Сохраняет изменения в историю с умным сравнением текстовых полей
         """
         try:
             if supabase is None:
                 print("⚠️ Supabase не инициализирован, история не сохраняется")
                 return False
 
+            print(f"\n{'=' * 50}")
+            print(f"📝 СОХРАНЕНИЕ ИСТОРИИ ДЛЯ {draft_id}")
+            print(f"{'=' * 50}")
+
             # Получаем отображаемое имя черновика
             draft = SupabaseDB.get_draft(draft_id)
             if not draft:
                 display_name = "Неизвестный черновик"
+                print("⚠️ Черновик не найден в БД")
             else:
                 display_name = draft.get('display_name', 'Неизвестный черновик')
+                print(f"📌 Отображаемое имя: {display_name}")
 
             # Сравниваем и находим изменившиеся поля
             changed_fields = {}
 
             # Все ключи из обоих словарей
             all_keys = set(old_data.keys()) | set(new_data.keys())
+            print(f"📊 Всего полей для сравнения: {len(all_keys)}")
 
             for key in all_keys:
                 old_value = old_data.get(key, '')
                 new_value = new_data.get(key, '')
 
-                # Сравниваем значения (приводим к строке для надежности)
-                if str(old_value) != str(new_value):
-                    # Пропускаем пустые значения, если они не были заполнены
-                    if old_value == '' and new_value == '':
-                        continue
+                # Пропускаем технические поля
+                if key in ['draft_id', 'created_at', 'updated_at', 'id']:
+                    continue
 
+                # Приводим к строке
+                old_str = str(old_value) if old_value is not None else ''
+                new_str = str(new_value) if new_value is not None else ''
+
+                # Если значения одинаковые - пропускаем
+                if old_str == new_str:
+                    continue
+
+                print(f"🔍 Изменение в поле '{key}':")
+
+                # Специальная обработка для текстовых полей (примечания)
+                if key == 'notes' and len(old_str) > 0 and len(new_str) > 0:
+                    # Находим дополнения к тексту
+                    additions = SupabaseDB.find_text_additions(old_str, new_str)
+
+                    if additions:
+                        # Если нашли только дополнения
+                        changed_fields[key] = {
+                            'type': 'addition',
+                            'old': old_str,
+                            'new': new_str,
+                            'additions': additions,
+                            'full_text': new_str  # Полный текст для отображения при необходимости
+                        }
+                        print(f"   📝 Найдены дополнения: {additions}")
+                    else:
+                        # Если текст изменился кардинально
+                        changed_fields[key] = {
+                            'type': 'full_change',
+                            'old': old_str,
+                            'new': new_str
+                        }
+                        print(f"   🔄 Полная замена текста")
+                else:
+                    # Для обычных полей - просто сохраняем изменения
                     changed_fields[key] = {
-                        'old': old_value,
-                        'new': new_value
+                        'type': 'simple',
+                        'old': old_str,
+                        'new': new_str
                     }
+                    print(f"   Было: '{old_str}'")
+                    print(f"   Стало: '{new_str}'")
 
             # Если нет изменений - выходим
             if not changed_fields:
                 print("ℹ️ Нет изменений для сохранения в истории")
                 return True
+
+            print(f"✅ Найдено изменений: {len(changed_fields)}")
 
             # Форматируем changed_fields для удобочитаемости
             formatted_fields = {}
@@ -223,12 +267,30 @@ class SupabaseDB:
                 'shippingDate': 'Дата отгрузки'
             }
 
-            for key, values in changed_fields.items():
+            for key, change_info in changed_fields.items():
                 field_display = field_names.get(key, key)
-                formatted_fields[field_display] = {
-                    'было': values['old'],
-                    'стало': values['new']
-                }
+
+                if change_info['type'] == 'addition':
+                    # Для дополнений показываем только добавленный текст
+                    formatted_fields[field_display] = {
+                        'type': 'addition',
+                        'добавлено': change_info['additions'],
+                        'полный_текст': change_info['full_text']  # Сохраняем для возможности показать полный
+                    }
+                elif change_info['type'] == 'full_change':
+                    # Для полной замены показываем было/стало
+                    formatted_fields[field_display] = {
+                        'type': 'full_change',
+                        'было': change_info['old'] if change_info['old'] else '<пусто>',
+                        'стало': change_info['new'] if change_info['new'] else '<пусто>'
+                    }
+                else:
+                    # Для простых полей
+                    formatted_fields[field_display] = {
+                        'type': 'simple',
+                        'было': change_info['old'] if change_info['old'] else '<пусто>',
+                        'стало': change_info['new'] if change_info['new'] else '<пусто>'
+                    }
 
             # Сохраняем в историю
             history_data = {
@@ -239,8 +301,12 @@ class SupabaseDB:
                 'created_at': datetime.now().isoformat()
             }
 
-            supabase.table('draft_history').insert(history_data).execute()
+            print(f"💾 Сохраняем в БД: {json.dumps(history_data, indent=2, ensure_ascii=False)}")
+
+            result = supabase.table('draft_history').insert(history_data).execute()
+            print(f"✅ Результат сохранения: {result}")
             print(f"📝 История изменений сохранена для {draft_id}, изменено полей: {len(formatted_fields)}")
+            print(f"{'=' * 50}\n")
 
             return True
 
@@ -248,6 +314,72 @@ class SupabaseDB:
             print(f"❌ Ошибка сохранения истории: {e}")
             traceback.print_exc()
             return False
+
+    @staticmethod
+    def find_text_additions(old_text, new_text):
+        """
+        Находит добавленный текст в new_text по сравнению с old_text
+        Возвращает список добавленных фрагментов
+        """
+        try:
+            if not old_text or not new_text:
+                return []
+
+            additions = []
+
+            # Если новый текст начинается со старого - значит текст дополнен в конце
+            if new_text.startswith(old_text):
+                addition = new_text[len(old_text):].strip()
+                if addition:
+                    additions.append({
+                        'position': 'end',
+                        'text': addition
+                    })
+                return additions
+
+            # Если новый текст заканчивается старым - значит текст дополнен в начале
+            if new_text.endswith(old_text):
+                addition = new_text[:len(new_text) - len(old_text)].strip()
+                if addition:
+                    additions.append({
+                        'position': 'start',
+                        'text': addition
+                    })
+                return additions
+
+            # Разбиваем на слова для более точного поиска
+            old_words = old_text.split()
+            new_words = new_text.split()
+
+            # Находим добавленные слова
+            added_words = []
+            i, j = 0, 0
+
+            while i < len(old_words) and j < len(new_words):
+                if old_words[i] == new_words[j]:
+                    i += 1
+                    j += 1
+                else:
+                    # Слово добавлено
+                    added_words.append(new_words[j])
+                    j += 1
+
+            # Добавляем оставшиеся слова из new_text
+            while j < len(new_words):
+                added_words.append(new_words[j])
+                j += 1
+
+            if added_words:
+                additions.append({
+                    'position': 'middle',
+                    'text': ' '.join(added_words)
+                })
+
+            return additions
+
+        except Exception as e:
+            print(f"❌ Ошибка при поиске дополнений: {e}")
+            return []
 
     @staticmethod
     def get_history(draft_id=None, page=1, per_page=50):
