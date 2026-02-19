@@ -3,111 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Станки в работе</title>
+    <title>Пневматика - Станки в работе</title>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1><span class="icon">📋</span>Комплектующие Пневматики</h1>
-        </header>
-        <div class="menu" style="text-align: center;padding:10px">
-                <a href="/static/add_draft.html" class="back-button">
-                    Добавить Станок
-                </a>
+        <div class="main-container">
+            <header>
+                <h1><span class="icon">💨</span>Комплектующие пневматики</h1>
+                <p class="subtitle">Справочная информация по пневматическим компонентам</p>
+            </header>
+
+            <div class="menu">
                 <a href="/" class="back-button">
-                    Список станков
+                    ← Список станков
+                </a>
+                <a href="/add-draft" class="back-button">
+                    + Добавить станок
                 </a>
                 <a href="/static/frequency_converter.html" class="back-button">
-                    Параметры частотников
+                    🔌 Частотники
                 </a>
-        </div>
-        <div class="drafts-container">
-
-            <div class="drafts-list">
-                <table class="pneumatics-table">
-                    <thead>
-                    Пневматика для балансировочных станков
-                        <tr>
-                            <th>Модель</th>
-                            <th>Количество</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>ZPL06-02G</td>
-                            <td>7 шт.</td>
-                        </tr>
-                        <tr>
-                            <td>ZSC06-03G</td>
-                            <td>2 шт.</td>
-                        </tr>
-                        <tr>
-                            <td>ZPLF06-02G</td>
-                            <td>1 шт.</td>
-                        </tr>
-                        <tr>
-                            <td>ZPE-06</td>
-                            <td>1 шт.</td>
-                        </tr>
-                        <tr>
-                            <td>A-08G</td>
-                            <td>1 шт.</td>
-                        </tr>
-                        <tr>
-                            <td>PSU-10G</td>
-                            <td>1 шт.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="drafts-list">
-                <table class="pneumatics-table">Пневматика для CП-60/180/220
-                    <thead>
-
-                        <tr>
-                            <th>Модель</th>
-                            <th>Количество</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>ZPL06-03G<br>(ZPL06-02G для CП-60)</td>
-                            <td>2 шт.</td>
-                        </tr>
-                        <tr>
-                            <td>ZSC06-03G<br>(ZSC06-02G для CП-60)</td>
-                            <td>2 шт.</td>
-                        </tr>
-                        <tr>
-                            <td>ZPH06-01G</td>
-                            <td>1 шт.</td>
-                        </tr>
-                        <tr>
-                            <td>ZPC12-02G</td>
-                            <td>1 шт.</td>
-                        </tr>
-                        <tr>
-                            <td>SP037-1/4</td>
-                            <td>1 шт.</td>
-                        </tr>
-                        <tr>
-                            <td>Штуцер 1/4</td>
-                            <td>1 шт.</td>
-                        </tr>
-                        <tr>
-                            <td>Ремень 930/960/1080<br>(СП60/СП180/СП220)</td>
-                            <td>1 шт.</td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
 
-        </div>
+            <div class="drafts-container">
+                <div class="drafts-list">
+                    <!-- Первая таблица: для балансировочных станков -->
+                    <div class="draft-item" style="padding: 0; overflow: hidden;">
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
+                            <h3 style="font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <span>⚖️</span>Пневматика для балансировочных станков
+                            </h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <th style="text-align: left; padding: 10px 5px; color: var(--text-secondary); font-weight: 500;">Модель</th>
+                                        <th style="text-align: center; padding: 10px 5px; color: var(--text-secondary); font-weight: 500;">Количество</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">ZPL06-02G</td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">7 шт.</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">ZSC06-03G</td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">2 шт.</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">ZPLF06-02G</td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">1 шт.</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">ZPE-06</td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">1 шт.</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">A-08G</td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">1 шт.</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">PSU-10G</td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">1 шт.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
 
-        <footer>
-            <p>Система учета оборудования станков © 2025</p>
-        </footer>
+                    <!-- Вторая таблица: для СП-60/180/220 -->
+                    <div class="draft-item" style="padding: 0; overflow: hidden;">
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
+                            <h3 style="font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <span>🔧</span>Пневматика для СП-60/180/220
+                            </h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border);">
+                                        <th style="text-align: left; padding: 10px 5px; color: var(--text-secondary); font-weight: 500;">Модель</th>
+                                        <th style="text-align: center; padding: 10px 5px; color: var(--text-secondary); font-weight: 500;">Количество</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">
+                                            ZPL06-03G
+                                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">ZPL06-02G для СП-60</div>
+                                        </td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">2 шт.</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">
+                                            ZSC06-03G
+                                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">ZSC06-02G для СП-60</div>
+                                        </td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">2 шт.</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">ZPH06-01G</td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">1 шт.</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">ZPC12-02G</td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">1 шт.</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">SP037-1/4</td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">1 шт.</td>
+                                    </tr>
+                                    <tr style="border-bottom: 1px solid rgba(148, 163, 184, 0.1);">
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">Штуцер 1/4</td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">1 шт.</td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 12px 5px; color: var(--text-primary);">
+                                            Ремень
+                                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">930/960/1080 (СП60/СП180/СП220)</div>
+                                        </td>
+                                        <td style="padding: 12px 5px; color: var(--primary-light); font-weight: 600; text-align: center;">1 шт.</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer>
+                <p>Система учета оборудования станков © 2025</p>
+            </footer>
+        </div>
     </div>
 </body>
 </html>
