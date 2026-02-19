@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>История изменений</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Дополнительные стили для страницы истории */
+        .history-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .history-filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .history-filter {
+            padding: 8px 16px;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .history-filter.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .history-filter:hover {
+            border-color: var(--primary);
+            color: var(--text-primary);
+        }
+        
+        .history-timeline {
+            position: relative;
+        }
+        
+        .history-timeline::before {
+            content: '';
+            position: absolute;
+            left: 30px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, 
+                transparent, 
+                var(--primary) 10%, 
+                var(--primary) 90%, 
+                transparent);
+            opacity: 0.3;
+        }
+        
+        .history-item {
+            position: relative;
+            padding-left: 70px;
+            margin-bottom: 25px;
+            min-height: 60px;
+        }
+        
+        .history-dot {
+            position: absolute;
+            left: 22px;
+            top: 0;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 3px solid rgba(59, 130, 246, 0.3);
+            z-index: 2;
+        }
+        
+        .history-card {
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: var(--radius);
+            padding: 20px;
+            border: 1px solid var(--border);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        
+        .history-card:hover {
+            border-color: var(--primary);
+            background: rgba(30, 41, 59, 0.7);
+            transform: translateX(5px);
+        }
+        
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .history-machine {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+        
+        .history-machine small {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: normal;
+            margin-left: 8px;
+        }
+        
+        .history-time {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            background: rgba(15, 23, 42, 0.4);
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+        
+        .history-description {
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        
+        .history-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-right: 8px;
+        }
+        
+        .badge-create { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-update { background: rgba(59, 130, 246, 0.2); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+        .badge-status { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge-image { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.3); }
+        
+        .history-details {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed var(--border);
+            display: none;
+            font-size: 0.9rem;
+        }
+        
+        .history-card.expanded .history-details {
+            display: block;
+        }
+        
+        .history-details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .detail-column {
+            background: rgba(15, 23, 42, 0.4);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
+        .detail-title {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+        
+        .detail-item {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: block;
+            margin-bottom: 2px;
+        }
+        
+        .detail-value {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            word-break: break-word;
+        }
+        
+        .detail-value.old {
+            color: #ef4444;
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        .detail-value.new {
+            color: #10b981;
+        }
+        
+        .expand-icon {
+            float: right;
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            transition: var(--transition);
+        }
+        
+        .history-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+        
+        @media (max-width: 768px) {
+            .history-timeline::before {
+                left: 20px;
+            }
+            
+            .history-item {
+                padding-left: 50px;
+            }
+            
+            .history-dot {
+                left: 12px;
+            }
+            
+            .history-details-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .history-header {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-container">
+            <header>
+                <h1>📋 История изменений</h1>
+                <p class="subtitle">Лента всех изменений в черновиках</p>
+            </header>
+
+            <div class="menu">
+                <a href="/" class="back-button">
+                    ← На главную
+                </a>
+                <a href="/add-draft" class="back-button">
+                    + Добавить станок
+                </a>
+                <a href="/static/shipped.html" class="back-button">
+                    🚚 Отгруженные
+                </a>
+            </div>
+
+            <div class="history-container">
+                <!-- Фильтры -->
+                <div class="history-filters">
+                    <button class="history-filter active" data-filter="all">Все</button>
+                    <button class="history-filter" data-filter="create">Создания</button>
+                    <button class="history-filter" data-filter="update">Изменения</button>
+                    <button class="history-filter" data-filter="status_change">Статусы</button>
+                    <button class="history-filter" data-filter="image">Изображения</button>
+                </div>
+
+                <!-- Лента истории -->
+                <div id="historyTimeline" class="history-timeline">
+                    <div class="empty-state">
+                        <div class="icon">⏳</div>
+                        <h3>Загрузка истории...</h3>
+                    </div>
+                </div>
+
+                <!-- Кнопка загрузки еще -->
+                <div style="text-align: center; margin-top: 30px;">
+                    <button id="loadMoreBtn" class="action-btn" style="max-width: 200px; margin: 0 auto; display: none;">
+                        Загрузить еще
+                    </button>
+                </div>
+            </div>
+
+            <footer>
+                <p>Система учета оборудования станков</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Модальное окно для детального просмотра -->
+    <div id="historyModal" class="modal" style="display: none;">
+        <span class="close">&times;</span>
+        <div class="modal-content" style="background: var(--card-bg); max-width: 600px; padding: 25px;">
+            <h3 style="margin-bottom: 15px;">Детали изменения</h3>
+            <div id="modalDetails"></div>
+        </div>
+    </div>
+
+    <script src="/static/history.js"></script>
+</body>
+</html>
