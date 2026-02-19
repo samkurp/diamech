@@ -135,10 +135,10 @@
             font-weight: 500;
         }
         
-        .change-addition {
+        .change-addition-text {
             color: #10b981;
             font-weight: 500;
-            font-style: italic;
+            grid-column: span 2;
         }
         
         .pagination {
@@ -333,9 +333,18 @@
                     const changeInfo = changedFields[field];
                     
                     if (field === 'Примечания' && changeInfo.type === 'addition') {
+                        let additionText = '';
+                        if (changeInfo.добавлено && Array.isArray(changeInfo.добавлено)) {
+                            for (let j = 0; j < changeInfo.добавлено.length; j++) {
+                                additionText = additionText + changeInfo.добавлено[j].text + ' ';
+                            }
+                        } else if (changeInfo.добавлено) {
+                            additionText = changeInfo.добавлено;
+                        }
+                        
                         changesHtml = changesHtml + '<div class="change-item">' +
                             '<div class="change-field">' + field + '</div>' +
-                            '<div class="change-addition" colspan="2">✏️ дополнено</div>' +
+                            '<div class="change-addition-text" colspan="2">➕ ' + additionText.trim() + '</div>' +
                             '<div></div>' +
                             '</div>';
                     } else {
