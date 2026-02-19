@@ -310,7 +310,7 @@
                 `;
                 return;
             }
-
+        
             container.innerHTML = history.map(item => {
                 const date = new Date(item.created_at);
                 const formattedDate = date.toLocaleString('ru-RU', {
@@ -320,16 +320,46 @@
                     hour: '2-digit',
                     minute: '2-digit'
                 });
-
+        
                 const changes = Object.entries(item.changed_fields || {})
-                    .map(([field, values]) => `
-                        <div class="change-item">
-                            <div class="change-field">${field}</div>
-                            <div class="change-old">${values.было || '<пусто>'}</div>
-                            <div class="change-new">${values.стало || '<пусто>'}</div>
-                        </div>
-                    `).join('');
-
+                    .map(([field, changeInfo]) => {
+                        // Для примечаний с дополнениями
+                        if (field === 'Примечания' && changeInfo.type === 'addition') {
+                            return `
+                                <div class="change-item addition">
+                                    <div class="change-field">${field}</div>
+                                    <div class="change-addition">
+                                        <span class="addition-badge">➕ Дополнено:</span>
+                                        <div class="addition-text">${changeInfo.добавлено.map(a => a.text).join(' ')}</div>
+                                        <button class="show-full-btn" onclick="showFullText('${field}', '${changeInfo.полный_текст.replace(/'/g, "\\'")}')">
+                                            Показать полный текст
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        // Для полной замены текста
+                        else if (field === 'Примечания' && changeInfo.type === 'full_change') {
+                            return `
+                                <div class="change-item full-change">
+                                    <div class="change-field">${field}</div>
+                                    <div class="change-old">${changeInfo.было}</div>
+                                    <div class="change-new">${changeInfo.стало}</div>
+                                </div>
+                            `;
+                        }
+                        // Для обычных полей
+                        else {
+                            return `
+                                <div class="change-item">
+                                    <div class="change-field">${field}</div>
+                                    <div class="change-old">${changeInfo.было || '<пусто>'}</div>
+                                    <div class="change-new">${changeInfo.стало || '<пусто>'}</div>
+                                </div>
+                            `;
+                        }
+                    }).join('');
+        
                 return `
                     <div class="history-item">
                         <div class="history-item-header">
@@ -344,6 +374,35 @@
                     </div>
                 `;
             }).join('');
+        }
+        
+        // Функция для показа полного текста
+        function showFullText(field, fullText) {
+            const modal = document.createElement('div');
+            modal.className = 'text-modal';
+            modal.innerHTML = `
+                <div class="text-modal-content">
+                    <div class="text-modal-header">
+                        <h3>${field} - полный текст</h3>
+                        <button class="close-modal">&times;</button>
+                    </div>
+                    <div class="text-modal-body">
+                        <pre>${fullText}</pre>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            modal.querySelector('.close-modal').addEventListener('click', () => {
+                modal.remove();
+            });
+            
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
         }
 
         function renderPagination(pagination) {
