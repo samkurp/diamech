@@ -120,7 +120,7 @@ function handleMachineTypeChange() {
     updateSubmitButton();
 }
 
-// ОСНОВНОЙ ОБРАБОТЧИК - ФОРМИРОВАНИЕ ПРОТОКОЛА И СКАЧИВАНИЕ АРХИВА
+// ОСНОВНОЙ ОБРАБОТЧИК - ТОЛЬКО ФОРМИРОВАНИЕ ПРОТОКОЛА И СКАЧИВАНИЕ АРХИВА
 async function handleFormSubmit(e) {
     e.preventDefault();
 
@@ -143,7 +143,7 @@ async function handleFormSubmit(e) {
             }
         });
 
-        // Добавляем ID черновика если есть
+        // Добавляем ID черновика если есть (для загрузки существующих изображений)
         if (appState.currentDraft) {
             formData.append('draft_id', appState.currentDraft);
         }
@@ -194,54 +194,18 @@ async function handleFormSubmit(e) {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
+        // ТОЛЬКО УВЕДОМЛЕНИЕ ОБ УСПЕШНОМ СКАЧИВАНИИ
         showStatus(`✅ Архив "${filename}" успешно загружен`, 'success');
-
-        // Сохраняем черновик после успешной генерации протокола
-        if (!appState.currentDraft) {
-            await autoSaveDraft(formData);
-        }
-
-        // Сброс формы
-        e.target.reset();
-        document.getElementById('imagePreview').innerHTML = '';
-        appState.currentImages = [];
-        appState.currentDraft = null;
-        appState.hasImages = false;
-
-        initializeFieldStyles();
-        updateSubmitButton();
-
-        window.history.replaceState({}, document.title, window.location.pathname);
-
-        // Предложение перейти к списку
-        setTimeout(() => {
-    window.location.href = '/';
-}, 1000); // Задержка 1.5 секунды, чтобы пользователь увидел сообщение об успехе
+        
+        // НЕ сохраняем черновик автоматически
+        // НЕ сбрасываем форму
+        // НЕ перенаправляем на главную
 
     } catch (error) {
         console.error('Ошибка при формировании протокола:', error);
         showStatus(`❌ Ошибка: ${error.message}`, 'error');
     } finally {
         status.remove();
-    }
-}
-
-// Автосохранение черновика
-async function autoSaveDraft(formData) {
-    try {
-        const response = await fetch(`${API_BASE}/save-draft`, {
-            method: 'POST',
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            console.log('✅ Черновик автоматически сохранен:', result.draft_id);
-            appState.currentDraft = result.draft_id;
-        }
-    } catch (error) {
-        console.error('❌ Ошибка автосохранения:', error);
     }
 }
 
