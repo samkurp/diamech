@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Станки в работе - Роторы</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><span class="icon">⚙️</span> Параметры роторов</h1>
+        </header>
+
+        <!-- Навигационное меню (как на странице пневматики) -->
+        <div class="menu" style="text-align: center; padding:10px">
+            <a href="/static/add_draft.html" class="back-button">
+                Добавить Станок
+            </a>
+            <a href="/" class="back-button">
+                Список станков
+            </a>
+            <a href="/static/pneumatics.html" class="back-button">
+                Комплектующие пневматики
+            </a>
+            <a href="/static/frequency_converter.html" class="back-button">
+                Параметры частотников
+            </a>
+        </div>
+
+        <!-- Основной контейнер с таблицей -->
+        <div class="pneumatics-container">
+            <!-- Заголовок страницы (в стиле пневматики) -->
+            <div class="pneumatics-header">
+                <h2>
+                    <span class="icon">📊</span> Таблица роторов
+                </h2>
+                <p>Геометрические параметры и характеристики роторов для балансировки</p>
+            </div>
+
+            <!-- Карточка с таблицей (стилизована под .pneumatics-table) -->
+            <div class="drafts-list" style="grid-template-columns: 1fr;"> <!-- Одна колонка на всю ширину -->
+                <div class="draft-item" style="padding: 0; background: transparent; border: none;">
+                    <table class="pneumatics-table">
+                        <thead>
+                            <tr>
+                                <th colspan="5" style="text-align: center;">Справочные данные роторов</th>
+                            </tr>
+                            <tr>
+                                <th>Тип ротора</th>
+                                <th>Вес (кг)</th>
+                                <th>Длина ремня (мм)</th>
+                                <th>Радиус 1 (мм)</th>
+                                <th>Радиус 2 (мм)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td>РК1.6</td><td>1.6</td><td>700</td><td>40</td><td>40</td></tr>
+                            <tr><td>РК16</td><td>16</td><td>950</td><td>80</td><td>80</td></tr>
+                            <tr><td>РК50</td><td>50</td><td>1200</td><td>120</td><td>120</td></tr>
+                            <tr><td>РК160</td><td>160</td><td>1500</td><td>160</td><td>160</td></tr>
+                            <tr><td>РК500</td><td>500</td><td>1800</td><td>200</td><td>200</td></tr>
+                            <tr><td>Шеврон</td><td>85</td><td>1400</td><td>150</td><td>280</td></tr>
+                            <tr><td>Вентилятор</td><td>45</td><td>1100</td><td>180</td><td>220</td></tr>
+                            <tr><td>Генератор</td><td>28</td><td>1050</td><td>95</td><td>135</td></tr>
+                            <tr><td>Шпиндель</td><td>12</td><td>850</td><td>55</td><td>75</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Дополнительная информация (в стиле "подвал таблицы") -->
+            <div style="text-align: center; color: var(--text-secondary); font-size: 0.9rem; margin-top: 20px;">
+                <span class="icon">📌</span> Значения являются справочными. Для точной настройки обратитесь к документации станка.
+            </div>
+        </div>
+
+        <footer>
+            <p>Система учета оборудования станков © 2025</p>
+        </footer>
+    </div>
+</body>
+</html>
