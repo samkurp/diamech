@@ -1549,6 +1549,268 @@ def get_draft_history(draft_id):
             'success': False,
             'error': str(e)
         }), 500
+
+# ========== ЭНДПОИНТЫ ДЛЯ УПРАВЛЕНИЯ ПРОШИВКАМИ ==========
+
+@app.route('/api/updates', methods=['GET'])
+def get_updates():
+    """Получает все прошивки и утилиты"""
+    try:
+        if supabase is None:
+            return jsonify({
+                'success': False,
+                'error': 'Supabase не инициализирован'
+            }), 500
+        
+        section = request.args.get('section')
+        
+        query = supabase.table('updates').select('*')
+        if section:
+            query = query.eq('section', section)
+        
+        response = query.order('sort_order', desc=False).order('created_at', desc=True).execute()
+        
+        # Получаем дату последнего обновления
+        meta_response = supabase.table('updates_meta') \
+            .select('value') \
+            .eq('key', 'last_update') \
+            .execute()
+        
+        last_update = meta_response.data[0]['value'] if meta_response.data else '24.02.2026'
+        
+        # Группируем по секциям для удобства
+        grouped = {
+            'sapphire': [],
+            'yashma': [],
+            'stsh': [],
+            'external_utils': [],
+            'internal_utils': [],
+            'docs': []
+        }
+        
+        for item in response.data:
+            section = item.get('section')
+            if section in grouped:
+                grouped[section].append({
+                    'id': item.get('id'),
+                    'title': item.get('title'),
+                    'description': item.get('description'),
+                    'date': item.get('date'),
+                    'file': item.get('file_path'),
+                    'badge': item.get('badge'),
+                    'sort_order': item.get('sort_order', 0)
+                })
+        
+        return jsonify({
+            'success': True,
+            'updates': grouped,
+            'last_update': last_update
+        })
+        
+    except Exception as e:
+        print(f"❌ Ошибка получения прошивок: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/updates', methods=['POST'])
+def create_update():
+    """Создает новую запись о прошивке"""
+    try:
+        if supabase is None:
+            return jsonify({
+                'success': False,
+                'error': 'Supabase не инициализирован'
+            }), 500
+        
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Нет данных для сохранения'
+            }), 400
+        
+        # Валидация
+        required_fields = ['section', 'title', 'file']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({
+                    'success': False,
+                    'error': f'Поле {field} обязательно'
+                }), 400
+        
+        # Подготавливаем данные
+        update_data = {
+            'section': data.get('section'),
+            'title': data.get('title'),
+            'description': data.get('description', ''),
+            'date': data.get('date', ''),
+            'file_path': data.get('file'),
+            'badge': data.get('badge', 'ZIP'),
+            'sort_order': data.get('sort_order', 0),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        # Вставляем в БД
+        response = supabase.table('updates').insert(update_data).execute()
+        
+        # Обновляем дату последнего изменения
+        supabase.table('updates_meta') \
+            .update({'value': datetime.now().strftime('%d.%m.%Y'), 'updated_at': datetime.now().isoformat()}) \
+            .eq('key', 'last_update') \
+            .execute()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Запись успешно создана',
+            'update': response.data[0] if response.data else None
+        })
+        
+    except Exception as e:
+        print(f"❌ Ошибка создания записи: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/updates/<int:update_id>', methods=['PUT'])
+def update_update(update_id):
+    """Обновляет существующую запись"""
+    try:
+        if supabase is None:
+            return jsonify({
+                'success': False,
+                'error': 'Supabase не инициализирован'
+            }), 500
+        
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Нет данных для обновления'
+            }), 400
+        
+        # Подготавливаем данные для обновления
+        update_data = {
+            'title': data.get('title'),
+            'description': data.get('description', ''),
+            'date': data.get('date', ''),
+            'file_path': data.get('file'),
+            'badge': data.get('badge', 'ZIP'),
+            'sort_order': data.get('sort_order', 0),
+            'updated_at': datetime.now().isoformat()
+        }
+        
+        # Убираем None значения
+        update_data = {k: v for k, v in update_data.items() if v is not None}
+        
+        # Обновляем в БД
+        response = supabase.table('updates') \
+            .update(update_data) \
+            .eq('id', update_id) \
+            .execute()
+        
+        # Обновляем дату последнего изменения
+        supabase.table('updates_meta') \
+            .update({'value': datetime.now().strftime('%d.%m.%Y'), 'updated_at': datetime.now().isoformat()}) \
+            .eq('key', 'last_update') \
+            .execute()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Запись успешно обновлена',
+            'update': response.data[0] if response.data else None
+        })
+        
+    except Exception as e:
+        print(f"❌ Ошибка обновления записи: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/updates/<int:update_id>', methods=['DELETE'])
+def delete_update(update_id):
+    """Удаляет запись"""
+    try:
+        if supabase is None:
+            return jsonify({
+                'success': False,
+                'error': 'Supabase не инициализирован'
+            }), 500
+        
+        # Удаляем из БД
+        response = supabase.table('updates') \
+            .delete() \
+            .eq('id', update_id) \
+            .execute()
+        
+        # Обновляем дату последнего изменения
+        supabase.table('updates_meta') \
+            .update({'value': datetime.now().strftime('%d.%m.%Y'), 'updated_at': datetime.now().isoformat()}) \
+            .eq('key', 'last_update') \
+            .execute()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Запись успешно удалена'
+        })
+        
+    except Exception as e:
+        print(f"❌ Ошибка удаления записи: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/updates/reorder', methods=['POST'])
+def reorder_updates():
+    """Изменяет порядок сортировки записей"""
+    try:
+        if supabase is None:
+            return jsonify({
+                'success': False,
+                'error': 'Supabase не инициализирован'
+            }), 500
+        
+        data = request.get_json()
+        orders = data.get('orders', [])
+        
+        if not orders:
+            return jsonify({
+                'success': False,
+                'error': 'Нет данных для сортировки'
+            }), 400
+        
+        # Обновляем порядок для каждой записи
+        for item in orders:
+            supabase.table('updates') \
+                .update({'sort_order': item['order']}) \
+                .eq('id', item['id']) \
+                .execute()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Порядок сортировки обновлен'
+        })
+        
+    except Exception as e:
+        print(f"❌ Ошибка обновления сортировки: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 # ========== СТАТИЧЕСКИЕ ФАЙЛЫ ==========
 
 @app.route('/')
