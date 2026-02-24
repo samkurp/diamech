@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Обновления и утилиты</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        /* Адаптивные стили для мобильных устройств */
+        @media (max-width: 768px) {
+            .drafts-list[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+                gap: 20px !important;
+            }
+
+            .pneumatics-container {
+                padding: 15px !important;
+            }
+
+            .action-btn {
+                padding: 12px 15px !important;
+                font-size: 0.9rem !important;
+            }
+
+            h3[style*="font-size: 1.1rem"] {
+                font-size: 1rem !important;
+            }
+
+            h4 {
+                font-size: 0.85rem !important;
+            }
+
+            .draft-item {
+                margin-bottom: 5px;
+            }
+
+            /* Увеличиваем отступы для тач-интерфейса */
+            .action-btn {
+                min-height: 50px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .pneumatics-container {
+                padding: 10px !important;
+            }
+
+            .action-btn {
+                padding: 10px 12px !important;
+                font-size: 0.85rem !important;
+            }
+
+            .draft-item > div[style*="padding: 20px"] {
+                padding: 15px !important;
+            }
+
+            /* Компактные иконки */
+            .action-btn span[style*="font-size: 1.2rem"] {
+                font-size: 1rem !important;
+            }
+
+            /* Информационная подпись в колонку */
+            div[style*="justify-content: center; gap: 20px"] {
+                flex-direction: column !important;
+                align-items: center !important;
+                gap: 10px !important;
+                text-align: center !important;
+            }
+        }
+
+        /* Для очень маленьких экранов */
+        @media (max-width: 360px) {
+            .action-btn {
+                flex-wrap: wrap;
+                justify-content: flex-start !important;
+            }
+
+            .action-btn span[style*="margin-left: auto"] {
+                margin-left: 0 !important;
+                margin-top: 5px;
+                width: 100%;
+                text-align: left;
+            }
+        }
+
+        /* Улучшенные иконки для каждого раздела */
+        .sapphire-icon { color: #3b82f6; }
+        .yashma-icon { color: #8b5cf6; }
+        .stsh-icon { color: #ec4899; }
+        .utilities-icon { color: #10b981; }
+        .external-icon { color: #f59e0b; }
+        .internal-icon { color: #6366f1; }
+        .docs-icon { color: #64748b; }
+
+        /* Единый стиль для кнопок */
+        .action-btn {
+            transition: all 0.2s ease;
+            border: 1px solid var(--border);
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        .action-btn:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+        /* Индикатор скачивания */
+        .download-badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-container">
+            <header>
+                <h1><span class="icon">🛠️</span>Обновления и утилиты</h1>
+                <p class="subtitle">Прошивки, обновления ПО и вспомогательные инструменты</p>
+            </header>
+
+            <div class="menu">
+                <a href="/" class="back-button">
+                    ← Список станков
+                </a>
+                <a href="/add-draft" class="back-button">
+                    + Добавить станок
+                </a>
+                <a href="/static/frequency_converter.html" class="back-button">
+                    🔌 Частотники
+                </a>
+                <a href="/static/pneumatics.html" class="back-button">
+                    💨 Пневматика
+                </a>
+                <a href="/static/rotors.html" class="back-button">
+                    ⚙️ Роторы
+                </a>
+            </div>
+
+            <div class="pneumatics-container">
+                <!-- Контейнер с адаптивной сеткой -->
+                <div class="drafts-list" style="grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <!-- ЛЕВАЯ КОЛОНКА: Обновления ПО -->
+                    <div>
+                        <!-- САПФИР-3 -->
+                        <div class="draft-item" style="padding: 0; overflow: hidden;">
+                            <div style="background: rgba(59, 130, 246, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
+                                <h3 style="font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; margin: 0;">
+                                    <span class="sapphire-icon">📡</span> САПФИР-3
+                                </h3>
+                            </div>
+                            <div style="padding: 20px;">
+                                <div style="display: flex; flex-direction: column; gap: 12px;">
+                                    <a href="/static/updates/sapp320251126.zip" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                        <span style="font-size: 1.2rem; margin-right: 10px;" class="sapphire-icon">⚙️</span>
+                                        <div style="display: flex; flex-direction: column; flex: 1;">
+                                            <span style="font-weight: 600;">Прошивка v2.38</span>
+                                            <span style="font-size: 0.75rem; color: var(--text-secondary);">26.11.2025</span>
+                                        </div>
+                                        <span class="download-badge">ZIP</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div style="padding: 0 20px 20px 20px;">
+                                <div style="display: flex; flex-direction: column; gap: 12px;">
+                                    <a href="/static/updates/files_for_servo_vm10.zip" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                        <span style="font-size: 1.2rem; margin-right: 10px;" class="sapphire-icon">🔄</span>
+                                        <div style="display: flex; flex-direction: column; flex: 1;">
+                                            <span style="font-weight: 600;">Прошивка БУиМ и Servo</span>
+                                            <span style="font-size: 0.75rem; color: var(--text-secondary);">26.01.2026</span>
+                                        </div>
+                                        <span class="download-badge">ZIP</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ЯШМА -->
+                        <div class="draft-item" style="padding: 0; overflow: hidden; margin-top: 20px;">
+                            <div style="background: rgba(139, 92, 246, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
+                                <h3 style="font-size: 1.1rem; color: #8b5cf6; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                    <span class="yashma-icon">💎</span> ЯШМА
+                                </h3>
+                            </div>
+                            <div style="padding: 20px;">
+                                <div style="display: flex; flex-direction: column; gap: 12px;">
+                                    <a href="/static/updates/StandDiag.zip" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                        <span style="font-size: 1.2rem; margin-right: 10px;" class="yashma-icon">⚙️</span>
+                                        <div style="display: flex; flex-direction: column; flex: 1;">
+                                            <span style="font-weight: 600;">Прошивка v2.00</span>
+                                            <span style="font-size: 0.75rem; color: var(--text-secondary);">27.01.2025</span>
+                                        </div>
+                                        <span class="download-badge">ZIP</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- СТШ -->
+                        <div class="draft-item" style="padding: 0; overflow: hidden; margin-top: 20px;">
+                            <div style="background: rgba(236, 72, 153, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
+                                <h3 style="font-size: 1.1rem; color: #ec4899; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                    <span class="stsh-icon">🔧</span> СТШ
+                                </h3>
+                            </div>
+                            <div style="padding: 20px;">
+                                <div style="display: flex; flex-direction: column; gap: 12px;">
+                                    <a href="/static/updates/sptest2_20241023.zip" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                        <span style="font-size: 1.2rem; margin-right: 10px;" class="stsh-icon">⚙️</span>
+                                        <div style="display: flex; flex-direction: column; flex: 1;">
+                                            <span style="font-weight: 600;">Прошивка v1.11</span>
+                                            <span style="font-size: 0.75rem; color: var(--text-secondary);">23.10.2024</span>
+                                        </div>
+                                        <span class="download-badge">ZIP</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ПРАВАЯ КОЛОНКА: Утилиты -->
+                    <div>
+                        <div class="draft-item" style="padding: 0; overflow: hidden;">
+                            <div style="background: rgba(16, 185, 129, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
+                                <h3 style="font-size: 1.1rem; color: #10b981; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                    <span class="utilities-icon">🧰</span> Утилиты
+                                </h3>
+                            </div>
+                            <div style="padding: 20px;">
+                                <div style="display: flex; flex-direction: column; gap: 20px;">
+
+                                    <!-- Группа: Стороннее ПО -->
+                                    <div>
+                                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                            <span class="external-icon">🔌</span> Стороннее ПО для настройки
+                                        </h4>
+                                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                                            <a href="/static/utils/Install_mr_cofigurator2.zip" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                                <span style="margin-right: 10px;" class="external-icon">📊</span>
+                                                <span style="flex: 1;">MR Configurator2</span>
+                                                <span class="download-badge">ZIP</span>
+                                            </a>
+                                            <a href="/static/utils/ESView-V4.zip" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                                <span style="margin-right: 10px;" class="external-icon">📈</span>
+                                                <span style="flex: 1;">ESView-V4</span>
+                                                <span class="download-badge">ZIP</span>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <!-- Группа: Внутренние утилиты -->
+                                    <div>
+                                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                            <span class="internal-icon">⚡</span> Внутренние утилиты
+                                        </h4>
+                                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                                            <a href="/static/utils/SV_Tool.exe" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                                <span style="margin-right: 10px;" class="internal-icon">🛠️</span>
+                                                <span style="flex: 1;">SV_Tool 1.13</span>
+                                                <span class="download-badge">EXE</span>
+                                            </a>
+                                            <a href="/static/utils/bearings.exe" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                                <span style="margin-right: 10px;" class="internal-icon">⚙️</span>
+                                                <span style="flex: 1;">Diamech Bearings Tool</span>
+                                                <span class="download-badge">EXE</span>
+                                            </a>
+                                            <a href="/static/utils/Парсер.exe" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                                <span style="margin-right: 10px;" class="internal-icon">📋</span>
+                                                <span style="flex: 1;">Парсер протоколов С-3</span>
+                                                <span class="download-badge">EXE</span>
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    <!-- Группа: Документация -->
+                                    <div>
+                                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                            <span class="docs-icon">📚</span> Документация
+                                        </h4>
+                                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                                            <a href="/static/docs/api_reference.pdf" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                                <span style="margin-right: 10px;" class="docs-icon">📕</span>
+                                                <span style="flex: 1;">API Reference</span>
+                                                <span class="download-badge">PDF</span>
+                                            </a>
+                                            <a href="/static/docs/protocol_guide.pdf" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                                <span style="margin-right: 10px;" class="docs-icon">📗</span>
+                                                <span style="flex: 1;">Protocol Guide</span>
+                                                <span class="download-badge">PDF</span>
+                                            </a>
+                                            <a href="/static/docs/developer_manual.pdf" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                                                <span style="margin-right: 10px;" class="docs-icon">📘</span>
+                                                <span style="flex: 1;">Developer Manual</span>
+                                                <span class="download-badge">PDF</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Информационная подпись -->
+                <div style="display: flex; justify-content: center; gap: 20px; color: var(--text-secondary); font-size: 0.8rem; margin-top: 30px; flex-wrap: wrap;">
+                    <span><span class="icon">📅</span> Последнее обновление: 24.02.2026</span>
+                    <span><span class="icon">🔧</span> Все утилиты проверены</span>
+                    <span><span class="icon">📌</span> Версии актуальны</span>
+                </div>
+
+                <!-- Подсказка для мобильных -->
+                <div style="text-align: center; color: var(--text-muted); font-size: 0.7rem; margin-top: 15px; display: none;" class="mobile-hint">
+                    <span class="icon">📱</span> Для удобства контент отображается в одну колонку
+                </div>
+            </div>
+
+            <footer>
+                <p>Система учета оборудования станков © 2026</p>
+            </footer>
+        </div>
+    </div>
+
+    <script>
+        // Показываем подсказку только на мобильных
+        if (window.innerWidth <= 768) {
+            document.querySelector('.mobile-hint').style.display = 'block';
+        }
+
+        // Обновляем подсказку при изменении размера окна
+        window.addEventListener('resize', function() {
+            const hint = document.querySelector('.mobile-hint');
+            if (hint) {
+                hint.style.display = window.innerWidth <= 768 ? 'block' : 'none';
+            }
+        });
+    </script>
+</body>
+</html>
