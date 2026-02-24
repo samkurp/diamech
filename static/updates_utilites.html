@@ -116,6 +116,50 @@
             border-radius: 4px;
             margin-left: 8px;
         }
+
+        /* Индикатор загрузки */
+        .loading-spinner {
+            text-align: center;
+            padding: 60px;
+            color: var(--text-secondary);
+        }
+        
+        .loading-spinner .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .error-message {
+            text-align: center;
+            padding: 60px;
+            color: var(--danger);
+        }
+        
+        .error-message .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            opacity: 0.7;
+        }
+        
+        .retry-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -144,181 +188,24 @@
                 </a>
             </div>
 
-            <div class="pneumatics-container">
-                <!-- Контейнер с адаптивной сеткой -->
-                <div class="drafts-list" style="grid-template-columns: 1fr 1fr; gap: 30px;">
-                    <!-- ЛЕВАЯ КОЛОНКА: Обновления ПО -->
-                    <div>
-                        <!-- САПФИР-3 -->
-                        <div class="draft-item" style="padding: 0; overflow: hidden;">
-                            <div style="background: rgba(59, 130, 246, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
-                                <h3 style="font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; margin: 0;">
-                                    <span class="sapphire-icon">📡</span> САПФИР-3
-                                </h3>
-                            </div>
-                            <div style="padding: 20px;">
-                                <div style="display: flex; flex-direction: column; gap: 12px;">
-                                    <a href="https://disk.yandex.ru/d/oRnEIHtaV7Mp-Q" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                        <span style="font-size: 1.2rem; margin-right: 10px;" class="sapphire-icon">⚙️</span>
-                                        <div style="display: flex; flex-direction: column; flex: 1;">
-                                            <span style="font-weight: 600;">Прошивка v2.38</span>
-                                            <span style="font-size: 0.75rem; color: var(--text-secondary);">26.11.2025</span>
-                                        </div>
-                                        <span class="download-badge">ZIP</span>
-                                    </a>
-                                </div>
-                            </div>
-                            <div style="padding: 0 20px 20px 20px;">
-                                <div style="display: flex; flex-direction: column; gap: 12px;">
-                                    <a href="https://disk.yandex.ru/d/7lhdxOo1gabYxg" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                        <span style="font-size: 1.2rem; margin-right: 10px;" class="sapphire-icon">🔄</span>
-                                        <div style="display: flex; flex-direction: column; flex: 1;">
-                                            <span style="font-weight: 600;">Прошивка БУиМ и Servo</span>
-                                            <span style="font-size: 0.75rem; color: var(--text-secondary);">26.01.2026</span>
-                                        </div>
-                                        <span class="download-badge">ZIP</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- ЯШМА -->
-                        <div class="draft-item" style="padding: 0; overflow: hidden; margin-top: 20px;">
-                            <div style="background: rgba(139, 92, 246, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
-                                <h3 style="font-size: 1.1rem; color: #8b5cf6; display: flex; align-items: center; gap: 8px; margin: 0;">
-                                    <span class="yashma-icon">💎</span> ЯШМА
-                                </h3>
-                            </div>
-                            <div style="padding: 20px;">
-                                <div style="display: flex; flex-direction: column; gap: 12px;">
-                                    <a href="https://disk.yandex.ru/d/zEJ2B7roND5NiA" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                        <span style="font-size: 1.2rem; margin-right: 10px;" class="yashma-icon">⚙️</span>
-                                        <div style="display: flex; flex-direction: column; flex: 1;">
-                                            <span style="font-weight: 600;">Прошивка v2.00</span>
-                                            <span style="font-size: 0.75rem; color: var(--text-secondary);">27.01.2025</span>
-                                        </div>
-                                        <span class="download-badge">ZIP</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- СТШ -->
-                        <div class="draft-item" style="padding: 0; overflow: hidden; margin-top: 20px;">
-                            <div style="background: rgba(236, 72, 153, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
-                                <h3 style="font-size: 1.1rem; color: #ec4899; display: flex; align-items: center; gap: 8px; margin: 0;">
-                                    <span class="stsh-icon">🔧</span> СТШ
-                                </h3>
-                            </div>
-                            <div style="padding: 20px;">
-                                <div style="display: flex; flex-direction: column; gap: 12px;">
-                                    <a href="https://disk.yandex.ru/d/hJe3lpGRREBXbA" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                        <span style="font-size: 1.2rem; margin-right: 10px;" class="stsh-icon">⚙️</span>
-                                        <div style="display: flex; flex-direction: column; flex: 1;">
-                                            <span style="font-weight: 600;">Прошивка v1.11</span>
-                                            <span style="font-size: 0.75rem; color: var(--text-secondary);">23.10.2024</span>
-                                        </div>
-                                        <span class="download-badge">ZIP</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- ПРАВАЯ КОЛОНКА: Утилиты -->
-                    <div>
-                        <div class="draft-item" style="padding: 0; overflow: hidden;">
-                            <div style="background: rgba(16, 185, 129, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
-                                <h3 style="font-size: 1.1rem; color: #10b981; display: flex; align-items: center; gap: 8px; margin: 0;">
-                                    <span class="utilities-icon">🧰</span> Утилиты
-                                </h3>
-                            </div>
-                            <div style="padding: 20px;">
-                                <div style="display: flex; flex-direction: column; gap: 20px;">
-
-                                    <!-- Группа: Стороннее ПО -->
-                                    <div>
-                                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-                                            <span class="external-icon">🔌</span> Стороннее ПО для настройки
-                                        </h4>
-                                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                                            <a href="https://disk.yandex.ru/d/KTXINFW78o63xQ" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                                <span style="margin-right: 10px;" class="external-icon">📊</span>
-                                                <span style="flex: 1;">MR Configurator2</span>
-                                                <span class="download-badge">ZIP</span>
-                                            </a>
-                                            <a href="https://disk.yandex.ru/d/gPUN-mUjgudYCg" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                                <span style="margin-right: 10px;" class="external-icon">📈</span>
-                                                <span style="flex: 1;">ESView-V4</span>
-                                                <span class="download-badge">ZIP</span>
-                                            </a>
-                                        </div>
-                                    </div>
-
-                                    <!-- Группа: Внутренние утилиты -->
-                                    <div>
-                                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-                                            <span class="internal-icon">⚡</span> Внутренние утилиты
-                                        </h4>
-                                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                                            <a href="https://disk.yandex.ru/d/BBVQfAavOW7zmA" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                                <span style="margin-right: 10px;" class="internal-icon">🛠️</span>
-                                                <span style="flex: 1;">SV_Tool 1.13</span>
-                                                <span class="download-badge">EXE</span>
-                                            </a>
-                                            <a href="https://disk.yandex.ru/d/lSihyjkgMBGuFQ" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                                <span style="margin-right: 10px;" class="internal-icon">⚙️</span>
-                                                <span style="flex: 1;">Diamech Bearings Tool</span>
-                                                <span class="download-badge">EXE</span>
-                                            </a>
-                                            <a href="https://disk.yandex.ru/d/rMpw5kjPLCz6Og" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                                <span style="margin-right: 10px;" class="internal-icon">📋</span>
-                                                <span style="flex: 1;">Парсер протоколов С-3</span>
-                                                <span class="download-badge">EXE</span>
-                                            </a>
-                                        </div>
-                                    </div>
-
-                                    <!-- Группа: Документация -->
-                                    <div>
-                                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
-                                            <span class="docs-icon">📚</span> Документация
-                                        </h4>
-                                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                                            <a href="/static/docs/api_reference.pdf" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                                <span style="margin-right: 10px;" class="docs-icon">📕</span>
-                                                <span style="flex: 1;">API Reference</span>
-                                                <span class="download-badge">PDF</span>
-                                            </a>
-                                            <a href="/static/docs/protocol_guide.pdf" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                                <span style="margin-right: 10px;" class="docs-icon">📗</span>
-                                                <span style="flex: 1;">Protocol Guide</span>
-                                                <span class="download-badge">PDF</span>
-                                            </a>
-                                            <a href="/static/docs/developer_manual.pdf" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                                                <span style="margin-right: 10px;" class="docs-icon">📘</span>
-                                                <span style="flex: 1;">Developer Manual</span>
-                                                <span class="download-badge">PDF</span>
-                                            </a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            <div class="pneumatics-container" id="updatesContainer">
+                <!-- Контейнер с данными будет заполнен динамически -->
+                <div class="loading-spinner" id="loadingSpinner">
+                    <div class="spinner"></div>
+                    <div>Загрузка обновлений...</div>
                 </div>
+            </div>
 
-                <!-- Информационная подпись -->
-                <div style="display: flex; justify-content: center; gap: 20px; color: var(--text-secondary); font-size: 0.8rem; margin-top: 30px; flex-wrap: wrap;">
-                    <span><span class="icon">📅</span> Последнее обновление: 24.02.2026</span>
-                    <span><span class="icon">🔧</span> Все утилиты проверены</span>
-                    <span><span class="icon">📌</span> Версии актуальны</span>
-                </div>
+            <!-- Информационная подпись (будет заполнена динамически) -->
+            <div style="display: flex; justify-content: center; gap: 20px; color: var(--text-secondary); font-size: 0.8rem; margin-top: 30px; flex-wrap: wrap;" id="infoFooter">
+                <span><span class="icon">📅</span> Последнее обновление: загрузка...</span>
+                <span><span class="icon">🔧</span> Все утилиты проверены</span>
+                <span><span class="icon">📌</span> Версии актуальны</span>
+            </div>
 
-                <!-- Подсказка для мобильных -->
-                <div style="text-align: center; color: var(--text-muted); font-size: 0.7rem; margin-top: 15px; display: none;" class="mobile-hint">
-                    <span class="icon">📱</span> Для удобства контент отображается в одну колонку
-                </div>
+            <!-- Подсказка для мобильных -->
+            <div style="text-align: center; color: var(--text-muted); font-size: 0.7rem; margin-top: 15px; display: none;" class="mobile-hint">
+                <span class="icon">📱</span> Для удобства контент отображается в одну колонку
             </div>
 
             <footer>
@@ -326,50 +213,341 @@
             </footer>
         </div>
     </div>
-    
+
     <script>
         // Загрузка данных из API
         async function loadUpdates() {
+            const container = document.getElementById('updatesContainer');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            const infoFooter = document.getElementById('infoFooter');
+            
             try {
+                // Показываем загрузку
+                loadingSpinner.style.display = 'block';
+                
+                // Загружаем данные с сервера
                 const response = await fetch('/api/updates');
                 const result = await response.json();
+                
+                // Скрываем загрузку
+                loadingSpinner.style.display = 'none';
                 
                 if (result.success) {
                     const data = result.updates;
                     
-                    // Обновляем дату
-                    const dateSpan = document.querySelector('div[style*="justify-content: center; gap: 20px"] span:first-child');
-                    if (dateSpan) {
-                        dateSpan.innerHTML = `<span class="icon">📅</span> Последнее обновление: ${result.last_update}`;
+                    // Обновляем дату в подвале
+                    if (infoFooter) {
+                        const dateSpan = infoFooter.querySelector('span:first-child');
+                        if (dateSpan) {
+                            dateSpan.innerHTML = `<span class="icon">📅</span> Последнее обновление: ${result.last_update || 'не указано'}`;
+                        }
                     }
                     
-                    // Здесь можно добавить динамическое обновление контента
-                    // Но проще оставить статическую верстку, так как данные меняются редко
-                    console.log('Данные загружены:', data);
+                    // Отрисовываем контент
+                    renderUpdates(data);
+                } else {
+                    showError('Ошибка загрузки данных: ' + (result.error || 'Неизвестная ошибка'));
                 }
             } catch (error) {
-                console.error('Ошибка загрузки обновлений:', error);
+                console.error('Ошибка загрузки:', error);
+                loadingSpinner.style.display = 'none';
+                showError('Не удалось загрузить данные. Проверьте подключение к серверу.');
             }
         }
         
-        // Загружаем при открытии страницы
-        loadUpdates();
+        // Отображение ошибки
+        function showError(message) {
+            const container = document.getElementById('updatesContainer');
+            container.innerHTML = `
+                <div class="error-message">
+                    <div class="icon">⚠️</div>
+                    <h3>Ошибка загрузки</h3>
+                    <p>${message}</p>
+                    <button class="retry-btn" onclick="loadUpdates()">Повторить</button>
+                </div>
+            `;
+        }
+        
+        // Отрисовка всех обновлений
+        function renderUpdates(data) {
+            const container = document.getElementById('updatesContainer');
+            
+            // Проверяем наличие данных
+            const hasSapphire = data.sapphire && data.sapphire.length > 0;
+            const hasYashma = data.yashma && data.yashma.length > 0;
+            const hasStsh = data.stsh && data.stsh.length > 0;
+            const hasExternalUtils = data.external_utils && data.external_utils.length > 0;
+            const hasInternalUtils = data.internal_utils && data.internal_utils.length > 0;
+            const hasDocs = data.docs && data.docs.length > 0;
+            
+            // Если нет данных вообще
+            if (!hasSapphire && !hasYashma && !hasStsh && !hasExternalUtils && !hasInternalUtils && !hasDocs) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="icon">📂</div>
+                        <h3>Нет доступных обновлений</h3>
+                        <p>В данный момент нет доступных прошивок и утилит</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Формируем HTML
+            let html = `
+                <!-- Контейнер с адаптивной сеткой -->
+                <div class="drafts-list" style="grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <!-- ЛЕВАЯ КОЛОНКА: Обновления ПО -->
+                    <div>
+            `;
+            
+            // САПФИР-3
+            if (hasSapphire) {
+                html += `
+                    <div class="draft-item" style="padding: 0; overflow: hidden;">
+                        <div style="background: rgba(59, 130, 246, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
+                            <h3 style="font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <span class="sapphire-icon">📡</span> САПФИР-3
+                            </h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                `;
+                
+                data.sapphire.forEach(item => {
+                    html += renderUpdateItem(item, 'sapphire');
+                });
+                
+                html += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // ЯШМА
+            if (hasYashma) {
+                html += `
+                    <div class="draft-item" style="padding: 0; overflow: hidden; margin-top: 20px;">
+                        <div style="background: rgba(139, 92, 246, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
+                            <h3 style="font-size: 1.1rem; color: #8b5cf6; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <span class="yashma-icon">💎</span> ЯШМА
+                            </h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                `;
+                
+                data.yashma.forEach(item => {
+                    html += renderUpdateItem(item, 'yashma');
+                });
+                
+                html += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // СТШ
+            if (hasStsh) {
+                html += `
+                    <div class="draft-item" style="padding: 0; overflow: hidden; margin-top: 20px;">
+                        <div style="background: rgba(236, 72, 153, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
+                            <h3 style="font-size: 1.1rem; color: #ec4899; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <span class="stsh-icon">🔧</span> СТШ
+                            </h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                `;
+                
+                data.stsh.forEach(item => {
+                    html += renderUpdateItem(item, 'stsh');
+                });
+                
+                html += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Закрываем левую колонку и открываем правую
+            html += `
+                    </div>
+                    <!-- ПРАВАЯ КОЛОНКА: Утилиты -->
+                    <div>
+            `;
+            
+            // Утилиты (общий блок)
+            if (hasExternalUtils || hasInternalUtils || hasDocs) {
+                html += `
+                    <div class="draft-item" style="padding: 0; overflow: hidden;">
+                        <div style="background: rgba(16, 185, 129, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
+                            <h3 style="font-size: 1.1rem; color: #10b981; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <span class="utilities-icon">🧰</span> Утилиты
+                            </h3>
+                        </div>
+                        <div style="padding: 20px;">
+                            <div style="display: flex; flex-direction: column; gap: 20px;">
+                `;
+                
+                // Группа: Стороннее ПО
+                if (hasExternalUtils) {
+                    html += `
+                        <div>
+                            <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                <span class="external-icon">🔌</span> Стороннее ПО для настройки
+                            </h4>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                    `;
+                    
+                    data.external_utils.forEach(item => {
+                        html += renderUtilItem(item);
+                    });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Группа: Внутренние утилиты
+                if (hasInternalUtils) {
+                    html += `
+                        <div>
+                            <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                <span class="internal-icon">⚡</span> Внутренние утилиты
+                            </h4>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                    `;
+                    
+                    data.internal_utils.forEach(item => {
+                        html += renderUtilItem(item);
+                    });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Группа: Документация
+                if (hasDocs) {
+                    html += `
+                        <div>
+                            <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                                <span class="docs-icon">📚</span> Документация
+                            </h4>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                    `;
+                    
+                    data.docs.forEach(item => {
+                        html += renderUtilItem(item);
+                    });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Закрываем правую колонку и общий контейнер
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        // Отрисовка элемента прошивки
+        function renderUpdateItem(item, iconType) {
+            const iconMap = {
+                sapphire: '📡',
+                yashma: '💎',
+                stsh: '🔧'
+            };
+            
+            const icon = iconMap[iconType] || '⚙️';
+            const dateHtml = item.date ? `<span style="font-size: 0.75rem; color: var(--text-secondary);">${item.date}</span>` : '';
+            
+            return `
+                <a href="${item.file}" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                    <span style="font-size: 1.2rem; margin-right: 10px;" class="${iconType}-icon">${icon}</span>
+                    <div style="display: flex; flex-direction: column; flex: 1;">
+                        <span style="font-weight: 600;">${escapeHtml(item.title)}</span>
+                        ${dateHtml}
+                        ${item.description ? `<span style="font-size: 0.7rem; color: var(--text-secondary);">${escapeHtml(item.description)}</span>` : ''}
+                    </div>
+                    <span class="download-badge">${item.badge || 'ZIP'}</span>
+                </a>
+            `;
+        }
+        
+        // Отрисовка элемента утилиты
+        function renderUtilItem(item) {
+            const iconMap = {
+                'MR Configurator2': '📊',
+                'ESView-V4': '📈',
+                'SV_Tool': '🛠️',
+                'Diamech': '⚙️',
+                'Парсер': '📋',
+                'API': '📕',
+                'Protocol': '📗',
+                'Developer': '📘'
+            };
+            
+            // Определяем иконку по названию
+            let icon = '📄';
+            for (const [key, value] of Object.entries(iconMap)) {
+                if (item.title.includes(key)) {
+                    icon = value;
+                    break;
+                }
+            }
+            
+            return `
+                <a href="${item.file}" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
+                    <span style="margin-right: 10px; opacity: 0.8;">${icon}</span>
+                    <span style="flex: 1;">${escapeHtml(item.title)}</span>
+                    ${item.description ? `<span style="font-size: 0.7rem; color: var(--text-secondary); margin-right: 8px;">${escapeHtml(item.description)}</span>` : ''}
+                    <span class="download-badge">${item.badge || 'ZIP'}</span>
+                </a>
+            `;
+        }
+        
+        // Экранирование HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
         
         // Показываем подсказку только на мобильных
-        if (window.innerWidth <= 768) {
-            document.querySelector('.mobile-hint').style.display = 'block';
-        }
-    
-        // Обновляем подсказку при изменении размера окна
-        window.addEventListener('resize', function() {
+        function checkMobile() {
             const hint = document.querySelector('.mobile-hint');
             if (hint) {
                 hint.style.display = window.innerWidth <= 768 ? 'block' : 'none';
             }
+        }
+        
+        // Загружаем данные при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUpdates();
+            checkMobile();
         });
+        
+        // Обновляем подсказку при изменении размера окна
+        window.addEventListener('resize', checkMobile);
     </script>
 </body>
-
 </html>
-
-
