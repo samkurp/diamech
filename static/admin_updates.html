@@ -7,41 +7,49 @@
     <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        /* Уменьшаем масштаб всех элементов */
         .admin-container {
-            padding: 30px;
+            padding: 20px;
             max-width: 1400px;
             margin: 0 auto;
+            font-size: 0.9rem;
         }
         
         .admin-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 15px;
+        }
+        
+        .admin-header h1 {
+            font-size: 1.5rem;
+            margin: 0;
         }
         
         .admin-tabs {
             display: flex;
-            gap: 10px;
+            gap: 6px;
             flex-wrap: wrap;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             border-bottom: 1px solid var(--border);
-            padding-bottom: 15px;
+            padding-bottom: 10px;
             overflow-x: auto;
         }
         
         .tab-btn {
-            padding: 10px 20px;
+            padding: 6px 12px;
             background: rgba(30, 41, 59, 0.5);
             border: 1px solid var(--border);
             color: var(--text-primary);
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             transition: var(--transition);
             font-weight: 500;
             white-space: nowrap;
+            font-size: 0.85rem;
         }
         
         .tab-btn.active {
@@ -55,16 +63,16 @@
         
         .items-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
         }
         
         .item-card {
             background: rgba(30, 41, 59, 0.5);
             border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 20px;
+            border-radius: 8px;
+            padding: 15px;
             transition: var(--transition);
         }
         
@@ -77,11 +85,11 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         
         .item-title {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             font-weight: 600;
             color: var(--text-primary);
         }
@@ -89,51 +97,52 @@
         .item-badge {
             background: var(--primary);
             color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.65rem;
         }
         
         .item-date {
             color: var(--text-secondary);
-            font-size: 0.85rem;
-            margin: 5px 0;
+            font-size: 0.75rem;
+            margin: 4px 0;
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 4px;
         }
         
         .item-file {
             color: var(--primary-light);
-            font-size: 0.8rem;
+            font-size: 0.7rem;
             word-break: break-all;
-            margin: 10px 0;
-            padding: 8px;
+            margin: 8px 0;
+            padding: 6px;
             background: rgba(15, 23, 42, 0.5);
-            border-radius: 6px;
+            border-radius: 4px;
             font-family: monospace;
         }
         
         .item-description {
             color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin: 8px 0;
+            font-size: 0.8rem;
+            margin: 6px 0;
         }
         
         .item-actions {
             display: flex;
-            gap: 10px;
-            margin-top: 15px;
+            gap: 8px;
+            margin-top: 12px;
         }
         
         .edit-btn, .delete-btn {
             flex: 1;
-            padding: 8px;
+            padding: 6px;
             border: none;
-            border-radius: 6px;
+            border-radius: 4px;
             cursor: pointer;
             font-weight: 500;
             transition: var(--transition);
+            font-size: 0.8rem;
         }
         
         .edit-btn {
@@ -176,38 +185,40 @@
         .modal-content {
             background: var(--card-bg);
             border: 1px solid var(--border);
-            border-radius: var(--radius);
+            border-radius: 8px;
             width: 90%;
-            max-width: 600px;
-            padding: 30px;
+            max-width: 500px;
+            padding: 20px;
             max-height: 90vh;
             overflow-y: auto;
         }
         
         .modal-content h3 {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             color: var(--text-primary);
+            font-size: 1.2rem;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             color: var(--text-secondary);
             font-weight: 500;
+            font-size: 0.8rem;
         }
         
         .form-group input, .form-group select, .form-group textarea {
             width: 100%;
-            padding: 12px 16px;
+            padding: 8px 12px;
             background: rgba(15, 23, 42, 0.6);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 6px;
             color: var(--text-primary);
-            font-size: 0.95rem;
+            font-size: 0.85rem;
         }
         
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
@@ -216,32 +227,32 @@
         }
         
         .form-group textarea {
-            min-height: 80px;
+            min-height: 60px;
             resize: vertical;
         }
         
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 12px;
         }
         
         .modal-actions {
             display: flex;
-            gap: 15px;
-            margin-top: 30px;
+            gap: 12px;
+            margin-top: 20px;
         }
         
         .save-btn {
             flex: 1;
-            padding: 14px;
+            padding: 10px;
             background: var(--primary);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 0.9rem;
         }
         
         .save-btn:hover {
@@ -250,13 +261,14 @@
         
         .cancel-btn {
             flex: 1;
-            padding: 14px;
+            padding: 10px;
             background: rgba(148, 163, 184, 0.2);
             color: var(--text-primary);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 500;
+            font-size: 0.9rem;
         }
         
         .cancel-btn:hover {
@@ -264,17 +276,17 @@
         }
         
         .add-btn {
-            padding: 12px 24px;
+            padding: 8px 16px;
             background: var(--success);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 1rem;
+            gap: 6px;
+            font-size: 0.9rem;
         }
         
         .add-btn:hover {
@@ -282,67 +294,69 @@
         }
         
         .view-btn {
-            padding: 12px 24px;
+            padding: 8px 16px;
             background: var(--primary);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
             text-decoration: none;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
+            font-size: 0.9rem;
         }
         
         .section-info {
             background: rgba(59, 130, 246, 0.1);
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
             border-left: 3px solid var(--primary);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 0.85rem;
         }
         
         .loading {
             text-align: center;
-            padding: 60px;
+            padding: 40px;
             color: var(--text-secondary);
-            font-size: 1.1rem;
+            font-size: 0.9rem;
         }
         
         .empty-state {
             grid-column: 1/-1;
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
             color: var(--text-secondary);
         }
         
         .empty-state .icon {
-            font-size: 3rem;
-            margin-bottom: 20px;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
             opacity: 0.5;
         }
         
         .empty-state h3 {
-            font-size: 1.2rem;
-            margin-bottom: 10px;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
         }
         
         .badge-preview {
             display: inline-block;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.65rem;
             background: var(--primary);
             color: white;
         }
         
         @media (max-width: 768px) {
             .admin-container {
-                padding: 15px;
+                padding: 10px;
             }
             
             .admin-header {
@@ -357,6 +371,10 @@
             .items-grid {
                 grid-template-columns: 1fr;
             }
+            
+            .admin-header h1 {
+                font-size: 1.3rem;
+            }
         }
     </style>
 </head>
@@ -365,10 +383,10 @@
         <div class="main-container">
             <div class="admin-container">
                 <div class="admin-header">
-                    <h1>📋 Управление прошивками и утилитами</h1>
-                    <div style="display: flex; gap: 10px;">
+                    <h1>📋 Управление прошивками</h1>
+                    <div style="display: flex; gap: 8px;">
                         <a href="/static/updates_utilites.html" class="view-btn" target="_blank">
-                            👁️ Просмотр страницы
+                            👁️ Просмотр
                         </a>
                         <button class="add-btn" onclick="openAddModal()">
                             ➕ Добавить
@@ -381,7 +399,7 @@
                     <button class="tab-btn" data-tab="yashma">💎 ЯШМА</button>
                     <button class="tab-btn" data-tab="stsh">🔧 СТШ</button>
                     <button class="tab-btn" data-tab="external_utils">🔌 Стороннее ПО</button>
-                    <button class="tab-btn" data-tab="internal_utils">⚡ Внутренние утилиты</button>
+                    <button class="tab-btn" data-tab="internal_utils">⚡ Внутренние</button>
                     <button class="tab-btn" data-tab="docs">📚 Документация</button>
                 </div>
                 
@@ -396,7 +414,7 @@
         </div>
     </div>
     
-    <!-- Модальное окно для добавления/редактирования -->
+    <!-- Модальное окно -->
     <div class="modal" id="itemModal">
         <div class="modal-content">
             <h3 id="modalTitle">Добавить элемент</h3>
@@ -419,18 +437,18 @@
             </div>
             
             <div class="form-group">
-                <label>Описание (необязательно)</label>
-                <textarea id="itemDescription" placeholder="Краткое описание прошивки или утилиты"></textarea>
+                <label>Описание</label>
+                <textarea id="itemDescription" placeholder="Краткое описание"></textarea>
             </div>
             
             <div class="form-row">
                 <div class="form-group">
-                    <label>Дата (для прошивок)</label>
+                    <label>Дата</label>
                     <input type="text" id="itemDate" placeholder="ДД.ММ.ГГГГ">
                 </div>
                 
                 <div class="form-group">
-                    <label>Тип (ZIP, EXE, PDF)</label>
+                    <label>Тип</label>
                     <input type="text" id="itemBadge" placeholder="ZIP" value="ZIP">
                 </div>
             </div>
@@ -452,7 +470,6 @@
         let currentTab = 'sapphire';
         let editingId = null;
         
-        // Загрузка данных при открытии страницы
         async function loadData() {
             try {
                 const response = await fetch('/api/updates');
@@ -478,7 +495,6 @@
             }
         }
         
-        // Переключение вкладок
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -489,7 +505,6 @@
             });
         });
         
-        // Обновление информации о разделе
         function updateSectionInfo() {
             const titles = {
                 sapphire: 'САПФИР-3',
@@ -503,11 +518,10 @@
             const count = currentData?.[currentTab]?.length || 0;
             document.querySelector('.section-info').innerHTML = `
                 <span><strong>${titles[currentTab]}</strong> — ${count} записей</span>
-                ${count > 0 ? '<span class="badge-preview">' + count + ' шт</span>' : ''}
+                ${count > 0 ? '<span class="badge-preview">' + count + '</span>' : ''}
             `;
         }
         
-        // Отображение элементов
         function renderItems() {
             const container = document.getElementById('itemsContainer');
             const items = currentData?.[currentTab] || [];
@@ -517,7 +531,7 @@
                     <div class="empty-state">
                         <div class="icon">📂</div>
                         <h3>В этом разделе пока ничего нет</h3>
-                        <p>Нажмите кнопку "Добавить", чтобы создать первую запись</p>
+                        <p>Нажмите "Добавить" чтобы создать запись</p>
                     </div>
                 `;
                 return;
@@ -535,35 +549,26 @@
                     ` : ''}
                     
                     ${item.date ? `
-                        <div class="item-date">
-                            📅 ${item.date}
-                        </div>
+                        <div class="item-date">📅 ${item.date}</div>
                     ` : ''}
                     
-                    <div class="item-file">
-                        📁 ${escapeHtml(item.file)}
-                    </div>
+                    <div class="item-file">📁 ${escapeHtml(item.file)}</div>
                     
                     <div class="item-actions">
-                        <button class="edit-btn" onclick="editItem(${item.id})">
-                            ✏️ Редактировать
-                        </button>
-                        <button class="delete-btn" onclick="deleteItem(${item.id})">
-                            🗑️ Удалить
-                        </button>
+                        <button class="edit-btn" onclick="editItem(${item.id})">✏️ Ред.</button>
+                        <button class="delete-btn" onclick="deleteItem(${item.id})">🗑️ Уд.</button>
                     </div>
                 </div>
             `).join('');
         }
         
-        // Экранирование HTML
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
         
-        // Открыть модальное окно для добавления
         function openAddModal() {
             editingId = null;
             document.getElementById('modalTitle').textContent = 'Добавить элемент';
@@ -576,13 +581,12 @@
             document.getElementById('itemModal').classList.add('active');
         }
         
-        // Редактирование элемента
         function editItem(id) {
             const item = currentData[currentTab].find(i => i.id === id);
             if (!item) return;
             
             editingId = id;
-            document.getElementById('modalTitle').textContent = 'Редактировать элемент';
+            document.getElementById('modalTitle').textContent = 'Редактировать';
             document.getElementById('itemSection').value = currentTab;
             document.getElementById('itemTitle').value = item.title || '';
             document.getElementById('itemDescription').value = item.description || '';
@@ -592,7 +596,6 @@
             document.getElementById('itemModal').classList.add('active');
         }
         
-        // Сохранение элемента
         async function saveItem() {
             const section = document.getElementById('itemSection').value;
             const title = document.getElementById('itemTitle').value.trim();
@@ -601,36 +604,22 @@
             const file = document.getElementById('itemFile').value.trim();
             const badge = document.getElementById('itemBadge').value.trim() || 'ZIP';
             
-            if (!title) {
-                alert('Введите название');
+            if (!title || !file) {
+                alert('Заполните название и путь к файлу');
                 return;
             }
             
-            if (!file) {
-                alert('Введите путь к файлу');
-                return;
-            }
-            
-            const data = {
-                section,
-                title,
-                description,
-                date,
-                file,
-                badge
-            };
+            const data = { section, title, description, date, file, badge };
             
             try {
                 let response;
                 if (editingId) {
-                    // Обновление
                     response = await fetch(`/api/updates/${editingId}`, {
                         method: 'PUT',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify(data)
                     });
                 } else {
-                    // Создание
                     response = await fetch('/api/updates', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
@@ -641,10 +630,10 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    await loadData(); // Перезагружаем данные
+                    await loadData();
                     closeModal();
                 } else {
-                    alert('Ошибка сохранения: ' + (result.error || 'Неизвестная ошибка'));
+                    alert('Ошибка: ' + (result.error || 'Неизвестная ошибка'));
                 }
             } catch (error) {
                 console.error('Ошибка:', error);
@@ -652,11 +641,8 @@
             }
         }
         
-        // Удаление элемента
         async function deleteItem(id) {
-            if (!confirm('Вы уверены, что хотите удалить этот элемент?')) {
-                return;
-            }
+            if (!confirm('Удалить?')) return;
             
             try {
                 const response = await fetch(`/api/updates/${id}`, {
@@ -666,9 +652,9 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    await loadData(); // Перезагружаем данные
+                    await loadData();
                 } else {
-                    alert('Ошибка удаления: ' + (result.error || 'Неизвестная ошибка'));
+                    alert('Ошибка: ' + (result.error || 'Неизвестная ошибка'));
                 }
             } catch (error) {
                 console.error('Ошибка:', error);
@@ -676,12 +662,10 @@
             }
         }
         
-        // Закрыть модальное окно
         function closeModal() {
             document.getElementById('itemModal').classList.remove('active');
         }
         
-        // Загружаем данные при старте
         loadData();
     </script>
 </body>
