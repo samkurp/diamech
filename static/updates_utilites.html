@@ -326,13 +326,40 @@
             </footer>
         </div>
     </div>
-
+    
     <script>
+        // Загрузка данных из API
+        async function loadUpdates() {
+            try {
+                const response = await fetch('/api/updates');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const data = result.updates;
+                    
+                    // Обновляем дату
+                    const dateSpan = document.querySelector('div[style*="justify-content: center; gap: 20px"] span:first-child');
+                    if (dateSpan) {
+                        dateSpan.innerHTML = `<span class="icon">📅</span> Последнее обновление: ${result.last_update}`;
+                    }
+                    
+                    // Здесь можно добавить динамическое обновление контента
+                    // Но проще оставить статическую верстку, так как данные меняются редко
+                    console.log('Данные загружены:', data);
+                }
+            } catch (error) {
+                console.error('Ошибка загрузки обновлений:', error);
+            }
+        }
+        
+        // Загружаем при открытии страницы
+        loadUpdates();
+        
         // Показываем подсказку только на мобильных
         if (window.innerWidth <= 768) {
             document.querySelector('.mobile-hint').style.display = 'block';
         }
-
+    
         // Обновляем подсказку при изменении размера окна
         window.addEventListener('resize', function() {
             const hint = document.querySelector('.mobile-hint');
@@ -344,4 +371,5 @@
 </body>
 
 </html>
+
 
