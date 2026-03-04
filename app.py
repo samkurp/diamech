@@ -926,62 +926,62 @@ class SupabaseDB:
             print(f"❌ Ошибка получения изображения: {e}")
             return None
 
-@staticmethod
-def delete_draft(draft_id):
-    """Полностью удаляет черновик, его изображения и историю изменений"""
-    try:
-        if supabase is None:
-            return False, "Supabase не инициализирован"
-        
-        print(f"\n{'=' * 50}")
-        print(f"🗑️ УДАЛЕНИЕ ЧЕРНОВИКА: {draft_id}")
-        print(f"{'=' * 50}")
-        
-        # 1. Удаляем все изображения черновика
+    @staticmethod
+    def delete_draft(draft_id):
+        """Полностью удаляет черновик, его изображения и историю изменений"""
         try:
-            images_result = supabase.table('images') \
-                .delete() \
-                .eq('draft_id', draft_id) \
-                .execute()
-            print(f"✅ Удалено изображений: {len(images_result.data) if images_result.data else 0}")
-        except Exception as e:
-            print(f"⚠️ Ошибка при удалении изображений: {e}")
-        
-        # 2. Удаляем историю изменений черновика
-        try:
-            history_result = supabase.table('draft_history') \
-                .delete() \
-                .eq('draft_id', draft_id) \
-                .execute()
-            print(f"✅ Удалено записей истории: {len(history_result.data) if history_result.data else 0}")
-        except Exception as e:
-            print(f"⚠️ Ошибка при удалении истории: {e}")
-        
-        # 3. Удаляем сам черновик
-        try:
-            draft_result = supabase.table('drafts') \
-                .delete() \
-                .eq('id', draft_id) \
-                .execute()
+            if supabase is None:
+                return False, "Supabase не инициализирован"
             
-            if draft_result.data:
-                print(f"✅ Черновик удален: {draft_id}")
+            print(f"\n{'=' * 50}")
+            print(f"🗑️ УДАЛЕНИЕ ЧЕРНОВИКА: {draft_id}")
+            print(f"{'=' * 50}")
+            
+            # 1. Удаляем все изображения черновика
+            try:
+                images_result = supabase.table('images') \
+                    .delete() \
+                    .eq('draft_id', draft_id) \
+                    .execute()
+                print(f"✅ Удалено изображений: {len(images_result.data) if images_result.data else 0}")
+            except Exception as e:
+                print(f"⚠️ Ошибка при удалении изображений: {e}")
+            
+            # 2. Удаляем историю изменений черновика
+            try:
+                history_result = supabase.table('draft_history') \
+                    .delete() \
+                    .eq('draft_id', draft_id) \
+                    .execute()
+                print(f"✅ Удалено записей истории: {len(history_result.data) if history_result.data else 0}")
+            except Exception as e:
+                print(f"⚠️ Ошибка при удалении истории: {e}")
+            
+            # 3. Удаляем сам черновик
+            try:
+                draft_result = supabase.table('drafts') \
+                    .delete() \
+                    .eq('id', draft_id) \
+                    .execute()
+                
+                if draft_result.data:
+                    print(f"✅ Черновик удален: {draft_id}")
+                    print(f"{'=' * 50}\n")
+                    return True, "Черновик успешно удален"
+                else:
+                    print(f"❌ Черновик не найден: {draft_id}")
+                    print(f"{'=' * 50}\n")
+                    return False, "Черновик не найден"
+            except Exception as e:
+                print(f"❌ Ошибка при удалении черновика: {e}")
                 print(f"{'=' * 50}\n")
-                return True, "Черновик успешно удален"
-            else:
-                print(f"❌ Черновик не найден: {draft_id}")
-                print(f"{'=' * 50}\n")
-                return False, "Черновик не найден"
+                return False, str(e)
+                
         except Exception as e:
-            print(f"❌ Ошибка при удалении черновика: {e}")
+            print(f"❌ Критическая ошибка при удалении: {e}")
+            traceback.print_exc()
             print(f"{'=' * 50}\n")
             return False, str(e)
-            
-    except Exception as e:
-        print(f"❌ Критическая ошибка при удалении: {e}")
-        traceback.print_exc()
-        print(f"{'=' * 50}\n")
-        return False, str(e)
 # ========== API ЭНДПОИНТЫ ==========
 
 @app.route('/api/health', methods=['GET'])
