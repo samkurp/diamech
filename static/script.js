@@ -841,3 +841,82 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+// Функция для проверки параметра delete при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const draftId = urlParams.get('draft');
+    const hasDelete = window.location.search.includes('delete');
+    
+    if (draftId && hasDelete && !window._deleteProcessed) {
+        window._deleteProcessed = true; // Предотвращаем повторные срабатывания
+        
+        setTimeout(() => {
+            if (confirm('⚠️ ВНИМАНИЕ!\n\nВы действительно хотите ПОЛНОСТЬЮ УДАЛИТЬ этот станок?\n\n' +
+                       'Будут удалены:\n' +
+                       '• Все данные станка\n' +
+                       '• Все фотографии\n' +
+                       '• Вся история изменений\n\n' +
+                       'Это действие НЕОБРАТИМО!')) {
+                
+                deleteDraft(draftId);
+            } else {
+                window.location.href = '/add-draft?draft=' + draftId;
+            }
+        }, 500);
+    }
+});
+
+// Функция удаления
+async function deleteDraft(draftId) {
+    const status = document.getElementById('statusMessage') || createStatusElement();
+    
+    status.innerHTML = '🔄 Удаление станка...';
+    status.className = 'status-message info';
+    status.style.display = 'block';
+    
+    try {
+        const response = await fetch(`/api/drafts/${draftId}/delete?confirm=yes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            status.innerHTML = '✅ Станок успешно удален! Перенаправление...';
+            status.className = 'status-message success';
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        } else {
+            throw new Error(result.error || 'Ошибка при удалении');
+        }
+    } catch (error) {
+        console.error('Ошибка удаления:', error);
+        
+        status.innerHTML = `❌ Ошибка: ${error.message}`;
+        status.className = 'status-message error';
+        status.style.display = 'block';
+        
+        setTimeout(() => {
+            if (confirm('Не удалось удалить станок. Вернуться к редактированию?')) {
+                window.location.href = '/add-draft?draft=' + draftId;
+            } else {
+                window.location.href = '/';
+            }
+        }, 3000);
+    }
+}
+
+// Вспомогательная функция для создания элемента статуса
+function createStatusElement() {
+    const status = document.createElement('div');
+    status.id = 'statusMessage';
+    status.className = 'status-message';
+    document.querySelector('.container').appendChild(status);
+    return status;
+}
