@@ -1793,7 +1793,45 @@ def update_update(update_id):
             'error': str(e)
         }), 500
 
-
+@app.route('/api/drafts/<draft_id>/delete', methods=['POST', 'DELETE'])
+def delete_draft(draft_id):
+    """
+    Удаляет черновик со всеми связанными данными
+    Доступен только через специальный URL параметр для безопасности
+    """
+    try:
+        # Проверяем специальный секретный ключ для защиты от случайного удаления
+        # Можно использовать простую проверку или добавить реальную аутентификацию
+        confirm = request.args.get('confirm')
+        
+        if confirm != 'yes':
+            return jsonify({
+                'success': False,
+                'error': 'Для удаления требуется подтверждение'
+            }), 400
+        
+        # Выполняем удаление
+        success, message = SupabaseDB.delete_draft(draft_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': message,
+                'draft_id': draft_id
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': message
+            }), 404 if message == "Черновик не найден" else 500
+            
+    except Exception as e:
+        print(f"❌ Ошибка в эндпоинте удаления: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 @app.route('/api/updates/<int:update_id>', methods=['DELETE'])
 def delete_update(update_id):
     """Удаляет запись"""
