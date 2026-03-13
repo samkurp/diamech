@@ -127,6 +127,7 @@ function searchMachines(query) {
     });
 }
 
+
 // Отображение станков
 function displayMachines(machines) {
     const shippedList = document.getElementById('shippedList');
@@ -137,11 +138,23 @@ function displayMachines(machines) {
     if (machines.length > 0) {
         shippedList.innerHTML = '';
 
-        // Сортируем по дате обновления (новые сверху)
+        // Сортировка по заводскому номеру (serial_number) по убыванию
         const sortedMachines = [...machines].sort((a, b) => {
-            const dateA = new Date(a.updated_at || a.created_at);
-            const dateB = new Date(b.updated_at || b.created_at);
-            return dateB - dateA;
+            // Извлекаем заводские номера (serial_number)
+            const serialA = a.serial_number || '';
+            const serialB = b.serial_number || '';
+            
+            // Извлекаем числовую часть из заводского номера
+            const numA = extractNumberFromSerial(serialA);
+            const numB = extractNumberFromSerial(serialB);
+            
+            // Если удалось извлечь числа из обоих номеров
+            if (numA !== null && numB !== null) {
+                return numB - numA; // По убыванию (большие номера сверху)
+            }
+            
+            // Если не удалось извлечь числа, сравниваем как строки
+            return serialB.localeCompare(serialA);
         });
 
         sortedMachines.forEach(draft => {
@@ -158,6 +171,23 @@ function displayMachines(machines) {
     }
 }
 
+// Вспомогательная функция для извлечения числа из заводского номера
+function extractNumberFromSerial(serial) {
+    if (!serial) return null;
+    
+    // Ищем все цифры в строке
+    const numbers = serial.match(/\d+/g);
+    if (!numbers) return null;
+    
+    // Объединяем все найденные цифры в одно число
+    const fullNumber = numbers.join('');
+    
+    // Преобразуем в число
+    const num = parseInt(fullNumber, 10);
+    
+    // Проверяем, что получилось валидное число
+    return isNaN(num) ? null : num;
+}
 // Создание элемента станка
 function createShippedElement(draft) {
     const draftDiv = document.createElement('div');
