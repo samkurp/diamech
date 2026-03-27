@@ -74,7 +74,7 @@ function createDraftElement(draft) {
     const draftDiv = document.createElement('div');
     draftDiv.className = 'draft-item';
 
-    // ИЗМЕНЕНИЕ: При клике на карточку открываем страницу просмотра
+    // При клике на карточку открываем страницу просмотра
     draftDiv.onclick = () => viewDraft(draft.id);
     draftDiv.style.cursor = 'pointer';
 
@@ -131,7 +131,7 @@ function createDraftElement(draft) {
     return draftDiv;
 }
 
-// НОВАЯ ФУНКЦИЯ: Открытие страницы просмотра
+// Открытие страницы просмотра
 function viewDraft(draftId) {
     window.location.href = `/view-machine.html?id=${draftId}`;
 }

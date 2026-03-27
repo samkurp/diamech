@@ -74,7 +74,24 @@
                     <!-- Основная информация -->
                     <div class="form-section">
                         <h3>Основная информация</h3>
-                        
+                        <!-- Заявка -->
+                    <div class="form-section">
+                        <h3>📄 Заявка</h3>
+
+                        <div class="form-group">
+                            <label for="requestFile">Файл заявки (Word):</label>
+                            <input type="file" id="requestFile" name="requestFile"
+                                   accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                   class="file-input">
+                            <small>Поддерживаемые форматы: DOC, DOCX</small>
+                        </div>
+
+                        <div id="requestFileInfo" style="display: none; margin-top: 10px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border-left: 3px solid #10b981;">
+                            <span style="color: #10b981;">📄 </span>
+                            <span id="currentRequestFileName" style="color: var(--text-primary);"></span>
+                            <button type="button" id="removeRequestFile" style="margin-left: 10px; background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px;">✕</button>
+                        </div>
+                    </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="machineType" class="required">Тип станка:</label>

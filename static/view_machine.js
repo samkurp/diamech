@@ -36,6 +36,7 @@ async function loadMachineData() {
             displayMachineData();
             loadMachineImages();
             await loadCustomerData();
+            await loadRequestFileInfo();
             document.title = machineData.display_name || 'Станок';
 
             // Проверяем статус и показываем/скрываем кнопки
@@ -51,6 +52,49 @@ async function loadMachineData() {
     }
 }
 
+// Функция загрузки информации о заявке
+async function loadRequestFileInfo() {
+    if (!machineData) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/drafts/${machineData.id}/request-file`);
+
+        if (response.ok) {
+            const requestCard = document.getElementById('requestFileStatus');
+            if (requestCard) {
+                requestCard.textContent = '📄 Есть файл';
+                requestCard.classList.remove('empty');
+                requestCard.style.color = '#10b981';
+                requestCard.style.cursor = 'pointer';
+
+                // Делаем карточку кликабельной
+                const card = document.getElementById('requestFileCard');
+                if (card) {
+                    card.onclick = () => openRequestFile();
+                    card.style.cursor = 'pointer';
+                }
+            }
+        } else if (response.status === 404) {
+            const requestCard = document.getElementById('requestFileStatus');
+            if (requestCard) {
+                requestCard.textContent = 'Не загружена';
+                requestCard.classList.add('empty');
+                requestCard.style.color = '#64748b';
+            }
+        }
+    } catch (error) {
+        console.log('Ошибка загрузки информации о заявке:', error);
+    }
+}
+
+// Функция открытия файла заявки
+function openRequestFile() {
+    if (!machineData) return;
+
+    const url = `${API_BASE}/drafts/${machineData.id}/request-file`;
+    window.open(url, '_blank');
+}
+
 // Обновление кнопок действий в зависимости от статуса
 function updateActionButtons() {
     const restoreBtn = document.getElementById('restoreBtn');
@@ -62,7 +106,6 @@ function updateActionButtons() {
     const status = machineData.data?.machineStatus || machineData.machine_status;
     const isShipped = status === 'Отгружен';
 
-    // ИЗМЕНЕНИЕ: Все кнопки теперь имеют класс btn-back-minimal
     // Кнопка "Вернуть в работу" видна только для отгруженных станков
     if (restoreBtn) {
         restoreBtn.style.display = isShipped ? 'flex' : 'none';

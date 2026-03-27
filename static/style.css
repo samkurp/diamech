@@ -1788,10 +1788,6 @@ small {
         grid-template-columns: repeat(2, 1fr);
     }
 
-    /* Заказчик занимает две колонки */
-    .machine-view-minimal .section-minimal:first-child .info-card-minimal:first-child {
-        grid-column: 1 / -1;
-    }
 }
 
 /* Улучшение отступов для сетки */

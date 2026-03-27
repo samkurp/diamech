@@ -22,45 +22,48 @@ load_dotenv()
 app = Flask(__name__, static_folder='static')
 CORS(app)
 
+
 # Конфигурация
 class Config:
     # Supabase конфигурация
     SUPABASE_URL = os.environ.get('SUPABASE_URL', '')
     SUPABASE_KEY = os.environ.get('SUPABASE_KEY', '')
-    
+
     # Шаблон Excel
     TEMPLATE_PATH = "1.xlsx"
-    
+
     # Разрешенные форматы изображений
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
-    
+
     # Максимальный размер файла (16MB)
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
-    
+
     # Настройки сжатия изображений
     IMAGE_MAX_SIZE = 1024  # Максимальный размер стороны в пикселях
-    IMAGE_QUALITY = 70     # Качество сжатия в процентах
+    IMAGE_QUALITY = 70  # Качество сжатия в процентах
     IMAGE_FORMAT = 'JPEG'  # Формат для сохранения
+
 
 # ========== ИНИЦИАЛИЗАЦИЯ SUPABASE ==========
 supabase = None
 if Config.SUPABASE_URL and Config.SUPABASE_KEY:
     try:
-        print("\n" + "="*50)
+        print("\n" + "=" * 50)
         print("🔄 ИНИЦИАЛИЗАЦИЯ SUPABASE")
-        print("="*50)
+        print("=" * 50)
         print(f"📌 URL: {Config.SUPABASE_URL[:50]}...")
         print(f"📌 Key length: {len(Config.SUPABASE_KEY)} символов")
-        
+
         from supabase import create_client
+
         supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
-        
+
         # Проверка подключения
         test_query = supabase.table('drafts').select('*').limit(1).execute()
         print("✅ Supabase: успешно подключен!")
         print("✅ Таблица 'drafts' доступна")
-        print("="*50 + "\n")
-        
+        print("=" * 50 + "\n")
+
     except ImportError as e:
         print(f"❌ Ошибка импорта supabase: {e}")
         print("   Установите: pip install supabase==2.12.0")
@@ -72,6 +75,8 @@ if Config.SUPABASE_URL and Config.SUPABASE_KEY:
 else:
     print("\n⚠️ Supabase не настроен - переменные окружения отсутствуют")
     print("   Установите SUPABASE_URL и SUPABASE_KEY в переменных окружения\n")
+
+
 # ============================================
 
 def compress_image(image_data, max_size=1024, quality=70):
@@ -81,29 +86,31 @@ def compress_image(image_data, max_size=1024, quality=70):
     try:
         # Открываем изображение
         img = Image.open(io.BytesIO(image_data))
-        
+
         # Конвертируем в RGB если нужно
         if img.mode in ('RGBA', 'LA', 'P'):
             img = img.convert('RGB')
-        
+
         # Изменяем размер с сохранением пропорций
         img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-        
+
         # Сохраняем с сжатием
         output = io.BytesIO()
         img.save(output, format=Config.IMAGE_FORMAT, quality=quality, optimize=True)
         compressed_data = output.getvalue()
-        
+
         print(f"🖼️ Изображение сжато: {len(image_data)} -> {len(compressed_data)} байт")
         return compressed_data
-        
+
     except Exception as e:
         print(f"❌ Ошибка сжатия изображения: {e}")
         return image_data  # Возвращаем оригинал в случае ошибки
 
+
 def allowed_file(filename):
     """Проверка разрешенного формата файла"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in Config.ALLOWED_EXTENSIONS
+
 
 def generate_folder_name(data):
     """Генерирует имя папки для сохранения"""
@@ -111,6 +118,7 @@ def generate_folder_name(data):
     lifting_capacity = data.get('liftingCapacity', '').strip()
     serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_')
     return f"ML_{machine_type}{lifting_capacity}№{serial_number}"
+
 
 def transliterate_machine_type(machine_type):
     """Транслитерирует тип станка для имени ZIP файла"""
@@ -123,6 +131,7 @@ def transliterate_machine_type(machine_type):
     }
     return translit_map.get(machine_type, machine_type)
 
+
 def generate_protocol_filename(data):
     """Генерирует имя файла протокола (кириллица)"""
     machine_type = data.get('machineType', '').strip()
@@ -130,21 +139,21 @@ def generate_protocol_filename(data):
     serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_')
     return f"{machine_type}{lifting_capacity}№{serial_number}.xlsx"
 
+
 def generate_zip_filename(data):
     """Генерирует имя ZIP файла (латиница)"""
     machine_type = data.get('machineType', '').strip()
     lifting_capacity = data.get('liftingCapacity', '').strip()
     serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_')
-    
+
     # Транслитерируем тип станка
     machine_type_lat = transliterate_machine_type(machine_type)
-    
+
     return f"{machine_type_lat}{lifting_capacity}№{serial_number}.zip"
+
 
 # ========== КЛАСС ДЛЯ РАБОТЫ С SUPABASE ==========
 class SupabaseDB:
-
-    # Добавить после класса SupabaseDB новые методы для работы с историей
 
     @staticmethod
     def save_history(draft_id, old_data, new_data, changed_by=None):
@@ -511,19 +520,19 @@ class SupabaseDB:
             if supabase is None:
                 print("⚠️ Supabase не инициализирован")
                 return []
-            
+
             # Базовый запрос
             query = supabase.table('drafts').select('*')
-            
+
             # Фильтрация по статусу
             if filter_status == 'shipped':
                 query = query.eq('machine_status', 'Отгружен')
             elif filter_status == 'active':
                 query = query.neq('machine_status', 'Отгружен')
-            
+
             # Сортировка по дате обновления
             response = query.order('updated_at', desc=True).execute()
-            
+
             drafts = []
             for draft in response.data:
                 drafts.append({
@@ -540,41 +549,42 @@ class SupabaseDB:
                     'shipping_date': draft.get('shipping_date', ''),
                     'customer_info': draft.get('customer_info', {})
                 })
-            
+
             print(f"📥 Загружено {len(drafts)} черновиков")
             return drafts
-            
+
         except Exception as e:
             print(f"❌ Ошибка в get_all_drafts: {e}")
             return []
-    
+
     @staticmethod
     def get_draft(draft_id):
         """Загружает конкретный черновик"""
         try:
             if supabase is None:
                 return None
-            
+
             response = supabase.table('drafts').select('*').eq('id', draft_id).execute()
-            
+
             if not response.data:
                 return None
-            
+
             draft = response.data[0]
-            
+
             # Загружаем изображения
             images_response = supabase.table('images') \
                 .select('filename') \
                 .eq('draft_id', draft_id) \
                 .execute()
-            
+
             draft['image_files'] = [img['filename'] for img in images_response.data]
-            
+
             return draft
-            
+
         except Exception as e:
             print(f"❌ Ошибка загрузки черновика {draft_id}: {e}")
             return None
+
 
     @staticmethod
     def save_draft(data, images=None):
@@ -652,7 +662,6 @@ class SupabaseDB:
                             else:
                                 content_type = f'image/{ext}'
 
-                        # ПРОВЕРЯЕМ, СУЩЕСТВУЕТ ЛИ УЖЕ ТАКОЕ ИЗОБРАЖЕНИЕ
                         try:
                             existing = supabase.table('images') \
                                 .select('*') \
@@ -661,7 +670,6 @@ class SupabaseDB:
                                 .execute()
 
                             if existing.data:
-                                # Обновляем существующее изображение
                                 supabase.table('images') \
                                     .update({
                                     'image_data': img_base64,
@@ -673,7 +681,6 @@ class SupabaseDB:
                                     .execute()
                                 print(f"🔄 Обновлено существующее изображение: {filename}")
                             else:
-                                # Вставляем новое изображение
                                 image_data = {
                                     'draft_id': draft_id,
                                     'filename': filename,
@@ -688,26 +695,11 @@ class SupabaseDB:
 
                         except Exception as e:
                             print(f"❌ Ошибка при сохранении изображения {filename}: {e}")
-                            # Пробуем альтернативный подход - удаляем старое и вставляем новое
-                            try:
-                                supabase.table('images') \
-                                    .delete() \
-                                    .eq('draft_id', draft_id) \
-                                    .eq('filename', filename) \
-                                    .execute()
 
-                                image_data = {
-                                    'draft_id': draft_id,
-                                    'filename': filename,
-                                    'image_data': img_base64,
-                                    'content_type': content_type,
-                                    'uploaded_at': datetime.now().isoformat()
-                                }
-                                supabase.table('images').insert(image_data).execute()
-                                print(f"♻️ Перезаписано изображение: {filename}")
-                                saved_images.append(filename)
-                            except Exception as e2:
-                                print(f"❌ Критическая ошибка при сохранении {filename}: {e2}")
+            # ВАЖНО: Сохраняем файл заявки, если он передан в images (так как request.files)
+            # Обратите внимание: request_file может быть в images или отдельно
+            # Нужно передавать request_file отдельным параметром
+            # Пока оставим так, но нужно будет изменить вызов
 
             return True, {
                 'id': draft_id,
@@ -830,6 +822,14 @@ class SupabaseDB:
                         except Exception as e:
                             print(f"❌ Ошибка при обновлении изображения {filename}: {e}")
 
+            # Сохраняем файл заявки, если есть
+            if 'requestFile' in data:
+                request_file = data.get('requestFile')
+                if request_file and hasattr(request_file, 'filename') and request_file.filename:
+                    success, result = SupabaseDB.save_request_file(draft_id, request_file)
+                    if not success:
+                        print(f"⚠️ Ошибка сохранения файла заявки при обновлении: {result}")
+
             return True, {
                 'draft_data': update_data,
                 'saved_images': saved_images
@@ -839,89 +839,89 @@ class SupabaseDB:
             print(f"❌ Ошибка обновления: {e}")
             traceback.print_exc()
             return False, str(e)
-    
+
     @staticmethod
     def update_customer_data(draft_id, customer_data):
         """Обновляет данные заказчика"""
         try:
             if supabase is None:
                 return False, "Supabase не инициализирован"
-            
+
             draft = SupabaseDB.get_draft(draft_id)
             if not draft:
                 return False, "Черновик не найден"
-            
+
             customer_info = draft.get('customer_info', {})
             customer_info.update(customer_data)
             customer_info['updated_at'] = datetime.now().isoformat()
-            
+
             supabase.table('drafts') \
                 .update({
-                    'customer_info': customer_info,
-                    'updated_at': datetime.now().isoformat()
-                }) \
+                'customer_info': customer_info,
+                'updated_at': datetime.now().isoformat()
+            }) \
                 .eq('id', draft_id) \
                 .execute()
-            
+
             print(f"👥 Обновлены данные заказчика: {draft_id}")
             return True, draft
-            
+
         except Exception as e:
             print(f"❌ Ошибка обновления данных заказчика: {e}")
             return False, str(e)
-    
+
     @staticmethod
     def get_customer_data(draft_id):
         """Получает данные заказчика"""
         try:
             if supabase is None:
                 return None
-            
+
             response = supabase.table('drafts') \
                 .select('customer_info, data') \
                 .eq('id', draft_id) \
                 .execute()
-            
+
             if not response.data:
                 return None
-            
+
             draft = response.data[0]
             customer_info = draft.get('customer_info', {})
-            
+
             if customer_info:
                 return customer_info
-            
+
             # Если нет customer_info, возвращаем базовые данные
             customer_name = draft.get('data', {}).get('customer', 'Не указан')
             return {
                 'customerName': customer_name,
                 'originalCustomer': customer_name
             }
-            
+
         except Exception as e:
             print(f"❌ Ошибка получения данных заказчика: {e}")
             return None
-    
+
     @staticmethod
     def get_image(draft_id, filename):
         """Получает изображение из базы"""
         try:
             if supabase is None:
                 return None
-            
+
             response = supabase.table('images') \
                 .select('image_data, content_type') \
                 .eq('draft_id', draft_id) \
                 .eq('filename', filename) \
                 .execute()
-            
+
             if not response.data:
                 return None
-            
+
             img = response.data[0]
             img_bytes = base64.b64decode(img['image_data'])
             return img_bytes, img.get('content_type', 'image/jpeg')
-            
+
         except Exception as e:
             print(f"❌ Ошибка получения изображения: {e}")
             return None
@@ -932,11 +932,11 @@ class SupabaseDB:
         try:
             if supabase is None:
                 return False, "Supabase не инициализирован"
-            
+
             print(f"\n{'=' * 50}")
             print(f"🗑️ УДАЛЕНИЕ ЧЕРНОВИКА: {draft_id}")
             print(f"{'=' * 50}")
-            
+
             # 1. Удаляем все изображения черновика
             try:
                 images_result = supabase.table('images') \
@@ -946,8 +946,18 @@ class SupabaseDB:
                 print(f"✅ Удалено изображений: {len(images_result.data) if images_result.data else 0}")
             except Exception as e:
                 print(f"⚠️ Ошибка при удалении изображений: {e}")
-            
-            # 2. Удаляем историю изменений черновика
+
+            # 2. Удаляем файл заявки
+            try:
+                request_result = supabase.table('request_files') \
+                    .delete() \
+                    .eq('draft_id', draft_id) \
+                    .execute()
+                print(f"✅ Удален файл заявки: {len(request_result.data) if request_result.data else 0}")
+            except Exception as e:
+                print(f"⚠️ Ошибка при удалении файла заявки: {e}")
+
+            # 3. Удаляем историю изменений черновика
             try:
                 history_result = supabase.table('draft_history') \
                     .delete() \
@@ -956,14 +966,14 @@ class SupabaseDB:
                 print(f"✅ Удалено записей истории: {len(history_result.data) if history_result.data else 0}")
             except Exception as e:
                 print(f"⚠️ Ошибка при удалении истории: {e}")
-            
-            # 3. Удаляем сам черновик
+
+            # 4. Удаляем сам черновик
             try:
                 draft_result = supabase.table('drafts') \
                     .delete() \
                     .eq('id', draft_id) \
                     .execute()
-                
+
                 if draft_result.data:
                     print(f"✅ Черновик удален: {draft_id}")
                     print(f"{'=' * 50}\n")
@@ -976,14 +986,155 @@ class SupabaseDB:
                 print(f"❌ Ошибка при удалении черновика: {e}")
                 print(f"{'=' * 50}\n")
                 return False, str(e)
-                
+
         except Exception as e:
             print(f"❌ Критическая ошибка при удалении: {e}")
             traceback.print_exc()
             print(f"{'=' * 50}\n")
             return False, str(e)
-# ========== API ЭНДПОИНТЫ ==========
 
+    @staticmethod
+    def save_request_file(draft_id, file):
+        """Сохраняет файл заявки в Supabase"""
+        try:
+            if supabase is None:
+                return False, "Supabase не инициализирован"
+
+            if not file or not file.filename:
+                return False, "Файл не выбран"
+
+            # Проверяем расширение
+            allowed_extensions = {'doc', 'docx'}
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if ext not in allowed_extensions:
+                return False, "Неподдерживаемый формат файла. Используйте DOC или DOCX"
+
+            filename = secure_filename(file.filename)
+            file.seek(0)
+            file_data = file.read()
+
+            # Конвертируем в base64
+            file_base64 = base64.b64encode(file_data).decode('utf-8')
+
+            # Определяем content type
+            content_type = 'application/msword' if ext == 'doc' else 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+
+            # Сохраняем в таблицу request_files
+            request_data = {
+                'draft_id': draft_id,
+                'filename': filename,
+                'file_data': file_base64,
+                'content_type': content_type,
+                'uploaded_at': datetime.now().isoformat()
+            }
+
+            # Проверяем, существует ли уже файл
+            existing = supabase.table('request_files') \
+                .select('*') \
+                .eq('draft_id', draft_id) \
+                .execute()
+
+            if existing.data:
+                # Обновляем существующий
+                supabase.table('request_files') \
+                    .update(request_data) \
+                    .eq('draft_id', draft_id) \
+                    .execute()
+                print(f"📄 Обновлен файл заявки: {filename}")
+            else:
+                # Вставляем новый
+                supabase.table('request_files').insert(request_data).execute()
+                print(f"📄 Сохранен файл заявки: {filename}")
+
+            return True, filename
+
+        except Exception as e:
+            print(f"❌ Ошибка сохранения файла заявки: {e}")
+            traceback.print_exc()
+            return False, str(e)
+
+    @staticmethod
+    def get_request_file(draft_id):
+        """Получает файл заявки"""
+        try:
+            if supabase is None:
+                return None
+
+            response = supabase.table('request_files') \
+                .select('*') \
+                .eq('draft_id', draft_id) \
+                .execute()
+
+            if not response.data:
+                return None
+
+            file_data = response.data[0]
+            file_bytes = base64.b64decode(file_data['file_data'])
+            return file_bytes, file_data['filename'], file_data['content_type']
+
+        except Exception as e:
+            print(f"❌ Ошибка получения файла заявки: {e}")
+            return None
+
+    @staticmethod
+    def delete_request_file(draft_id):
+        """Удаляет файл заявки"""
+        try:
+            if supabase is None:
+                return False
+
+            supabase.table('request_files') \
+                .delete() \
+                .eq('draft_id', draft_id) \
+                .execute()
+
+            print(f"📄 Удален файл заявки для {draft_id}")
+            return True
+
+        except Exception as e:
+            print(f"❌ Ошибка удаления файла заявки: {e}")
+            return False
+
+
+# ========== API ЭНДПОИНТЫ ==========
+@app.route('/api/drafts/<draft_id>/upload-request', methods=['POST'])
+def upload_request_file(draft_id):
+    """Загружает файл заявки для черновика"""
+    try:
+        if 'requestFile' not in request.files:
+            return jsonify({
+                'success': False,
+                'error': 'Файл не передан'
+            }), 400
+
+        file = request.files['requestFile']
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'error': 'Файл не выбран'
+            }), 400
+
+        success, result = SupabaseDB.save_request_file(draft_id, file)
+
+        if success:
+            return jsonify({
+                'success': True,
+                'message': 'Файл заявки сохранен',
+                'filename': result
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': result
+            }), 400
+
+    except Exception as e:
+        print(f"❌ Ошибка загрузки файла заявки: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Проверка состояния сервера"""
@@ -1002,13 +1153,14 @@ def health_check():
         'timestamp': datetime.now().isoformat()
     })
 
+
 @app.route('/api/drafts', methods=['GET'])
 def get_drafts():
     """Получает список черновиков"""
     try:
         status_filter = request.args.get('status')
         drafts = SupabaseDB.get_all_drafts(status_filter)
-        
+
         return jsonify({
             'success': True,
             'drafts': drafts,
@@ -1022,12 +1174,13 @@ def get_drafts():
             'error': str(e)
         }), 500
 
+
 @app.route('/api/drafts/<draft_id>', methods=['GET'])
 def get_draft(draft_id):
     """Получает конкретный черновик"""
     try:
         draft = SupabaseDB.get_draft(draft_id)
-        
+
         if draft:
             return jsonify({
                 'success': True,
@@ -1044,15 +1197,16 @@ def get_draft(draft_id):
             'error': str(e)
         }), 500
 
+
 @app.route('/api/save-draft', methods=['POST'])
 def save_draft():
     """Сохраняет черновик со сжатыми изображениями"""
     try:
         data = request.form
         images = request.files.getlist('images')
-        
+
         success, result, error = SupabaseDB.save_draft(data, images)
-        
+
         if success:
             return jsonify({
                 'success': True,
@@ -1075,14 +1229,15 @@ def save_draft():
             'error': f'Ошибка сохранения: {str(e)}'
         }), 500
 
+
 @app.route('/api/drafts/<draft_id>', methods=['PUT'])
 def update_draft(draft_id):
     """Обновляет черновик"""
     try:
         data = request.form
-        images = request.files.getlist('images')  # Добавляем получение изображений
+        images = request.files.getlist('images')
         success, result = SupabaseDB.update_draft(draft_id, data, images)
-        
+
         if success:
             return jsonify({
                 'success': True,
@@ -1099,13 +1254,15 @@ def update_draft(draft_id):
             'success': False,
             'error': str(e)
         }), 500
+
+
 @app.route('/api/drafts/<draft_id>/customer', methods=['GET', 'POST', 'PUT'])
 def manage_customer_data(draft_id):
     """Управление данными заказчика"""
     try:
         if request.method == 'GET':
             customer_data = SupabaseDB.get_customer_data(draft_id)
-            
+
             if customer_data:
                 return jsonify({
                     'success': True,
@@ -1116,18 +1273,18 @@ def manage_customer_data(draft_id):
                     'success': False,
                     'error': 'Данные заказчика не найдены'
                 }), 404
-                
+
         elif request.method in ['POST', 'PUT']:
             data = request.get_json()
-            
+
             if not data:
                 return jsonify({
                     'success': False,
                     'error': 'Нет данных для сохранения'
                 }), 400
-            
+
             success, result = SupabaseDB.update_customer_data(draft_id, data)
-            
+
             if success:
                 return jsonify({
                     'success': True,
@@ -1139,19 +1296,20 @@ def manage_customer_data(draft_id):
                     'success': False,
                     'error': result
                 }), 400
-                
+
     except Exception as e:
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
 
+
 @app.route('/api/drafts/<draft_id>/images/<filename>')
 def get_draft_image(draft_id, filename):
     """Возвращает изображение"""
     try:
         image_data = SupabaseDB.get_image(draft_id, filename)
-        
+
         if image_data:
             img_bytes, content_type = image_data
             return send_file(
@@ -1165,12 +1323,88 @@ def get_draft_image(draft_id, filename):
                 'success': False,
                 'error': 'Изображение не найдено'
             }), 404
-            
+
     except Exception as e:
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
+
+
+@app.route('/api/drafts/<draft_id>/request-file', methods=['GET', 'POST', 'DELETE'])
+def manage_request_file(draft_id):
+    """Управление файлом заявки"""
+    try:
+        if request.method == 'GET':
+            # Получаем файл заявки
+            file_data = SupabaseDB.get_request_file(draft_id)
+
+            if file_data:
+                file_bytes, filename, content_type = file_data
+                return send_file(
+                    io.BytesIO(file_bytes),
+                    mimetype=content_type,
+                    as_attachment=False,
+                    download_name=filename
+                )
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Файл заявки не найден'
+                }), 404
+
+        elif request.method == 'POST':
+            # Сохраняем файл заявки
+            if 'requestFile' not in request.files:
+                return jsonify({
+                    'success': False,
+                    'error': 'Файл не передан'
+                }), 400
+
+            file = request.files['requestFile']
+            if file.filename == '':
+                return jsonify({
+                    'success': False,
+                    'error': 'Файл не выбран'
+                }), 400
+
+            success, result = SupabaseDB.save_request_file(draft_id, file)
+
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': 'Файл заявки сохранен',
+                    'filename': result
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': result
+                }), 400
+
+        elif request.method == 'DELETE':
+            # Удаляем файл заявки
+            success = SupabaseDB.delete_request_file(draft_id)
+
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': 'Файл заявки удален'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Ошибка удаления файла'
+                }), 500
+
+    except Exception as e:
+        print(f"❌ Ошибка управления файлом заявки: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @app.route('/api/generate-protocol', methods=['POST'])
 def generate_protocol():
@@ -1184,24 +1418,24 @@ def generate_protocol():
                 'success': False,
                 'error': f'Шаблон {Config.TEMPLATE_PATH} не найден'
             }), 404
-        
+
         data = request.form
         draft_id = data.get('draft_id')
-        
+
         # ПОЛУЧАЕМ ДАННЫЕ ДЛЯ ИМЕН ФАЙЛОВ ЗДЕСЬ, В НАЧАЛЕ
         machine_type = data.get('machineType', '').strip()
         lifting_capacity = data.get('liftingCapacity', '').strip()
         serial_number = data.get('serialNumber', 'unknown').strip().replace(' ', '_')
-        
+
         # Создаем временную директорию
         with tempfile.TemporaryDirectory() as temp_dir:
             folder_name = generate_folder_name(data)
             protocol_filename = generate_protocol_filename(data)
-            
+
             # 1. Генерируем протокол Excel из шаблона
             wb = load_workbook(Config.TEMPLATE_PATH)
             ws = wb.active
-            
+
             # Маппинг полей на ячейки Excel
             mapping = {
                 'workType': 'I1',
@@ -1230,43 +1464,43 @@ def generate_protocol():
                 'signalProcessorNumber': 'G20',
                 'notes': 'A37'
             }
-            
+
             for field, cell in mapping.items():
                 if field in data and data[field]:
                     ws[cell] = data[field]
-            
+
             # Сохраняем протокол
             protocol_path = os.path.join(temp_dir, protocol_filename)
             wb.save(protocol_path)
-            
+
             # 2. Создаем папку для изображений
             images_dir = os.path.join(temp_dir, f"{folder_name}_images")
             os.makedirs(images_dir, exist_ok=True)
-            
+
             # 3. Сохраняем изображения из формы
             images = request.files.getlist('images')
             saved_images = []
-            
+
             for img in images:
                 if img and allowed_file(img.filename):
                     filename = secure_filename(img.filename)
                     img.seek(0)
                     img_data = img.read()
-                    
+
                     # Сжимаем изображение
                     compressed_data = compress_image(
                         img_data,
                         max_size=Config.IMAGE_MAX_SIZE,
                         quality=Config.IMAGE_QUALITY
                     )
-                    
+
                     # Сохраняем во временную папку
                     img_path = os.path.join(images_dir, filename)
                     with open(img_path, 'wb') as f:
                         f.write(compressed_data)
                     saved_images.append(filename)
                     print(f"📸 Сохранено изображение из формы: {filename}")
-            
+
             # 4. Если есть draft_id, загружаем дополнительные изображения из БД
             if draft_id:
                 draft = SupabaseDB.get_draft(draft_id)
@@ -1281,7 +1515,7 @@ def generate_protocol():
                                     f.write(img_bytes)
                                 saved_images.append(img_filename)
                                 print(f"📸 Сохранено изображение из БД: {img_filename}")
-            
+
             # 5. Создаем информационный файл README.txt
             info_content = f"""
 ПРОТОКОЛ
@@ -1343,39 +1577,37 @@ def generate_protocol():
 =====================================
 Конец протокола
             """
-            
+
             info_path = os.path.join(temp_dir, "README.txt")
             with open(info_path, 'w', encoding='utf-8') as f:
                 f.write(info_content.strip())
-            
-            # 6. Создаем ZIP архив - ИСПОЛЬЗУЕМ РАНЕЕ ОПРЕДЕЛЕННЫЕ ПЕРЕМЕННЫЕ
+
             # 6. Создаем ZIP архив
             zip_filename = generate_zip_filename(data)
             zip_path = os.path.join(temp_dir, zip_filename)
-            
+
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
                 # Добавляем протокол Excel
                 zf.write(protocol_path, protocol_filename)
-                
+
                 # Добавляем README с информацией
                 zf.write(info_path, "README.txt")
-                
+
                 # Добавляем все изображения в папку images
                 for img_file in os.listdir(images_dir):
                     img_full_path = os.path.join(images_dir, img_file)
                     zf.write(img_full_path, f"images/{img_file}")
-            
+
             print(f"✅ ZIP архив создан: {zip_filename}, размер: {os.path.getsize(zip_path)} байт")
-            
+
             # 7. Отправляем ZIP файл клиенту с правильной кодировкой кириллицы
-            # Отправляем ZIP файл
             return send_file(
                 zip_path,
                 mimetype='application/zip',
                 as_attachment=True,
-                download_name=zip_filename  # Теперь здесь латиница, проблем с кодировкой нет
+                download_name=zip_filename
             )
-            
+
     except Exception as e:
         print(f"❌ Ошибка генерации пакета: {e}")
         traceback.print_exc()
@@ -1383,7 +1615,8 @@ def generate_protocol():
             'success': False,
             'error': f'Ошибка генерации протокола: {str(e)}'
         }), 500
-        
+
+
 @app.route('/api/download-full-package/<draft_id>', methods=['GET'])
 def download_full_package(draft_id):
     """
@@ -1392,26 +1625,26 @@ def download_full_package(draft_id):
     try:
         # Получаем данные черновика
         draft = SupabaseDB.get_draft(draft_id)
-        
+
         if not draft:
             return jsonify({
                 'success': False,
                 'error': 'Черновик не найден'
             }), 404
-        
+
         # Получаем данные для генерации протокола
         draft_data = draft.get('data', {})
-        
+
         # Генерируем протокол
         if not os.path.exists(Config.TEMPLATE_PATH):
             return jsonify({
                 'success': False,
                 'error': f'Шаблон {Config.TEMPLATE_PATH} не найден'
             }), 404
-        
+
         wb = load_workbook(Config.TEMPLATE_PATH)
         ws = wb.active
-        
+
         # Маппинг полей на ячейки Excel
         mapping = {
             'workType': 'I1',
@@ -1440,28 +1673,28 @@ def download_full_package(draft_id):
             'signalProcessorNumber': 'G20',
             'notes': 'A37'
         }
-        
+
         for field, cell in mapping.items():
             if field in draft_data and draft_data[field]:
                 ws[cell] = draft_data[field]
-        
+
         # Создаем временную папку для файлов
         with tempfile.TemporaryDirectory() as temp_dir:
             folder_name = generate_folder_name(draft_data)
             protocol_filename = generate_protocol_filename(draft_data)
-            
+
             # Сохраняем протокол
             protocol_path = os.path.join(temp_dir, protocol_filename)
             wb.save(protocol_path)
-            
+
             # Создаем папку для изображений
             images_dir = os.path.join(temp_dir, f"{folder_name}_images")
             os.makedirs(images_dir, exist_ok=True)
-            
+
             # Скачиваем и сохраняем все изображения
             image_files = draft.get('image_files', [])
             downloaded_images = []
-            
+
             for filename in image_files:
                 try:
                     image_data = SupabaseDB.get_image(draft_id, filename)
@@ -1474,20 +1707,20 @@ def download_full_package(draft_id):
                         print(f"📸 Сохранено изображение: {filename}")
                 except Exception as e:
                     print(f"❌ Ошибка сохранения изображения {filename}: {e}")
-            
+
             # Создаем ZIP архив
-            zip_filename = f"ML_{machine_type}{lifting_capacity}№{serial_number}.zip"
+            zip_filename = f"ML_{draft_data.get('machineType', '')}{draft_data.get('liftingCapacity', '')}№{draft_data.get('serialNumber', 'unknown')}.zip"
             zip_path = os.path.join(temp_dir, zip_filename)
-            
+
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
                 # Добавляем протокол
                 zf.write(protocol_path, protocol_filename)
-                
+
                 # Добавляем изображения
                 for img_file in os.listdir(images_dir):
                     img_full_path = os.path.join(images_dir, img_file)
                     zf.write(img_full_path, f"images/{img_file}")
-                
+
                 # Добавляем информацию о станке
                 info_content = f"""
 ИНФОРМАЦИЯ О СТАНКЕ
@@ -1517,13 +1750,13 @@ def download_full_package(draft_id):
 Всего изображений: {len(downloaded_images)}
 Список: {', '.join(downloaded_images) if downloaded_images else 'нет'}
                 """
-                
+
                 info_path = os.path.join(temp_dir, "info.txt")
                 with open(info_path, 'w', encoding='utf-8') as f:
                     f.write(info_content)
-                
+
                 zf.write(info_path, "info.txt")
-            
+
             # Отправляем ZIP файл
             return send_file(
                 zip_path,
@@ -1531,7 +1764,7 @@ def download_full_package(draft_id):
                 as_attachment=True,
                 download_name=zip_filename
             )
-            
+
     except Exception as e:
         print(f"❌ Ошибка создания пакета: {e}")
         traceback.print_exc()
@@ -1540,8 +1773,6 @@ def download_full_package(draft_id):
             'error': f'Ошибка создания пакета: {str(e)}'
         }), 500
 
-
-# Добавить после существующих эндпоинтов
 
 @app.route('/api/history', methods=['GET'])
 def get_history():
@@ -1606,6 +1837,7 @@ def get_draft_history(draft_id):
             'error': str(e)
         }), 500
 
+
 # ========== ЭНДПОИНТЫ ДЛЯ УПРАВЛЕНИЯ ПРОШИВКАМИ ==========
 
 @app.route('/api/updates', methods=['GET'])
@@ -1617,23 +1849,23 @@ def get_updates():
                 'success': False,
                 'error': 'Supabase не инициализирован'
             }), 500
-        
+
         section = request.args.get('section')
-        
+
         query = supabase.table('updates').select('*')
         if section:
             query = query.eq('section', section)
-        
+
         response = query.order('sort_order', desc=False).order('created_at', desc=True).execute()
-        
+
         # Получаем дату последнего обновления
         meta_response = supabase.table('updates_meta') \
             .select('value') \
             .eq('key', 'last_update') \
             .execute()
-        
+
         last_update = meta_response.data[0]['value'] if meta_response.data else '24.02.2026'
-        
+
         # Группируем по секциям для удобства
         grouped = {
             'sapphire': [],
@@ -1643,7 +1875,7 @@ def get_updates():
             'internal_utils': [],
             'docs': []
         }
-        
+
         for item in response.data:
             section = item.get('section')
             if section in grouped:
@@ -1656,13 +1888,13 @@ def get_updates():
                     'badge': item.get('badge'),
                     'sort_order': item.get('sort_order', 0)
                 })
-        
+
         return jsonify({
             'success': True,
             'updates': grouped,
             'last_update': last_update
         })
-        
+
     except Exception as e:
         print(f"❌ Ошибка получения прошивок: {e}")
         traceback.print_exc()
@@ -1681,15 +1913,15 @@ def create_update():
                 'success': False,
                 'error': 'Supabase не инициализирован'
             }), 500
-        
+
         data = request.get_json()
-        
+
         if not data:
             return jsonify({
                 'success': False,
                 'error': 'Нет данных для сохранения'
             }), 400
-        
+
         # Валидация
         required_fields = ['section', 'title', 'file']
         for field in required_fields:
@@ -1698,7 +1930,7 @@ def create_update():
                     'success': False,
                     'error': f'Поле {field} обязательно'
                 }), 400
-        
+
         # Подготавливаем данные
         update_data = {
             'section': data.get('section'),
@@ -1710,22 +1942,22 @@ def create_update():
             'sort_order': data.get('sort_order', 0),
             'updated_at': datetime.now().isoformat()
         }
-        
+
         # Вставляем в БД
         response = supabase.table('updates').insert(update_data).execute()
-        
+
         # Обновляем дату последнего изменения
         supabase.table('updates_meta') \
             .update({'value': datetime.now().strftime('%d.%m.%Y'), 'updated_at': datetime.now().isoformat()}) \
             .eq('key', 'last_update') \
             .execute()
-        
+
         return jsonify({
             'success': True,
             'message': 'Запись успешно создана',
             'update': response.data[0] if response.data else None
         })
-        
+
     except Exception as e:
         print(f"❌ Ошибка создания записи: {e}")
         traceback.print_exc()
@@ -1744,15 +1976,15 @@ def update_update(update_id):
                 'success': False,
                 'error': 'Supabase не инициализирован'
             }), 500
-        
+
         data = request.get_json()
-        
+
         if not data:
             return jsonify({
                 'success': False,
                 'error': 'Нет данных для обновления'
             }), 400
-        
+
         # Подготавливаем данные для обновления
         update_data = {
             'title': data.get('title'),
@@ -1763,28 +1995,28 @@ def update_update(update_id):
             'sort_order': data.get('sort_order', 0),
             'updated_at': datetime.now().isoformat()
         }
-        
+
         # Убираем None значения
         update_data = {k: v for k, v in update_data.items() if v is not None}
-        
+
         # Обновляем в БД
         response = supabase.table('updates') \
             .update(update_data) \
             .eq('id', update_id) \
             .execute()
-        
+
         # Обновляем дату последнего изменения
         supabase.table('updates_meta') \
             .update({'value': datetime.now().strftime('%d.%m.%Y'), 'updated_at': datetime.now().isoformat()}) \
             .eq('key', 'last_update') \
             .execute()
-        
+
         return jsonify({
             'success': True,
             'message': 'Запись успешно обновлена',
             'update': response.data[0] if response.data else None
         })
-        
+
     except Exception as e:
         print(f"❌ Ошибка обновления записи: {e}")
         traceback.print_exc()
@@ -1792,6 +2024,7 @@ def update_update(update_id):
             'success': False,
             'error': str(e)
         }), 500
+
 
 @app.route('/api/drafts/<draft_id>/delete', methods=['POST', 'DELETE'])
 def delete_draft(draft_id):
@@ -1801,18 +2034,17 @@ def delete_draft(draft_id):
     """
     try:
         # Проверяем специальный секретный ключ для защиты от случайного удаления
-        # Можно использовать простую проверку или добавить реальную аутентификацию
         confirm = request.args.get('confirm')
-        
+
         if confirm != 'yes':
             return jsonify({
                 'success': False,
                 'error': 'Для удаления требуется подтверждение'
             }), 400
-        
+
         # Выполняем удаление
         success, message = SupabaseDB.delete_draft(draft_id)
-        
+
         if success:
             return jsonify({
                 'success': True,
@@ -1824,7 +2056,7 @@ def delete_draft(draft_id):
                 'success': False,
                 'error': message
             }), 404 if message == "Черновик не найден" else 500
-            
+
     except Exception as e:
         print(f"❌ Ошибка в эндпоинте удаления: {e}")
         traceback.print_exc()
@@ -1832,6 +2064,8 @@ def delete_draft(draft_id):
             'success': False,
             'error': str(e)
         }), 500
+
+
 @app.route('/api/updates/<int:update_id>', methods=['DELETE'])
 def delete_update(update_id):
     """Удаляет запись"""
@@ -1841,24 +2075,24 @@ def delete_update(update_id):
                 'success': False,
                 'error': 'Supabase не инициализирован'
             }), 500
-        
+
         # Удаляем из БД
         response = supabase.table('updates') \
             .delete() \
             .eq('id', update_id) \
             .execute()
-        
+
         # Обновляем дату последнего изменения
         supabase.table('updates_meta') \
             .update({'value': datetime.now().strftime('%d.%m.%Y'), 'updated_at': datetime.now().isoformat()}) \
             .eq('key', 'last_update') \
             .execute()
-        
+
         return jsonify({
             'success': True,
             'message': 'Запись успешно удалена'
         })
-        
+
     except Exception as e:
         print(f"❌ Ошибка удаления записи: {e}")
         traceback.print_exc()
@@ -1877,34 +2111,36 @@ def reorder_updates():
                 'success': False,
                 'error': 'Supabase не инициализирован'
             }), 500
-        
+
         data = request.get_json()
         orders = data.get('orders', [])
-        
+
         if not orders:
             return jsonify({
                 'success': False,
                 'error': 'Нет данных для сортировки'
             }), 400
-        
+
         # Обновляем порядок для каждой записи
         for item in orders:
             supabase.table('updates') \
                 .update({'sort_order': item['order']}) \
                 .eq('id', item['id']) \
                 .execute()
-        
+
         return jsonify({
             'success': True,
             'message': 'Порядок сортировки обновлен'
         })
-        
+
     except Exception as e:
         print(f"❌ Ошибка обновления сортировки: {e}")
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
+
+
 # ========== СТАТИЧЕСКИЕ ФАЙЛЫ ==========
 
 @app.route('/')
@@ -1912,25 +2148,30 @@ def serve_main():
     """Главная страница"""
     return send_from_directory(app.static_folder, 'main.html')
 
+
 @app.route('/add-draft')
 def serve_add_draft():
     """Страница добавления станка"""
     return send_from_directory(app.static_folder, 'add_draft.html')
+
 
 @app.route('/view-machine.html')
 def serve_view_machine():
     """Страница просмотра станка"""
     return send_from_directory(app.static_folder, 'view_machine.html')
 
+
 @app.route('/static/<path:path>')
 def serve_static(path):
     """Статические файлы"""
     return send_from_directory('static', path)
 
+
 @app.route('/favicon.ico')
 def favicon():
     """Иконка сайта"""
     return send_from_directory('static', 'favicon.ico'), 404
+
 
 # ========== ОБРАБОТЧИКИ ОШИБОК ==========
 
@@ -1941,12 +2182,14 @@ def not_found(error):
         'error': 'Эндпоинт не найден'
     }), 404
 
+
 @app.errorhandler(500)
 def internal_error(error):
     return jsonify({
         'success': False,
         'error': 'Внутренняя ошибка сервера'
     }), 500
+
 
 # ========== ЗАПУСК ПРИЛОЖЕНИЯ ==========
 
