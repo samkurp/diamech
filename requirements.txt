@@ -6,3 +6,4 @@ python-dotenv==1.0.0
 gunicorn==21.2.0
 werkzeug==2.3.8
 Pillow==10.1.0
+docx==0.2.4
