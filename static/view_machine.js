@@ -37,6 +37,9 @@ async function loadMachineData() {
             loadMachineImages();
             await loadCustomerData();
             document.title = machineData.display_name || 'Станок';
+
+            // Проверяем статус и показываем/скрываем кнопки
+            updateActionButtons();
         } else {
             throw new Error(result.error || 'Ошибка загрузки данных');
         }
@@ -45,6 +48,98 @@ async function loadMachineData() {
         setTimeout(() => window.location.href = '/', 2000);
     } finally {
         status.remove();
+    }
+}
+
+// Обновление кнопок действий в зависимости от статуса
+function updateActionButtons() {
+    const restoreBtn = document.getElementById('restoreBtn');
+    const editBtn = document.getElementById('editBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
+
+    if (!machineData) return;
+
+    const status = machineData.data?.machineStatus || machineData.machine_status;
+    const isShipped = status === 'Отгружен';
+
+    // ИЗМЕНЕНИЕ: Все кнопки теперь имеют класс btn-back-minimal
+    // Кнопка "Вернуть в работу" видна только для отгруженных станков
+    if (restoreBtn) {
+        restoreBtn.style.display = isShipped ? 'flex' : 'none';
+    }
+
+    // Кнопка "Редактировать" всегда видна
+    if (editBtn) {
+        editBtn.style.display = 'flex';
+    }
+
+    // Кнопка "Удалить" всегда видна
+    if (deleteBtn) {
+        deleteBtn.style.display = 'flex';
+    }
+}
+
+// Переход к редактированию
+function editDraft() {
+    if (machineData && machineData.id) {
+        window.location.href = `/add-draft?draft=${machineData.id}`;
+    }
+}
+
+// Подтверждение удаления
+function confirmDeleteDraft() {
+    if (!machineData) return;
+
+    if (confirm('⚠️ ВНИМАНИЕ!\n\nВы действительно хотите ПОЛНОСТЬЮ УДАЛИТЬ этот станок?\n\n' +
+               'Будут удалены:\n' +
+               '• Все данные станка\n' +
+               '• Все фотографии\n' +
+               '• Вся история изменений\n\n' +
+               'Это действие НЕОБРАТИМО!')) {
+
+        deleteDraft(machineData.id);
+    }
+}
+
+// Удаление станка
+async function deleteDraft(draftId) {
+    const deleteBtn = document.getElementById('deleteBtn');
+    const originalText = deleteBtn?.innerHTML;
+
+    if (deleteBtn) {
+        deleteBtn.disabled = true;
+        deleteBtn.innerHTML = '⏳ Удаление...';
+    }
+
+    showStatus('🔄 Удаление станка...', 'info');
+
+    try {
+        const response = await fetch(`/api/drafts/${draftId}/delete?confirm=yes`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showStatus('✅ Станок успешно удален! Перенаправление...', 'success');
+
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        } else {
+            throw new Error(result.error || 'Ошибка при удалении');
+        }
+    } catch (error) {
+        console.error('Ошибка удаления:', error);
+        showStatus(`❌ Ошибка: ${error.message}`, 'error');
+
+        if (deleteBtn) {
+            deleteBtn.disabled = false;
+            deleteBtn.innerHTML = originalText;
+        }
     }
 }
 
@@ -58,6 +153,11 @@ async function loadCustomerData() {
 
         if (result.success) {
             customerData = result.customer_data || {};
+            // Обновляем отображение заказчика
+            const customerElement = document.getElementById('customer');
+            if (customerData.customerName && customerElement) {
+                customerElement.textContent = customerData.customerName;
+            }
         } else {
             const customerName = machineData.data?.customer || 'Не указан';
             customerData = {
@@ -384,8 +484,8 @@ async function restoreToWork() {
             document.getElementById('machineStatus').style.color = '#3b82f6';
             document.getElementById('machineStatus').style.borderColor = 'rgba(59, 130, 246, 0.5)';
 
-            // Прячем кнопку возврата
-            button.style.display = 'none';
+            // Обновляем кнопки
+            updateActionButtons();
 
             // Перенаправляем через 1.5 секунды
             setTimeout(() => {

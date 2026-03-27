@@ -17,6 +17,7 @@
             <div id="machineSubtitle" class="machine-subtitle-minimal">Детальная информация</div>
             <div id="machineStatus" class="machine-status-minimal">Загрузка...</div>
         </div>
+
         <!-- После machine-header-minimal, перед machine-view-minimal -->
         <div class="menu" style="margin-top: 15px; margin-bottom: 15px; padding: 12px;">
             <a href="/" class="back-button">
@@ -44,6 +45,7 @@
                 🛠️ Обновления ПО
             </a>
         </div>
+
         <div class="machine-view-minimal">
             <!-- Базовая информация -->
             <div class="section-minimal">
@@ -218,11 +220,22 @@
                 </div>
             </div>
 
-            <!-- Кнопки действий -->
+            <!-- ИЗМЕНЕНИЕ: Кнопки действий в едином стиле -->
             <div class="actions-minimal">
-                <button id="restoreBtn" class="btn-restore-minimal" onclick="restoreToWork()">
+                <!-- Кнопка "Редактировать" в стиле кнопки "Назад к списку" -->
+                <button id="editBtn" class="btn-back-minimal" onclick="editDraft()" style="display: flex;">
+                    ✏️ Редактировать
+                </button>
+
+                <!-- Кнопка "Удалить" в стиле кнопки "Назад к списку" -->
+
+
+                <!-- Кнопка "Вернуть в работу" в стиле кнопки "Назад к списку" -->
+                <button id="restoreBtn" class="btn-back-minimal" onclick="restoreToWork()" style="display: none;">
                     🔄 Вернуть в работу
                 </button>
+
+                <!-- Кнопка "Назад к списку" -->
                 <a href="/static/shipped.html" class="btn-back-minimal">
                     ← Назад к списку
                 </a>

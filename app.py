@@ -926,6 +926,62 @@ class SupabaseDB:
             print(f"❌ Ошибка получения изображения: {e}")
             return None
 
+    @staticmethod
+    def delete_draft(draft_id):
+        """Полностью удаляет черновик, его изображения и историю изменений"""
+        try:
+            if supabase is None:
+                return False, "Supabase не инициализирован"
+            
+            print(f"\n{'=' * 50}")
+            print(f"🗑️ УДАЛЕНИЕ ЧЕРНОВИКА: {draft_id}")
+            print(f"{'=' * 50}")
+            
+            # 1. Удаляем все изображения черновика
+            try:
+                images_result = supabase.table('images') \
+                    .delete() \
+                    .eq('draft_id', draft_id) \
+                    .execute()
+                print(f"✅ Удалено изображений: {len(images_result.data) if images_result.data else 0}")
+            except Exception as e:
+                print(f"⚠️ Ошибка при удалении изображений: {e}")
+            
+            # 2. Удаляем историю изменений черновика
+            try:
+                history_result = supabase.table('draft_history') \
+                    .delete() \
+                    .eq('draft_id', draft_id) \
+                    .execute()
+                print(f"✅ Удалено записей истории: {len(history_result.data) if history_result.data else 0}")
+            except Exception as e:
+                print(f"⚠️ Ошибка при удалении истории: {e}")
+            
+            # 3. Удаляем сам черновик
+            try:
+                draft_result = supabase.table('drafts') \
+                    .delete() \
+                    .eq('id', draft_id) \
+                    .execute()
+                
+                if draft_result.data:
+                    print(f"✅ Черновик удален: {draft_id}")
+                    print(f"{'=' * 50}\n")
+                    return True, "Черновик успешно удален"
+                else:
+                    print(f"❌ Черновик не найден: {draft_id}")
+                    print(f"{'=' * 50}\n")
+                    return False, "Черновик не найден"
+            except Exception as e:
+                print(f"❌ Ошибка при удалении черновика: {e}")
+                print(f"{'=' * 50}\n")
+                return False, str(e)
+                
+        except Exception as e:
+            print(f"❌ Критическая ошибка при удалении: {e}")
+            traceback.print_exc()
+            print(f"{'=' * 50}\n")
+            return False, str(e)
 # ========== API ЭНДПОИНТЫ ==========
 
 @app.route('/api/health', methods=['GET'])
@@ -1737,7 +1793,45 @@ def update_update(update_id):
             'error': str(e)
         }), 500
 
-
+@app.route('/api/drafts/<draft_id>/delete', methods=['POST', 'DELETE'])
+def delete_draft(draft_id):
+    """
+    Удаляет черновик со всеми связанными данными
+    Доступен только через специальный URL параметр для безопасности
+    """
+    try:
+        # Проверяем специальный секретный ключ для защиты от случайного удаления
+        # Можно использовать простую проверку или добавить реальную аутентификацию
+        confirm = request.args.get('confirm')
+        
+        if confirm != 'yes':
+            return jsonify({
+                'success': False,
+                'error': 'Для удаления требуется подтверждение'
+            }), 400
+        
+        # Выполняем удаление
+        success, message = SupabaseDB.delete_draft(draft_id)
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': message,
+                'draft_id': draft_id
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': message
+            }), 404 if message == "Черновик не найден" else 500
+            
+    except Exception as e:
+        print(f"❌ Ошибка в эндпоинте удаления: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 @app.route('/api/updates/<int:update_id>', methods=['DELETE'])
 def delete_update(update_id):
     """Удаляет запись"""

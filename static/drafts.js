@@ -70,11 +70,12 @@ async function loadDrafts() {
 }
 
 // Создание элемента черновика
-// Создание элемента черновика
 function createDraftElement(draft) {
     const draftDiv = document.createElement('div');
     draftDiv.className = 'draft-item';
-    draftDiv.onclick = () => editDraft(draft.id);
+
+    // ИЗМЕНЕНИЕ: При клике на карточку открываем страницу просмотра
+    draftDiv.onclick = () => viewDraft(draft.id);
     draftDiv.style.cursor = 'pointer';
 
     const statusClass = draft.machine_status ?
@@ -130,6 +131,16 @@ function createDraftElement(draft) {
     return draftDiv;
 }
 
+// НОВАЯ ФУНКЦИЯ: Открытие страницы просмотра
+function viewDraft(draftId) {
+    window.location.href = `/view-machine.html?id=${draftId}`;
+}
+
+// Функция редактирования (сохранена для обратной совместимости)
+function editDraft(draftId) {
+    window.location.href = `/add-draft?draft=${draftId}`;
+}
+
 // Сортировка
 function sortDrafts(drafts) {
     return drafts.sort((a, b) => {
@@ -142,11 +153,6 @@ function sortDrafts(drafts) {
 
         return a.display_name.localeCompare(b.display_name);
     });
-}
-
-// Редактирование черновика
-function editDraft(draftId) {
-    window.location.href = `/add-draft?draft=${draftId}`;
 }
 
 // Показ состояния "пусто"
