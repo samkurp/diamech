@@ -1391,8 +1391,8 @@ small {
 .customer-modal-actions {
     display: flex;
     gap: 12px;
-    margin-top: 24px;
-    padding-top: 20px;
+    /* margin-top: 24px; */
+    padding: 0px 10px 10px 10px;
     border-top: 1px solid rgba(148, 163, 184, 0.1);
 }
 
