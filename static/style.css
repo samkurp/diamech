@@ -1916,3 +1916,27 @@ small {
     font-family: inherit;
     line-height: 1.5;
 }
+/* Стили для текста заявки */
+.request-text-content {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-primary);
+}
+
+.request-text-content strong {
+    color: #3b82f6;
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+.request-text-content br {
+    margin-bottom: 5px;
+}
+
+/* Анимация для модального окна */
+#requestTextModal .customer-modal-content {
+    max-width: 800px;
+    width: 90%;
+}

@@ -265,6 +265,36 @@
         </div>
     </div>
 
+    <!-- Модальное окно для просмотра текста заявки -->
+    <div id="requestTextModal" class="customer-modal">
+        <div class="customer-modal-content" style="max-width: 800px;">
+            <div class="customer-modal-header">
+                <div class="customer-modal-title">
+                    <span class="modal-icon">📄</span>
+                    <h3>Текст заявки: <span id="requestFileName"></span></h3>
+                </div>
+                <span class="customer-modal-close" onclick="closeRequestTextModal()">&times;</span>
+            </div>
+
+            <div class="customer-modal-body">
+                <div id="requestTextContent" class="request-text-content" style="max-height: 70vh; overflow-y: auto; padding: 15px; background: rgba(15, 23, 42, 0.5); border-radius: 8px; white-space: pre-wrap; font-family: monospace; font-size: 14px; line-height: 1.6;">
+                    Загрузка...
+                </div>
+            </div>
+
+            <div class="customer-modal-actions">
+                <button onclick="downloadRequestFile()" class="btn-save-customer">
+                    <span class="btn-icon">📥</span>
+                    Скачать файл
+                </button>
+                <button onclick="closeRequestTextModal()" class="btn-cancel-customer">
+                    <span class="btn-icon">✕</span>
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Модальное окно для редактирования заказчика -->
     <div id="customerModal" class="customer-modal">
         <div class="customer-modal-content">

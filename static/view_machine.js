@@ -631,3 +631,116 @@ function showStatus(message, type = 'info') {
         }, 3000);
     }
 }
+
+// Функция открытия текста заявки
+async function openRequestText() {
+    if (!machineData) return;
+
+    const modal = document.getElementById('requestTextModal');
+    const fileNameSpan = document.getElementById('requestFileName');
+    const contentDiv = document.getElementById('requestTextContent');
+
+    if (!modal) return;
+
+    // Показываем модальное окно с загрузкой
+    modal.style.display = 'block';
+    contentDiv.innerHTML = 'Загрузка текста заявки...';
+    document.body.style.overflow = 'hidden';
+
+    try {
+        const response = await fetch(`${API_BASE}/drafts/${machineData.id}/request-text`);
+        const result = await response.json();
+
+        if (result.success) {
+            fileNameSpan.textContent = result.filename;
+
+            // Форматируем текст для отображения
+            let formattedText = result.text;
+
+            // Заменяем переносы строк на <br>
+            formattedText = formattedText.replace(/\n/g, '<br>');
+
+            // Добавляем подсветку для заголовков
+            formattedText = formattedText.replace(/^([А-Я][А-Я ]+[А-Я])/gm, '<strong style="color: #3b82f6;">$1</strong>');
+
+            contentDiv.innerHTML = formattedText || 'Текст не найден';
+        } else {
+            contentDiv.innerHTML = '<div style="color: #ef4444;">Не удалось загрузить текст заявки. Возможно, файл не содержит текста или не был извлечен.</div>';
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки текста:', error);
+        contentDiv.innerHTML = '<div style="color: #ef4444;">Ошибка загрузки текста заявки</div>';
+    }
+}
+
+// Функция закрытия модального окна текста
+function closeRequestTextModal() {
+    const modal = document.getElementById('requestTextModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Функция скачивания оригинального файла
+async function downloadRequestFile() {
+    if (!machineData) return;
+
+    const url = `${API_BASE}/drafts/${machineData.id}/request-file`;
+    window.open(url, '_blank');
+}
+
+// Обновляем функцию loadRequestFileInfo для добавления кнопки просмотра текста
+async function loadRequestFileInfo() {
+    if (!machineData) return;
+
+    try {
+        console.log('Загрузка информации о заявке для станка:', machineData.id);
+        const response = await fetch(`${API_BASE}/drafts/${machineData.id}/request-file`);
+
+        console.log('Ответ сервера:', response.status);
+
+        if (response.ok) {
+            const requestCard = document.getElementById('requestFileStatus');
+            if (requestCard) {
+                // Добавляем иконку для просмотра текста
+                requestCard.innerHTML = '📄 <span style="color: #10b981;">Есть файл</span> <span style="font-size: 12px; margin-left: 5px;">(нажмите для просмотра)</span>';
+                requestCard.classList.remove('empty');
+                requestCard.style.color = '#10b981';
+                requestCard.style.cursor = 'pointer';
+
+                // Делаем карточку кликабельной для просмотра текста
+                const card = document.getElementById('requestFileCard');
+                if (card) {
+                    card.onclick = () => openRequestText();
+                    card.style.cursor = 'pointer';
+                }
+                console.log('Файл заявки найден');
+            }
+        } else if (response.status === 404) {
+            const requestCard = document.getElementById('requestFileStatus');
+            if (requestCard) {
+                requestCard.textContent = 'Не загружена';
+                requestCard.classList.add('empty');
+                requestCard.style.color = '#64748b';
+            }
+            console.log('Файл заявки не найден (это нормально)');
+        } else {
+            console.warn('Неожиданный статус при проверке файла заявки:', response.status);
+            const requestCard = document.getElementById('requestFileStatus');
+            if (requestCard) {
+                requestCard.textContent = 'Не загружена';
+                requestCard.classList.add('empty');
+                requestCard.style.color = '#64748b';
+            }
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки информации о заявке:', error);
+        const requestCard = document.getElementById('requestFileStatus');
+        if (requestCard) {
+            requestCard.textContent = 'Не загружена';
+            requestCard.classList.add('empty');
+            requestCard.style.color = '#64748b';
+        }
+    }
+}

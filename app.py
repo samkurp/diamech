@@ -15,6 +15,10 @@ from PIL import Image
 import zipfile
 import tempfile
 import shutil
+from docx import Document
+import io
+import olefile
+import re
 
 # Загружаем переменные окружения
 load_dotenv()
@@ -107,6 +111,110 @@ def compress_image(image_data, max_size=1024, quality=70):
         return image_data  # Возвращаем оригинал в случае ошибки
 
 
+def extract_text_from_docx(file_data):
+    """Извлекает текст из DOCX файла"""
+    try:
+        doc = Document(io.BytesIO(file_data))
+        text_parts = []
+
+        # Извлекаем текст из параграфов
+        for paragraph in doc.paragraphs:
+            if paragraph.text.strip():
+                text_parts.append(paragraph.text.strip())
+
+        # Извлекаем текст из таблиц
+        for table in doc.tables:
+            for row in table.rows:
+                row_text = []
+                for cell in row.cells:
+                    if cell.text.strip():
+                        row_text.append(cell.text.strip())
+                if row_text:
+                    text_parts.append(' | '.join(row_text))
+
+        # Извлекаем текст из заголовков
+        for section in doc.sections:
+            header = section.header
+            for paragraph in header.paragraphs:
+                if paragraph.text.strip():
+                    text_parts.append(f"[Заголовок] {paragraph.text.strip()}")
+
+            footer = section.footer
+            for paragraph in footer.paragraphs:
+                if paragraph.text.strip():
+                    text_parts.append(f"[Подвал] {paragraph.text.strip()}")
+
+        return '\n\n'.join(text_parts) if text_parts else None
+
+    except Exception as e:
+        print(f"❌ Ошибка извлечения текста из DOCX: {e}")
+        return None
+
+
+def extract_text_from_doc(file_data):
+    """Извлекает текст из DOC файла (старый формат)"""
+    try:
+        ole = olefile.OleFileIO(io.BytesIO(file_data))
+
+        if not ole.exists('WordDocument'):
+            return None
+
+        # Пытаемся извлечь текст из разных потоков
+        text_parts = []
+
+        # Основной текст
+        if ole.exists('WordDocument'):
+            stream = ole.openstream('WordDocument')
+            data = stream.read()
+
+            # Пытаемся декодировать текст
+            try:
+                # Пробуем разные кодировки
+                for encoding in ['utf-16', 'utf-8', 'latin-1', 'cp1251']:
+                    try:
+                        text = data.decode(encoding, errors='ignore')
+                        # Очищаем от нечитаемых символов
+                        text = re.sub(r'[^\x20-\x7Eа-яА-ЯёЁ\s\n\r]', ' ', text)
+                        # Разбиваем на строки
+                        lines = [line.strip() for line in text.split('\n') if line.strip()]
+                        text_parts.extend(lines)
+                        break
+                    except:
+                        continue
+            except:
+                pass
+
+        # Пытаемся получить текст из потока 1Table
+        if ole.exists('1Table'):
+            stream = ole.openstream('1Table')
+            data = stream.read()
+            try:
+                text = data.decode('utf-16', errors='ignore')
+                text = re.sub(r'[^\x20-\x7Eа-яА-ЯёЁ\s\n\r]', ' ', text)
+                lines = [line.strip() for line in text.split('\n') if line.strip()]
+                text_parts.extend(lines)
+            except:
+                pass
+
+        ole.close()
+
+        return '\n\n'.join(text_parts) if text_parts else None
+
+    except Exception as e:
+        print(f"❌ Ошибка извлечения текста из DOC: {e}")
+        return None
+
+
+def extract_text_from_file(file_data, filename):
+    """Определяет тип файла и извлекает текст"""
+    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+
+    if ext == 'docx':
+        return extract_text_from_docx(file_data)
+    elif ext == 'doc':
+        return extract_text_from_doc(file_data)
+    else:
+        return None
 def allowed_file(filename):
     """Проверка разрешенного формата файла"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in Config.ALLOWED_EXTENSIONS
@@ -995,7 +1103,7 @@ class SupabaseDB:
 
     @staticmethod
     def save_request_file(draft_id, file):
-        """Сохраняет файл заявки в Supabase"""
+        """Сохраняет файл заявки и извлекает текст"""
         try:
             if supabase is None:
                 return False, "Supabase не инициализирован"
@@ -1003,17 +1111,30 @@ class SupabaseDB:
             if not file or not file.filename:
                 return False, "Файл не выбран"
 
-            # Проверяем расширение
+            filename = secure_filename(file.filename)
+            ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+
             allowed_extensions = {'doc', 'docx'}
-            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
             if ext not in allowed_extensions:
                 return False, "Неподдерживаемый формат файла. Используйте DOC или DOCX"
 
-            filename = secure_filename(file.filename)
             file.seek(0)
             file_data = file.read()
 
-            # Конвертируем в base64
+            # Извлекаем текст из файла
+            print(f"📝 Извлечение текста из файла: {filename}")
+            extracted_text = extract_text_from_file(file_data, filename)
+
+            if extracted_text:
+                print(f"✅ Текст извлечен. Длина: {len(extracted_text)} символов")
+                print(f"   Первые 200 символов: {extracted_text[:200]}...")
+                has_text = True
+            else:
+                print(f"⚠️ Не удалось извлечь текст из файла")
+                extracted_text = None
+                has_text = False
+
+            # Конвертируем файл в base64
             file_base64 = base64.b64encode(file_data).decode('utf-8')
 
             # Определяем content type
@@ -1025,6 +1146,8 @@ class SupabaseDB:
                 'filename': filename,
                 'file_data': file_base64,
                 'content_type': content_type,
+                'extracted_text': extracted_text,
+                'has_text': has_text,
                 'uploaded_at': datetime.now().isoformat()
             }
 
@@ -1046,7 +1169,11 @@ class SupabaseDB:
                 supabase.table('request_files').insert(request_data).execute()
                 print(f"📄 Сохранен файл заявки: {filename}")
 
-            return True, filename
+            return True, {
+                'filename': filename,
+                'has_text': has_text,
+                'text_preview': extracted_text[:200] + '...' if extracted_text else None
+            }
 
         except Exception as e:
             print(f"❌ Ошибка сохранения файла заявки: {e}")
@@ -1097,6 +1224,41 @@ class SupabaseDB:
 
 
 # ========== API ЭНДПОИНТЫ ==========
+@app.route('/api/drafts/<draft_id>/request-text', methods=['GET'])
+def get_request_text(draft_id):
+    """Получает извлеченный текст заявки"""
+    try:
+        if supabase is None:
+            return jsonify({
+                'success': False,
+                'error': 'Supabase не инициализирован'
+            }), 500
+
+        # Получаем текст из базы
+        response = supabase.table('request_files') \
+            .select('extracted_text, has_text, filename') \
+            .eq('draft_id', draft_id) \
+            .execute()
+
+        if response.data and response.data[0].get('has_text'):
+            return jsonify({
+                'success': True,
+                'text': response.data[0]['extracted_text'],
+                'filename': response.data[0]['filename']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Текст не найден или не извлечен'
+            }), 404
+
+    except Exception as e:
+        print(f"❌ Ошибка получения текста заявки: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/api/drafts/<draft_id>/upload-request', methods=['POST'])
 def upload_request_file(draft_id):
     """Загружает файл заявки для черновика"""
