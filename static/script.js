@@ -283,9 +283,9 @@ async function saveDraft() {
 
                 const uploadResult = await uploadResponse.json();
                 if (!uploadResult.success) {
-                    console.warn('Файл заявки не загружен:', uploadResult.error);
+                    // Файл заявки не загружен
                 } else {
-                    console.log('Файл заявки загружен:', uploadResult.filename);
+                    // Файл заявки загружен
                 }
             }
 
@@ -438,7 +438,7 @@ async function loadDraftImages(draftId, imageFiles) {
             const file = new File([blob], filename, { type: blob.type });
             dataTransfer.items.add(file);
         } catch (error) {
-            console.error(`Ошибка загрузки изображения:`, error);
+            // Ошибка загрузки изображения
         }
     }
 
@@ -474,7 +474,7 @@ async function loadRequestFileInfoForEdit(draftId) {
             // Обработчик удаления уже настроен в setupRequestFileHandlers
         }
     } catch (error) {
-        console.log('Нет файла заявки:', error);
+        // Нет файла заявки
         appState.hasRequestFile = false;
     }
 }
@@ -925,7 +925,7 @@ async function deleteDraft(draftId) {
             throw new Error(result.error || 'Ошибка при удалении');
         }
     } catch (error) {
-        console.error('Ошибка удаления:', error);
+        // Ошибка удаления
 
         status.innerHTML = `❌ Ошибка: ${error.message}`;
         status.className = 'status-message error';

@@ -82,7 +82,7 @@ async function loadRequestFileInfo() {
             }
         }
     } catch (error) {
-        console.log('Ошибка загрузки информации о заявке:', error);
+        // Ошибка загружена тихо
     }
 }
 
@@ -122,7 +122,7 @@ async function openRequestText() {
             contentDiv.innerHTML = '<div style="color: #ef4444;">Не удалось загрузить текст заявки. Возможно, файл не содержит текста или не был извлечен.</div>';
         }
     } catch (error) {
-        console.error('Ошибка загрузки текста:', error);
+        // Ошибка загрузки текста
         contentDiv.innerHTML = '<div style="color: #ef4444;">Ошибка загрузки текста заявки</div>';
     }
 }
@@ -248,7 +248,7 @@ async function loadCustomerData() {
             };
         }
     } catch (error) {
-        console.log('Не удалось загрузить данные заказчика:', error);
+        // Ошибка загрузки данных заказчика
         const customerName = machineData.data?.customer || 'Не указан';
         customerData = {
             customerName: customerName,
@@ -288,7 +288,7 @@ function displayMachineData() {
                 document.getElementById('shippingDate').classList.remove('empty');
             }
         } catch (e) {
-            console.log('Ошибка форматирования даты:', e);
+            // Ошибка форматирования даты
         }
     }
 
@@ -492,7 +492,7 @@ async function saveCustomerData(event) {
 
     } catch (error) {
         showStatus(`❌ Ошибка: ${error.message}`, 'error');
-        console.error('Error saving customer data:', error);
+        // Ошибка сохранения данных заказчика
     } finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = originalText;
@@ -663,7 +663,7 @@ async function generateProtocol() {
                 formData.append('requestFile', fileBlob, fileName);
             }
         } catch (error) {
-            console.log('Файл заявки не найден:', error);
+            // Файл заявки не найден
         }
 
         // Загружаем изображения
@@ -674,7 +674,7 @@ async function generateProtocol() {
                     const imgBlob = await imgResponse.blob();
                     formData.append('images', imgBlob, filename);
                 } catch (error) {
-                    console.error(`Ошибка загрузки изображения ${filename}:`, error);
+                    // Ошибка загрузки изображения
                 }
             }
         }
@@ -724,7 +724,7 @@ async function generateProtocol() {
         showStatus(`✅ Архив "${filename}" успешно сформирован`, 'success');
 
     } catch (error) {
-        console.error('Ошибка при формировании протокола:', error);
+        // Ошибка формирования протокола
         showStatus(`❌ Ошибка: ${error.message}`, 'error');
     } finally {
         status.remove();

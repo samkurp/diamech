@@ -1,3 +1,6 @@
+// Подключаем общие утилиты (должен быть подключен перед этим файлом в HTML)
+// Функции showStatus, showEmptyState, formatDate, extractNumberFromSerial доступны глобально
+
 // Глобальные переменные
 let allMachines = [];
 let searchTimeout = null;
@@ -63,7 +66,7 @@ async function loadShippedMachines() {
             // После отображения загружаем данные заказчиков
             setTimeout(() => loadAllCustomerData(), 100);
         } else {
-            showEmptyState('📦', 'Нет отгруженных станков',
+            showEmptyState('shippedList', '📦', 'Нет отгруженных станков',
                           'Станки со статусом "Отгружен" появятся здесь автоматически');
             allMachines = [];
         }
@@ -91,7 +94,7 @@ async function loadAllCustomerData() {
                     updateDraftCustomerDisplay(draftElement, customerData);
                 }
             } catch (error) {
-                console.log(`Ошибка загрузки данных заказчика для ${draftId}:`, error);
+                // Тихая ошибка для отдельных заказчиков
             }
         }
     }
@@ -292,51 +295,6 @@ function updateDraftCustomerDisplay(draftElement, customerData) {
         // Убираем title если нет доп. информации
         customerElement.title = '';
     }
-}
-
-// Форматирование даты
-function formatDate(dateString) {
-    if (!dateString) return '-';
-
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    } catch {
-        return dateString;
-    }
-}
-
-// Показ состояния "пусто"
-function showEmptyState(icon, title, message) {
-    const shippedList = document.getElementById('shippedList');
-    if (!shippedList) return;
-
-    shippedList.innerHTML = `
-        <div class="empty-state">
-            <div class="icon">${icon}</div>
-            <h3>${title}</h3>
-            <p>${message}</p>
-        </div>
-    `;
-    shippedList.style.display = 'block';
-}
-
-// Показ статуса
-function showStatus(message, type) {
-    const statusElement = document.getElementById('statusMessage');
-    if (!statusElement) return;
-
-    statusElement.textContent = message;
-    statusElement.className = `status-message ${type}`;
-    statusElement.style.display = 'block';
-
-    setTimeout(() => {
-        statusElement.style.display = 'none';
-    }, 3000);
 }
 
 // Глобальная функция для очистки поиска

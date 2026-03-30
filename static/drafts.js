@@ -1,3 +1,6 @@
+// Подключаем общие утилиты (должен быть подключен перед этим файлом в HTML)
+// Функции showStatus, showEmptyState, formatDate доступны глобально
+
 // Конфигурация статусов
 const STATUS_CONFIG = {
     'Сборка': {
@@ -48,7 +51,7 @@ async function loadDrafts() {
             );
 
             if (activeDrafts.length === 0) {
-                showEmptyState('📝', 'Нет активных станков', 'Все станки отгружены');
+                showEmptyState('draftsList', '📝', 'Нет активных станков', 'Все станки отгружены');
                 return;
             }
 
@@ -61,7 +64,7 @@ async function loadDrafts() {
             });
 
         } else {
-            showEmptyState('📝', 'Нет станков в работе', 'Добавьте первый станок');
+            showEmptyState('draftsList', '📝', 'Нет станков в работе', 'Добавьте первый станок', '+ Добавить станок', '/add-draft');
         }
 
     } catch (error) {
@@ -148,33 +151,4 @@ function sortDrafts(drafts) {
 
         return a.display_name.localeCompare(b.display_name);
     });
-}
-
-// Показ состояния "пусто"
-function showEmptyState(icon, title, message) {
-    const draftsList = document.getElementById('draftsList');
-    draftsList.innerHTML = `
-        <div class="empty-state">
-            <div class="icon">${icon}</div>
-            <h3>${title}</h3>
-            <p>${message}</p>
-            <a href="/add-draft" class="action-btn" style="max-width: 200px; margin-top: 15px;">
-                + Добавить станок
-            </a>
-        </div>
-    `;
-}
-
-// Показ статуса
-function showStatus(message, type) {
-    const statusElement = document.getElementById('statusMessage');
-    if (!statusElement) return;
-
-    statusElement.textContent = message;
-    statusElement.className = `status-message ${type}`;
-    statusElement.style.display = 'block';
-
-    setTimeout(() => {
-        statusElement.style.display = 'none';
-    }, 3000);
 }

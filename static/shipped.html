@@ -89,22 +89,7 @@
         </div>
     </div>
 
+    <script src="/static/utils.js"></script>
     <script src="/static/shipped.js"></script>
-    <script>
-        function clearSearch() {
-            const searchInput = document.getElementById('searchInput');
-            const clearBtn = document.getElementById('clearSearch');
-            
-            if (searchInput) {
-                searchInput.value = '';
-                searchInput.focus();
-                searchInput.dispatchEvent(new Event('input'));
-            }
-            
-            if (clearBtn) {
-                clearBtn.classList.remove('visible');
-            }
-        }
-    </script>
 </body>
 </html>
