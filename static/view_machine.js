@@ -62,15 +62,14 @@ async function loadRequestFileInfo() {
         if (response.ok) {
             const requestCard = document.getElementById('requestFileStatus');
             if (requestCard) {
-                requestCard.textContent = '📄 Есть файл';
+                requestCard.innerHTML = 'Нажмите для просмотра';
                 requestCard.classList.remove('empty');
                 requestCard.style.color = '#10b981';
                 requestCard.style.cursor = 'pointer';
 
-                // Делаем карточку кликабельной
                 const card = document.getElementById('requestFileCard');
                 if (card) {
-                    card.onclick = () => openRequestFile();
+                    card.onclick = () => openRequestText();
                     card.style.cursor = 'pointer';
                 }
             }
@@ -87,8 +86,58 @@ async function loadRequestFileInfo() {
     }
 }
 
-// Функция открытия файла заявки
-function openRequestFile() {
+// Функция открытия текста заявки
+async function openRequestText() {
+    if (!machineData) return;
+
+    const modal = document.getElementById('requestTextModal');
+    const fileNameSpan = document.getElementById('requestFileName');
+    const contentDiv = document.getElementById('requestTextContent');
+
+    if (!modal) return;
+
+    // Показываем модальное окно с загрузкой
+    modal.style.display = 'block';
+    contentDiv.innerHTML = 'Загрузка текста заявки...';
+    document.body.style.overflow = 'hidden';
+
+    try {
+        const response = await fetch(`${API_BASE}/drafts/${machineData.id}/request-text`);
+        const result = await response.json();
+
+        if (result.success) {
+            fileNameSpan.textContent = result.filename;
+
+            // Форматируем текст для отображения
+            let formattedText = result.text;
+
+            // Заменяем переносы строк на <br>
+            formattedText = formattedText.replace(/\n/g, '<br>');
+
+            // Добавляем подсветку для заголовков
+            formattedText = formattedText.replace(/^([А-Я][А-Я ]+[А-Я])/gm, '<strong style="color: #3b82f6;">$1</strong>');
+
+            contentDiv.innerHTML = formattedText || 'Текст не найден';
+        } else {
+            contentDiv.innerHTML = '<div style="color: #ef4444;">Не удалось загрузить текст заявки. Возможно, файл не содержит текста или не был извлечен.</div>';
+        }
+    } catch (error) {
+        console.error('Ошибка загрузки текста:', error);
+        contentDiv.innerHTML = '<div style="color: #ef4444;">Ошибка загрузки текста заявки</div>';
+    }
+}
+
+// Функция закрытия модального окна текста
+function closeRequestTextModal() {
+    const modal = document.getElementById('requestTextModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Функция скачивания оригинального файла
+async function downloadRequestFile() {
     if (!machineData) return;
 
     const url = `${API_BASE}/drafts/${machineData.id}/request-file`;
@@ -99,7 +148,6 @@ function openRequestFile() {
 function updateActionButtons() {
     const restoreBtn = document.getElementById('restoreBtn');
     const editBtn = document.getElementById('editBtn');
-    const deleteBtn = document.getElementById('deleteBtn');
 
     if (!machineData) return;
 
@@ -115,11 +163,6 @@ function updateActionButtons() {
     if (editBtn) {
         editBtn.style.display = 'flex';
     }
-
-    // Кнопка "Удалить" всегда видна
-    if (deleteBtn) {
-        deleteBtn.style.display = 'flex';
-    }
 }
 
 // Переход к редактированию
@@ -129,60 +172,56 @@ function editDraft() {
     }
 }
 
-// Подтверждение удаления
-function confirmDeleteDraft() {
+// Возврат станка в работу
+async function restoreToWork() {
     if (!machineData) return;
 
-    if (confirm('⚠️ ВНИМАНИЕ!\n\nВы действительно хотите ПОЛНОСТЬЮ УДАЛИТЬ этот станок?\n\n' +
-               'Будут удалены:\n' +
-               '• Все данные станка\n' +
-               '• Все фотографии\n' +
-               '• Вся история изменений\n\n' +
-               'Это действие НЕОБРАТИМО!')) {
-
-        deleteDraft(machineData.id);
-    }
-}
-
-// Удаление станка
-async function deleteDraft(draftId) {
-    const deleteBtn = document.getElementById('deleteBtn');
-    const originalText = deleteBtn?.innerHTML;
-
-    if (deleteBtn) {
-        deleteBtn.disabled = true;
-        deleteBtn.innerHTML = '⏳ Удаление...';
+    if (!confirm('Вернуть станок в работу? Статус будет изменен на "Сборка".')) {
+        return;
     }
 
-    showStatus('🔄 Удаление станка...', 'info');
+    const button = document.getElementById('restoreBtn');
+    const originalText = button.innerHTML;
+
+    button.disabled = true;
+    button.innerHTML = '⏳ Обработка...';
 
     try {
-        const response = await fetch(`/api/drafts/${draftId}/delete?confirm=yes`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+        const formData = new FormData();
+        formData.append('machineStatus', 'Сборка');
+
+        const response = await fetch(`${API_BASE}/drafts/${machineData.id}`, {
+            method: 'PUT',
+            body: formData
         });
 
         const result = await response.json();
 
         if (result.success) {
-            showStatus('✅ Станок успешно удален! Перенаправление...', 'success');
+            showStatus('✅ Станок возвращен в работу', 'success');
 
+            // Обновляем статус на странице
+            document.getElementById('machineStatus').textContent = 'Сборка';
+            document.getElementById('machineStatus').style.background = 'rgba(59, 130, 246, 0.3)';
+            document.getElementById('machineStatus').style.color = '#3b82f6';
+            document.getElementById('machineStatus').style.borderColor = 'rgba(59, 130, 246, 0.5)';
+
+            // Обновляем кнопки
+            updateActionButtons();
+
+            // Перенаправляем через 1.5 секунды
             setTimeout(() => {
                 window.location.href = '/';
-            }, 2000);
-        } else {
-            throw new Error(result.error || 'Ошибка при удалении');
-        }
-    } catch (error) {
-        console.error('Ошибка удаления:', error);
-        showStatus(`❌ Ошибка: ${error.message}`, 'error');
+            }, 1500);
 
-        if (deleteBtn) {
-            deleteBtn.disabled = false;
-            deleteBtn.innerHTML = originalText;
+        } else {
+            throw new Error(result.error);
         }
+
+    } catch (error) {
+        showStatus(`❌ Ошибка: ${error.message}`, 'error');
+        button.disabled = false;
+        button.innerHTML = originalText;
     }
 }
 
@@ -493,59 +532,6 @@ async function loadMachineImages() {
     }
 }
 
-// Возврат станка в работу
-async function restoreToWork() {
-    if (!machineData) return;
-
-    if (!confirm('Вернуть станок в работу? Статус будет изменен на "Сборка".')) {
-        return;
-    }
-
-    const button = document.getElementById('restoreBtn');
-    const originalText = button.innerHTML;
-
-    button.disabled = true;
-    button.innerHTML = '⏳ Обработка...';
-
-    try {
-        const formData = new FormData();
-        formData.append('machineStatus', 'Сборка');
-
-        const response = await fetch(`${API_BASE}/drafts/${machineData.id}`, {
-            method: 'PUT',
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showStatus('✅ Станок возвращен в работу', 'success');
-
-            // Обновляем статус на странице
-            document.getElementById('machineStatus').textContent = 'Сборка';
-            document.getElementById('machineStatus').style.background = 'rgba(59, 130, 246, 0.3)';
-            document.getElementById('machineStatus').style.color = '#3b82f6';
-            document.getElementById('machineStatus').style.borderColor = 'rgba(59, 130, 246, 0.5)';
-
-            // Обновляем кнопки
-            updateActionButtons();
-
-            // Перенаправляем через 1.5 секунды
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 1500);
-
-        } else {
-            throw new Error(result.error);
-        }
-
-    } catch (error) {
-        showStatus(`❌ Ошибка: ${error.message}`, 'error');
-        button.disabled = false;
-        button.innerHTML = originalText;
-    }
-}
-
 // Модальное окно для изображений
 function setupImageModal() {
     const modal = document.getElementById('imageModal');
@@ -631,116 +617,116 @@ function showStatus(message, type = 'info') {
         }, 3000);
     }
 }
+// Функция для генерации протокола
+async function generateProtocol() {
+    if (!machineData) {
+        showStatus('❌ Данные станка не загружены', 'error');
+        return;
+    }
 
-// Функция открытия текста заявки
-async function openRequestText() {
-    if (!machineData) return;
-
-    const modal = document.getElementById('requestTextModal');
-    const fileNameSpan = document.getElementById('requestFileName');
-    const contentDiv = document.getElementById('requestTextContent');
-
-    if (!modal) return;
-
-    // Показываем модальное окно с загрузкой
-    modal.style.display = 'block';
-    contentDiv.innerHTML = 'Загрузка текста заявки...';
-    document.body.style.overflow = 'hidden';
+    const status = showLoading('📦 Формирование протокола и подготовка архива...');
 
     try {
-        const response = await fetch(`${API_BASE}/drafts/${machineData.id}/request-text`);
-        const result = await response.json();
+        // Создаем FormData и заполняем данными из machineData
+        const formData = new FormData();
+        const data = machineData.data || {};
 
-        if (result.success) {
-            fileNameSpan.textContent = result.filename;
+        // Заполняем все поля формы
+        Object.keys(data).forEach(key => {
+            if (data[key] !== undefined && data[key] !== null && data[key] !== '') {
+                formData.append(key, data[key]);
+            }
+        });
 
-            // Форматируем текст для отображения
-            let formattedText = result.text;
+        // Добавляем информацию о переключателях
+        const toggles = ['driveSystemToggle', 'electricMotorToggle', 'sensorsToggle'];
+        toggles.forEach(toggleId => {
+            if (data[toggleId] !== undefined) {
+                formData.append(toggleId, data[toggleId].toString());
+            } else {
+                // По умолчанию включаем все секции
+                formData.append(toggleId, 'true');
+            }
+        });
 
-            // Заменяем переносы строк на <br>
-            formattedText = formattedText.replace(/\n/g, '<br>');
+        // Добавляем ID черновика
+        formData.append('draft_id', machineData.id);
 
-            // Добавляем подсветку для заголовков
-            formattedText = formattedText.replace(/^([А-Я][А-Я ]+[А-Я])/gm, '<strong style="color: #3b82f6;">$1</strong>');
-
-            contentDiv.innerHTML = formattedText || 'Текст не найден';
-        } else {
-            contentDiv.innerHTML = '<div style="color: #ef4444;">Не удалось загрузить текст заявки. Возможно, файл не содержит текста или не был извлечен.</div>';
+        // Проверяем наличие файла заявки
+        try {
+            const checkResponse = await fetch(`${API_BASE}/drafts/${machineData.id}/request-file`);
+            if (checkResponse.ok) {
+                // Если есть файл заявки, загружаем его и добавляем в formData
+                const fileResponse = await fetch(`${API_BASE}/drafts/${machineData.id}/request-file`);
+                const fileBlob = await fileResponse.blob();
+                const fileName = fileResponse.headers.get('Content-Disposition')?.split('filename=')[1]?.replace(/["']/g, '') || 'request.docx';
+                formData.append('requestFile', fileBlob, fileName);
+            }
+        } catch (error) {
+            console.log('Файл заявки не найден:', error);
         }
-    } catch (error) {
-        console.error('Ошибка загрузки текста:', error);
-        contentDiv.innerHTML = '<div style="color: #ef4444;">Ошибка загрузки текста заявки</div>';
-    }
-}
 
-// Функция закрытия модального окна текста
-function closeRequestTextModal() {
-    const modal = document.getElementById('requestTextModal');
-    if (modal) {
-        modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-}
-
-// Функция скачивания оригинального файла
-async function downloadRequestFile() {
-    if (!machineData) return;
-
-    const url = `${API_BASE}/drafts/${machineData.id}/request-file`;
-    window.open(url, '_blank');
-}
-
-// Обновляем функцию loadRequestFileInfo для добавления кнопки просмотра текста
-async function loadRequestFileInfo() {
-    if (!machineData) return;
-
-    try {
-        console.log('Загрузка информации о заявке для станка:', machineData.id);
-        const response = await fetch(`${API_BASE}/drafts/${machineData.id}/request-file`);
-
-        console.log('Ответ сервера:', response.status);
-
-        if (response.ok) {
-            const requestCard = document.getElementById('requestFileStatus');
-            if (requestCard) {
-                // Добавляем иконку для просмотра текста
-                requestCard.innerHTML = '📄 <span style="color: #10b981;">Есть файл</span> <span style="font-size: 12px; margin-left: 5px;">(нажмите для просмотра)</span>';
-                requestCard.classList.remove('empty');
-                requestCard.style.color = '#10b981';
-                requestCard.style.cursor = 'pointer';
-
-                // Делаем карточку кликабельной для просмотра текста
-                const card = document.getElementById('requestFileCard');
-                if (card) {
-                    card.onclick = () => openRequestText();
-                    card.style.cursor = 'pointer';
+        // Загружаем изображения
+        if (machineData.image_files && machineData.image_files.length > 0) {
+            for (const filename of machineData.image_files) {
+                try {
+                    const imgResponse = await fetch(`${API_BASE}/drafts/${machineData.id}/images/${filename}`);
+                    const imgBlob = await imgResponse.blob();
+                    formData.append('images', imgBlob, filename);
+                } catch (error) {
+                    console.error(`Ошибка загрузки изображения ${filename}:`, error);
                 }
-                console.log('Файл заявки найден');
-            }
-        } else if (response.status === 404) {
-            const requestCard = document.getElementById('requestFileStatus');
-            if (requestCard) {
-                requestCard.textContent = 'Не загружена';
-                requestCard.classList.add('empty');
-                requestCard.style.color = '#64748b';
-            }
-            console.log('Файл заявки не найден (это нормально)');
-        } else {
-            console.warn('Неожиданный статус при проверке файла заявки:', response.status);
-            const requestCard = document.getElementById('requestFileStatus');
-            if (requestCard) {
-                requestCard.textContent = 'Не загружена';
-                requestCard.classList.add('empty');
-                requestCard.style.color = '#64748b';
             }
         }
+
+        // Отправляем запрос на генерацию протокола
+        const response = await fetch(`${API_BASE}/generate-protocol`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Ошибка сервера: ${response.status} - ${errorText || response.statusText}`);
+        }
+
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'protocol_package.zip';
+
+        if (contentDisposition) {
+            const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+            if (match && match[1]) {
+                filename = match[1].replace(/['"]/g, '');
+            }
+        }
+
+        const blob = await response.blob();
+
+        if (!blob.type.includes('zip') && !filename.endsWith('.zip')) {
+            const text = await blob.text();
+            try {
+                const errorData = JSON.parse(text);
+                throw new Error(errorData.error || 'Не удалось создать архив');
+            } catch {
+                throw new Error('Получен некорректный формат файла');
+            }
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        showStatus(`✅ Архив "${filename}" успешно сформирован`, 'success');
+
     } catch (error) {
-        console.error('Ошибка загрузки информации о заявке:', error);
-        const requestCard = document.getElementById('requestFileStatus');
-        if (requestCard) {
-            requestCard.textContent = 'Не загружена';
-            requestCard.classList.add('empty');
-            requestCard.style.color = '#64748b';
-        }
+        console.error('Ошибка при формировании протокола:', error);
+        showStatus(`❌ Ошибка: ${error.message}`, 'error');
+    } finally {
+        status.remove();
     }
 }

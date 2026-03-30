@@ -188,6 +188,7 @@ function extractNumberFromSerial(serial) {
     // Проверяем, что получилось валидное число
     return isNaN(num) ? null : num;
 }
+
 // Создание элемента станка
 function createShippedElement(draft) {
     const draftDiv = document.createElement('div');
@@ -233,7 +234,6 @@ function createShippedElement(draft) {
 }
 
 // Обновление отображения заказчика в элементе списка
-// Обновляем функцию updateDraftCustomerDisplay
 function updateDraftCustomerDisplay(draftElement, customerData) {
     const customerElement = draftElement.querySelector('.customer-value');
     if (!customerElement) return;
@@ -243,11 +243,11 @@ function updateDraftCustomerDisplay(draftElement, customerData) {
         customerElement.textContent = customerData.customerName;
     }
 
-    // УБИРАЕМ ВСЕ КЛАССЫ ДЛЯ КЛИКАБЕЛЬНОСТИ
+    // Убираем все классы для кликабельности
     customerElement.classList.remove('customer-clickable');
     customerElement.classList.remove('customer-has-info');
 
-    // УБИРАЕМ ОБРАБОТЧИК КЛИКА
+    // Убираем обработчик клика
     customerElement.onclick = null;
     customerElement.style.cursor = 'default';
 
@@ -291,53 +291,6 @@ function updateDraftCustomerDisplay(draftElement, customerData) {
     } else {
         // Убираем title если нет доп. информации
         customerElement.title = '';
-    }
-}
-
-// Возврат станка в работу
-async function restoreDraft(draftId) {
-    if (!confirm('Вернуть станок в работу? Статус будет изменен на "Сборка".')) {
-        return;
-    }
-
-    const button = event?.target.closest('.restore-btn');
-    const originalText = button?.innerHTML;
-
-    if (button) {
-        button.disabled = true;
-        button.innerHTML = '<span class="icon">⏳</span> Обработка...';
-    }
-
-    try {
-        const formData = new FormData();
-        formData.append('machineStatus', 'Сборка');
-
-        const response = await fetch(`/api/drafts/${draftId}`, {
-            method: 'PUT',
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showStatus('Станок возвращен в работу', 'success');
-
-            // Обновляем список
-            setTimeout(() => {
-                loadShippedMachines();
-            }, 1500);
-
-        } else {
-            throw new Error(result.error);
-        }
-
-    } catch (error) {
-        showStatus(`Ошибка: ${error.message}`, 'error');
-
-        if (button) {
-            button.disabled = false;
-            button.innerHTML = originalText;
-        }
     }
 }
 

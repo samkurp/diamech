@@ -1,5 +1,4 @@
 import os
-import urllib.parse
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
@@ -9,12 +8,10 @@ import uuid
 import traceback
 import json
 import base64
-import io
 from werkzeug.utils import secure_filename
 from PIL import Image
 import zipfile
 import tempfile
-import shutil
 from docx import Document
 import io
 import olefile
@@ -1634,6 +1631,7 @@ def generate_protocol():
             # Сохраняем протокол
             protocol_path = os.path.join(temp_dir, protocol_filename)
             wb.save(protocol_path)
+            wb.close()  # Явно закрываем workbook
 
             # 2. Создаем папку для изображений
             images_dir = os.path.join(temp_dir, f"{folder_name}_images")
@@ -1762,9 +1760,13 @@ def generate_protocol():
 
             print(f"✅ ZIP архив создан: {zip_filename}, размер: {os.path.getsize(zip_path)} байт")
 
-            # 7. Отправляем ZIP файл клиенту с правильной кодировкой кириллицы
+            # 7. Читаем ZIP файл в память, чтобы закрыть его до удаления временной директории
+            with open(zip_path, 'rb') as f:
+                zip_data = f.read()
+
+            # 8. Отправляем ZIP файл клиенту
             return send_file(
-                zip_path,
+                io.BytesIO(zip_data),
                 mimetype='application/zip',
                 as_attachment=True,
                 download_name=zip_filename
@@ -1776,163 +1778,6 @@ def generate_protocol():
         return jsonify({
             'success': False,
             'error': f'Ошибка генерации протокола: {str(e)}'
-        }), 500
-
-
-@app.route('/api/download-full-package/<draft_id>', methods=['GET'])
-def download_full_package(draft_id):
-    """
-    Скачивает полный пакет: протокол Excel + все изображения
-    """
-    try:
-        # Получаем данные черновика
-        draft = SupabaseDB.get_draft(draft_id)
-
-        if not draft:
-            return jsonify({
-                'success': False,
-                'error': 'Черновик не найден'
-            }), 404
-
-        # Получаем данные для генерации протокола
-        draft_data = draft.get('data', {})
-
-        # Генерируем протокол
-        if not os.path.exists(Config.TEMPLATE_PATH):
-            return jsonify({
-                'success': False,
-                'error': f'Шаблон {Config.TEMPLATE_PATH} не найден'
-            }), 404
-
-        wb = load_workbook(Config.TEMPLATE_PATH)
-        ws = wb.active
-
-        # Маппинг полей на ячейки Excel
-        mapping = {
-            'workType': 'I1',
-            'machineType': 'C3',
-            'liftingCapacity': 'D3',
-            'serialNumber': 'J3',
-            'driveType': 'C5',
-            'driveNumber': 'F5',
-            'brakeResistor': 'E7',
-            'resistorCount': 'H7',
-            'electricMotor': 'D9',
-            'motorNumber': 'G9',
-            'EnginePower': 'K9',
-            'angleSensor': 'D11',
-            'angleSensorNumber': 'G11',
-            'speedSensorNumber': 'K11',
-            'leftVibrationSensor': 'D15',
-            'leftSensitivity': 'G15',
-            'leftSensorNumber': 'I15',
-            'rightVibrationSensor': 'D16',
-            'rightSensitivity': 'G16',
-            'rightSensorNumber': 'I16',
-            'measuringDevice': 'E18',
-            'measuringDeviceNumber': 'G18',
-            'signalProcessor': 'E20',
-            'signalProcessorNumber': 'G20',
-            'notes': 'A37'
-        }
-
-        for field, cell in mapping.items():
-            if field in draft_data and draft_data[field]:
-                ws[cell] = draft_data[field]
-
-        # Создаем временную папку для файлов
-        with tempfile.TemporaryDirectory() as temp_dir:
-            folder_name = generate_folder_name(draft_data)
-            protocol_filename = generate_protocol_filename(draft_data)
-
-            # Сохраняем протокол
-            protocol_path = os.path.join(temp_dir, protocol_filename)
-            wb.save(protocol_path)
-
-            # Создаем папку для изображений
-            images_dir = os.path.join(temp_dir, f"{folder_name}_images")
-            os.makedirs(images_dir, exist_ok=True)
-
-            # Скачиваем и сохраняем все изображения
-            image_files = draft.get('image_files', [])
-            downloaded_images = []
-
-            for filename in image_files:
-                try:
-                    image_data = SupabaseDB.get_image(draft_id, filename)
-                    if image_data:
-                        img_bytes, content_type = image_data
-                        img_path = os.path.join(images_dir, filename)
-                        with open(img_path, 'wb') as f:
-                            f.write(img_bytes)
-                        downloaded_images.append(filename)
-                        print(f"📸 Сохранено изображение: {filename}")
-                except Exception as e:
-                    print(f"❌ Ошибка сохранения изображения {filename}: {e}")
-
-            # Создаем ZIP архив
-            zip_filename = f"ML_{draft_data.get('machineType', '')}{draft_data.get('liftingCapacity', '')}№{draft_data.get('serialNumber', 'unknown')}.zip"
-            zip_path = os.path.join(temp_dir, zip_filename)
-
-            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
-                # Добавляем протокол
-                zf.write(protocol_path, protocol_filename)
-
-                # Добавляем изображения
-                for img_file in os.listdir(images_dir):
-                    img_full_path = os.path.join(images_dir, img_file)
-                    zf.write(img_full_path, f"images/{img_file}")
-
-                # Добавляем информацию о станке
-                info_content = f"""
-ИНФОРМАЦИЯ О СТАНКЕ
-===================
-Тип станка: {draft_data.get('machineType', 'Не указан')}
-Грузоподъемность: {draft_data.get('liftingCapacity', 'Не указана')}
-Заводской номер: {draft_data.get('serialNumber', 'Не указан')}
-Вид работ: {draft_data.get('workType', 'Не указан')}
-Заказчик: {draft_data.get('customer', 'Не указан')}
-Дата создания: {draft.get('created_at', 'Не указана')}
-Последнее обновление: {draft.get('updated_at', 'Не указана')}
-Статус: {draft.get('machine_status', 'Не указан')}
-
-ПАРАМЕТРЫ
-=========
-Привод: {draft_data.get('driveType', 'Не указан')} №{draft_data.get('driveNumber', 'Не указан')}
-Тормозной резистор: {draft_data.get('brakeResistor', 'Не указан')} ({draft_data.get('resistorCount', '-')} шт)
-Эл. двигатель: {draft_data.get('electricMotor', 'Не указан')} №{draft_data.get('motorNumber', 'Не указан')} ({draft_data.get('EnginePower', 'Не указана')})
-Датчик угла: {draft_data.get('angleSensor', 'Не указан')} №{draft_data.get('angleSensorNumber', 'Не указан')}
-Датчик вибрации левый: {draft_data.get('leftVibrationSensor', 'Не указан')} {draft_data.get('leftSensitivity', '-')} №{draft_data.get('leftSensorNumber', 'Не указан')}
-Датчик вибрации правый: {draft_data.get('rightVibrationSensor', 'Не указан')} {draft_data.get('rightSensitivity', '-')} №{draft_data.get('rightSensorNumber', 'Не указан')}
-Измерительный прибор: {draft_data.get('measuringDevice', 'Не указан')} №{draft_data.get('measuringDeviceNumber', 'Не указан')}
-Блок обработки: {draft_data.get('signalProcessor', 'Не указан')} №{draft_data.get('signalProcessorNumber', 'Не указан')}
-
-ИЗОБРАЖЕНИЯ
-===========
-Всего изображений: {len(downloaded_images)}
-Список: {', '.join(downloaded_images) if downloaded_images else 'нет'}
-                """
-
-                info_path = os.path.join(temp_dir, "info.txt")
-                with open(info_path, 'w', encoding='utf-8') as f:
-                    f.write(info_content)
-
-                zf.write(info_path, "info.txt")
-
-            # Отправляем ZIP файл
-            return send_file(
-                zip_path,
-                mimetype='application/zip',
-                as_attachment=True,
-                download_name=zip_filename
-            )
-
-    except Exception as e:
-        print(f"❌ Ошибка создания пакета: {e}")
-        traceback.print_exc()
-        return jsonify({
-            'success': False,
-            'error': f'Ошибка создания пакета: {str(e)}'
         }), 500
 
 

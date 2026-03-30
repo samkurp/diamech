@@ -123,11 +123,6 @@ function setupRequestFileHandlers() {
 
 // Настройка событий
 function setupEventListeners() {
-    const form = document.getElementById('machineForm');
-    if (form) {
-        form.addEventListener('submit', handleFormSubmit);
-    }
-
     const fields = document.querySelectorAll('input, select, textarea');
     fields.forEach(field => {
         if (field.type !== 'file') {
@@ -189,9 +184,6 @@ function handleMachineTypeChange() {
     updateSubmitButton();
 }
 
-
-// ОСНОВНОЙ ОБРАБОТЧИК - ТОЛЬКО ФОРМИРОВАНИЕ ПРОТОКОЛА И СКАЧИВАНИЕ АРХИВА
-
 // Валидация
 function validateForm(forDraft = false) {
     let isValid = true;
@@ -247,87 +239,6 @@ function validateRadioButtons() {
     }
 }
 
-async function handleFormSubmit(e) {
-    e.preventDefault();
-
-    if (!validateForm(false)) {
-        showStatus('❌ Заполните все обязательные поля и загрузите изображения', 'error');
-        return;
-    }
-
-    const status = showLoading('📦 Формирование протокола и подготовка архива...');
-
-    try {
-        const formData = new FormData(e.target);
-
-        const toggles = ['driveSystemToggle', 'electricMotorToggle', 'sensorsToggle'];
-        toggles.forEach(toggleId => {
-            const toggle = document.getElementById(toggleId);
-            if (toggle) {
-                formData.append(toggleId, toggle.checked.toString());
-            }
-        });
-
-        if (appState.currentDraft) {
-            formData.append('draft_id', appState.currentDraft);
-        }
-
-        // Добавляем файл заявки, если он выбран
-        const requestFile = document.getElementById('requestFile');
-        if (requestFile && requestFile.files.length > 0) {
-            formData.append('requestFile', requestFile.files[0]);
-        }
-
-        const response = await fetch(`${API_BASE}/generate-protocol`, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Ошибка сервера: ${response.status} - ${errorText || response.statusText}`);
-        }
-
-        const contentDisposition = response.headers.get('Content-Disposition');
-        let filename = 'protocol_package.zip';
-
-        if (contentDisposition) {
-            const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-            if (match && match[1]) {
-                filename = match[1].replace(/['"]/g, '');
-            }
-        }
-
-        const blob = await response.blob();
-
-        if (!blob.type.includes('zip') && !filename.endsWith('.zip')) {
-            const text = await blob.text();
-            try {
-                const errorData = JSON.parse(text);
-                throw new Error(errorData.error || 'Не удалось создать архив');
-            } catch {
-                throw new Error('Получен некорректный формат файла');
-            }
-        }
-
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        showStatus(`✅ Архив "${filename}" успешно загружен`, 'success');
-
-    } catch (error) {
-        console.error('Ошибка при формировании протокола:', error);
-        showStatus(`❌ Ошибка: ${error.message}`, 'error');
-    } finally {
-        status.remove();
-    }
-}
 // Сохранение черновика
 async function saveDraft() {
     if (!validateForm(true)) {

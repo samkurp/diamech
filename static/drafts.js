@@ -136,11 +136,6 @@ function viewDraft(draftId) {
     window.location.href = `/view-machine.html?id=${draftId}`;
 }
 
-// Функция редактирования (сохранена для обратной совместимости)
-function editDraft(draftId) {
-    window.location.href = `/add-draft?draft=${draftId}`;
-}
-
 // Сортировка
 function sortDrafts(drafts) {
     return drafts.sort((a, b) => {

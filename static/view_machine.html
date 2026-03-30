@@ -228,21 +228,20 @@
 
             <!-- ИЗМЕНЕНИЕ: Кнопки действий в едином стиле -->
             <div class="actions-minimal">
+
+                <button id="generateProtocolBtn" class="btn-back-minimal" onclick="generateProtocol()" style="display: flex;">
+                📄 Сформировать протокол
+                </button>
                 <!-- Кнопка "Редактировать" в стиле кнопки "Назад к списку" -->
                 <button id="editBtn" class="btn-back-minimal" onclick="editDraft()" style="display: flex;">
                     ✏️ Редактировать
                 </button>
-
-                <!-- Кнопка "Удалить" в стиле кнопки "Назад к списку" -->
-
-
                 <!-- Кнопка "Вернуть в работу" в стиле кнопки "Назад к списку" -->
                 <button id="restoreBtn" class="btn-back-minimal" onclick="restoreToWork()" style="display: none;">
                     🔄 Вернуть в работу
                 </button>
-
                 <!-- Кнопка "Назад к списку" -->
-                <a href="/static/shipped.html" class="btn-back-minimal">
+                <a href="/static/main.html" class="btn-back-minimal">
                     ← Назад к списку
                 </a>
             </div>

@@ -87,6 +87,7 @@ h1 {
     padding: 20px;
     background: rgba(15, 23, 42, 0.4);
     border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
 }
 
 .back-button {
@@ -653,7 +654,6 @@ button[type="submit"]:disabled {
     gap: 8px;
 }
 
-
 .draft-info {
     display: grid;
     gap: 12px;
@@ -725,6 +725,7 @@ button[type="submit"]:disabled {
     align-items: center;
     justify-content: center;
     gap: 6px;
+    text-decoration: none;
 }
 
 .action-btn:hover {
@@ -818,7 +819,7 @@ small {
     }
 
     .menu {
-        flex-wrap: wrap;
+        gap: 8px;
     }
 
     .back-button {
@@ -915,31 +916,6 @@ small {
     }
 }
 
-/* Кликабельные карточки */
-.clickable-draft {
-    cursor: pointer;
-    position: relative;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.clickable-draft:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow);
-    background: rgba(30, 41, 59, 0.8);
-    border-color: var(--primary);
-}
-
-
-
-/* Заголовок в карточке */
-.draft-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 5px;
-    display: block;
-}
-
 /* Стили для поля ввода даты */
 .date-input {
     padding: 12px;
@@ -963,22 +939,18 @@ small {
     border-color: #ef4444;
 }
 
-/* Стили для отображения даты в списке */
 .info-item .shipping-date {
     font-weight: 500;
     color: #3b82f6;
 }
 
 /* МИНИМАЛИСТИЧНЫЙ ДИЗАЙН ДЛЯ ПРОСМОТРА СТАНКА */
-
-/* Основной контейнер */
 .machine-view-minimal {
     max-width: 900px;
     margin: 20px auto;
     padding: 0 15px;
 }
 
-/* Шапка */
 .machine-header-minimal {
     margin-bottom: 30px;
     text-align: center;
@@ -1012,7 +984,6 @@ small {
     border: 1px solid rgba(71, 85, 105, 0.5);
 }
 
-/* Карточки информации */
 .info-grid-minimal {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -1026,6 +997,7 @@ small {
     padding: 15px;
     border: 1px solid rgba(148, 163, 184, 0.1);
     transition: var(--transition);
+    cursor: pointer;
 }
 
 .info-card-minimal:hover {
@@ -1055,7 +1027,6 @@ small {
     font-size: 0.9rem;
 }
 
-/* Секции */
 .section-minimal {
     margin-bottom: 25px;
 }
@@ -1072,7 +1043,6 @@ small {
     gap: 8px;
 }
 
-/* Специфичные стили для оборудования */
 .equipment-item {
     display: flex;
     justify-content: space-between;
@@ -1104,7 +1074,6 @@ small {
     font-weight: 600;
 }
 
-/* Фотографии */
 .images-grid-minimal {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -1127,7 +1096,6 @@ small {
     border-color: var(--primary);
 }
 
-/* Кнопки действий */
 .actions-minimal {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1135,27 +1103,6 @@ small {
     margin-top: 25px;
     padding-top: 20px;
     border-top: 1px solid var(--border);
-}
-
-.btn-restore-minimal {
-    background: var(--primary);
-    color: white;
-    border: none;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-}
-
-.btn-restore-minimal:hover:not(:disabled) {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
 }
 
 .btn-back-minimal {
@@ -1181,7 +1128,6 @@ small {
     border-color: var(--primary);
 }
 
-/* Адаптивность */
 @media (max-width: 768px) {
     .machine-view-minimal {
         padding: 0 10px;
@@ -1240,7 +1186,7 @@ small {
     }
 }
 
-/* Стили для минималистичного модального окна заказчика */
+/* Модальное окно заказчика */
 .customer-modal {
     display: none;
     position: fixed;
@@ -1288,7 +1234,6 @@ small {
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 .modal-icon {
@@ -1321,7 +1266,6 @@ small {
     overflow-y: auto;
 }
 
-/* Форма */
 .customer-form {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
@@ -1347,13 +1291,10 @@ small {
     color: var(--text-secondary);
     font-size: 0.85rem;
     font-weight: 500;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    letter-spacing: 0.3px;
 }
 
 .customer-form-group label .required {
     color: var(--danger);
-    font-size: 0.9em;
 }
 
 .customer-input, .customer-textarea {
@@ -1363,8 +1304,7 @@ small {
     border: 1px solid rgba(148, 163, 184, 0.2);
     border-radius: 8px;
     color: var(--text-primary);
-    font-size: 0.7rem;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 0.85rem;
     transition: var(--transition);
     outline: none;
     line-height: 1.5;
@@ -1384,14 +1324,11 @@ small {
 .customer-textarea {
     resize: vertical;
     min-height: 60px;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Кнопки */
 .customer-modal-actions {
     display: flex;
     gap: 12px;
-    /* margin-top: 24px; */
     padding: 0px 10px 10px 10px;
     border-top: 1px solid rgba(148, 163, 184, 0.1);
 }
@@ -1405,7 +1342,6 @@ small {
     border-radius: 8px;
     font-size: 0.95rem;
     font-weight: 600;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     cursor: pointer;
     transition: var(--transition);
     display: flex;
@@ -1433,7 +1369,6 @@ small {
     border-radius: 8px;
     font-size: 0.95rem;
     font-weight: 500;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     cursor: pointer;
     transition: var(--transition);
     display: flex;
@@ -1452,7 +1387,6 @@ small {
     font-size: 1rem;
 }
 
-/* Анимации */
 @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -1469,12 +1403,6 @@ small {
     }
 }
 
-/* Сделать карточку заказчика кликабельной */
-.info-card-minimal[onclick] {
-    cursor: pointer;
-}
-
-/* Адаптивность */
 @media (max-width: 768px) {
     .customer-modal-content {
         margin: 20px auto;
@@ -1533,7 +1461,7 @@ small {
     }
 }
 
-/* Контейнер для пневматики */
+/* Пневматика */
 .pneumatics-container {
     padding: 30px;
     display: flex;
@@ -1541,7 +1469,6 @@ small {
     gap: 40px;
 }
 
-/* Заголовок таблицы пневматики */
 .pneumatics-header {
     text-align: center;
     margin-bottom: 25px;
@@ -1572,7 +1499,6 @@ small {
     margin: 0 auto;
 }
 
-/* Стили для таблиц пневматики */
 .pneumatics-table {
     width: 100%;
     border-collapse: separate;
@@ -1677,22 +1603,6 @@ small {
     min-width: 120px;
 }
 
-.pneumatics-table td br {
-    margin-bottom: 4px;
-    display: block;
-    content: "";
-}
-
-.pneumatics-table td .model-variant {
-    display: block;
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin-top: 5px;
-    font-weight: 400;
-    font-style: italic;
-}
-
-/* Адаптивная верстка для таблиц */
 @media (max-width: 768px) {
     .pneumatics-container {
         padding: 20px 15px;
@@ -1744,7 +1654,7 @@ small {
     }
 }
 
-/* Адаптивная сетка для секций на странице просмотра станка */
+/* Адаптивная сетка для страницы просмотра станка */
 @media (min-width: 1024px) {
     .machine-view-minimal {
         display: grid;
@@ -1753,26 +1663,19 @@ small {
         align-items: start;
     }
 
-    /* Первая секция (базовая информация) занимает всю ширину */
     .machine-view-minimal .section-minimal:first-child {
         grid-column: 1 / -1;
     }
 
-    /* Выравнивание кнопок действий */
     .machine-view-minimal .actions-minimal {
         grid-column: 1 / -1;
     }
 
-    /* Фотографии также занимают всю ширину */
     .machine-view-minimal .section-minimal:nth-last-child(2) {
         grid-column: 1 / -1;
     }
 }
 
-/* Для очень больших экранов можно сделать 3 колонки */
-
-
-/* Оптимизация для текущего макета */
 @media (min-width: 1024px) {
     .machine-view-minimal .section-minimal {
         margin-bottom: 0;
@@ -1783,19 +1686,15 @@ small {
         min-height: auto;
     }
 
-    /* Карточки в секции "Базовая информация" также в две колонки */
     .machine-view-minimal .section-minimal:first-child .info-grid-minimal {
         grid-template-columns: repeat(2, 1fr);
     }
-
 }
 
-/* Улучшение отступов для сетки */
 .machine-view-minimal {
     gap: 30px;
 }
 
-/* Для мобильных устройств оставляем как есть */
 @media (max-width: 1023px) {
     .machine-view-minimal {
         display: block;
@@ -1805,117 +1704,7 @@ small {
         margin-bottom: 25px;
     }
 }
-.change-item.addition {
-    background: rgba(16, 185, 129, 0.05);
-    border-left: 3px solid #10b981;
-}
 
-.addition-badge {
-    display: inline-block;
-    background: #10b981;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    margin-bottom: 5px;
-}
-
-.addition-text {
-    color: #10b981;
-    font-weight: 500;
-    margin-bottom: 8px;
-}
-
-.show-full-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text-secondary);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.show-full-btn:hover {
-    background: var(--accent);
-    color: white;
-    border-color: var(--accent);
-}
-
-.change-item.full-change {
-    background: rgba(239, 68, 68, 0.05);
-    border-left: 3px solid #ef4444;
-}
-
-/* Модальное окно для текста */
-.text-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-}
-
-.text-modal-content {
-    background: var(--card-bg);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    width: 90%;
-    max-width: 800px;
-    max-height: 80vh;
-    overflow: hidden;
-}
-
-.text-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 15px 20px;
-    border-bottom: 1px solid var(--border);
-}
-
-.text-modal-header h3 {
-    margin: 0;
-    font-size: 16px;
-}
-
-.close-modal {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 24px;
-    cursor: pointer;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.close-modal:hover {
-    color: var(--text);
-}
-
-.text-modal-body {
-    padding: 20px;
-    overflow-y: auto;
-    max-height: calc(80vh - 70px);
-}
-
-.text-modal-body pre {
-    margin: 0;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-family: inherit;
-    line-height: 1.5;
-}
 /* Стили для текста заявки */
 .request-text-content {
     font-family: 'Courier New', monospace;
@@ -1935,7 +1724,6 @@ small {
     margin-bottom: 5px;
 }
 
-/* Анимация для модального окна */
 #requestTextModal .customer-modal-content {
     max-width: 800px;
     width: 90%;
