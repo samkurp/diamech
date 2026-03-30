@@ -127,6 +127,7 @@ function searchMachines(query) {
     });
 }
 
+
 // Отображение станков
 function displayMachines(machines) {
     const shippedList = document.getElementById('shippedList');
@@ -137,11 +138,23 @@ function displayMachines(machines) {
     if (machines.length > 0) {
         shippedList.innerHTML = '';
 
-        // Сортируем по дате обновления (новые сверху)
+        // Сортировка по заводскому номеру (serial_number) по убыванию
         const sortedMachines = [...machines].sort((a, b) => {
-            const dateA = new Date(a.updated_at || a.created_at);
-            const dateB = new Date(b.updated_at || b.created_at);
-            return dateB - dateA;
+            // Извлекаем заводские номера (serial_number)
+            const serialA = a.serial_number || '';
+            const serialB = b.serial_number || '';
+            
+            // Извлекаем числовую часть из заводского номера
+            const numA = extractNumberFromSerial(serialA);
+            const numB = extractNumberFromSerial(serialB);
+            
+            // Если удалось извлечь числа из обоих номеров
+            if (numA !== null && numB !== null) {
+                return numB - numA; // По убыванию (большие номера сверху)
+            }
+            
+            // Если не удалось извлечь числа, сравниваем как строки
+            return serialB.localeCompare(serialA);
         });
 
         sortedMachines.forEach(draft => {
@@ -156,6 +169,24 @@ function displayMachines(machines) {
         shippedList.style.display = 'none';
         noResults.style.display = 'block';
     }
+}
+
+// Вспомогательная функция для извлечения числа из заводского номера
+function extractNumberFromSerial(serial) {
+    if (!serial) return null;
+    
+    // Ищем все цифры в строке
+    const numbers = serial.match(/\d+/g);
+    if (!numbers) return null;
+    
+    // Объединяем все найденные цифры в одно число
+    const fullNumber = numbers.join('');
+    
+    // Преобразуем в число
+    const num = parseInt(fullNumber, 10);
+    
+    // Проверяем, что получилось валидное число
+    return isNaN(num) ? null : num;
 }
 
 // Создание элемента станка
@@ -203,7 +234,6 @@ function createShippedElement(draft) {
 }
 
 // Обновление отображения заказчика в элементе списка
-// Обновляем функцию updateDraftCustomerDisplay
 function updateDraftCustomerDisplay(draftElement, customerData) {
     const customerElement = draftElement.querySelector('.customer-value');
     if (!customerElement) return;
@@ -213,11 +243,11 @@ function updateDraftCustomerDisplay(draftElement, customerData) {
         customerElement.textContent = customerData.customerName;
     }
 
-    // УБИРАЕМ ВСЕ КЛАССЫ ДЛЯ КЛИКАБЕЛЬНОСТИ
+    // Убираем все классы для кликабельности
     customerElement.classList.remove('customer-clickable');
     customerElement.classList.remove('customer-has-info');
 
-    // УБИРАЕМ ОБРАБОТЧИК КЛИКА
+    // Убираем обработчик клика
     customerElement.onclick = null;
     customerElement.style.cursor = 'default';
 
@@ -261,53 +291,6 @@ function updateDraftCustomerDisplay(draftElement, customerData) {
     } else {
         // Убираем title если нет доп. информации
         customerElement.title = '';
-    }
-}
-
-// Возврат станка в работу
-async function restoreDraft(draftId) {
-    if (!confirm('Вернуть станок в работу? Статус будет изменен на "Сборка".')) {
-        return;
-    }
-
-    const button = event?.target.closest('.restore-btn');
-    const originalText = button?.innerHTML;
-
-    if (button) {
-        button.disabled = true;
-        button.innerHTML = '<span class="icon">⏳</span> Обработка...';
-    }
-
-    try {
-        const formData = new FormData();
-        formData.append('machineStatus', 'Сборка');
-
-        const response = await fetch(`/api/drafts/${draftId}`, {
-            method: 'PUT',
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            showStatus('Станок возвращен в работу', 'success');
-
-            // Обновляем список
-            setTimeout(() => {
-                loadShippedMachines();
-            }, 1500);
-
-        } else {
-            throw new Error(result.error);
-        }
-
-    } catch (error) {
-        showStatus(`Ошибка: ${error.message}`, 'error');
-
-        if (button) {
-            button.disabled = false;
-            button.innerHTML = originalText;
-        }
     }
 }
 

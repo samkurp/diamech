@@ -14,7 +14,9 @@ const appState = {
     hasImages: false,
     currentDraft: null,
     isViewMode: false,
-    currentImages: []
+    currentImages: [],
+    hasRequestFile: false,
+    currentRequestFileName: null
 };
 
 // Инициализация при загрузке
@@ -47,18 +49,80 @@ function initForm() {
     // Настройка зависимостей полей
     setupFieldDependencies();
 
+    // Настройка файла заявки
+    setupRequestFileHandlers();
+
     // Инициализация стилей
     initializeFieldStyles();
     updateSubmitButton();
 }
 
-// Настройка событий
-function setupEventListeners() {
-    const form = document.getElementById('machineForm');
-    if (form) {
-        form.addEventListener('submit', handleFormSubmit);
+// Настройка обработчиков файла заявки
+function setupRequestFileHandlers() {
+    const requestFileInput = document.getElementById('requestFile');
+    const removeBtn = document.getElementById('removeRequestFile');
+
+    if (requestFileInput) {
+        requestFileInput.addEventListener('change', function(e) {
+            const fileInfo = document.getElementById('requestFileInfo');
+            const fileNameSpan = document.getElementById('currentRequestFileName');
+
+            if (this.files && this.files.length > 0) {
+                const file = this.files[0];
+                if (fileInfo && fileNameSpan) {
+                    fileNameSpan.textContent = file.name;
+                    fileInfo.style.display = 'block';
+                    appState.hasRequestFile = true;
+                    appState.currentRequestFileName = file.name;
+                }
+            } else {
+                if (fileInfo) fileInfo.style.display = 'none';
+                appState.hasRequestFile = false;
+                appState.currentRequestFileName = null;
+            }
+        });
     }
 
+    if (removeBtn) {
+        removeBtn.onclick = async () => {
+            if (confirm('Удалить файл заявки?')) {
+                if (appState.currentDraft) {
+                    try {
+                        const response = await fetch(`${API_BASE}/drafts/${appState.currentDraft}/request-file`, {
+                            method: 'DELETE'
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showStatus('✅ Файл заявки удален', 'success');
+                            const fileInfo = document.getElementById('requestFileInfo');
+                            const requestFileInput = document.getElementById('requestFile');
+                            if (fileInfo) fileInfo.style.display = 'none';
+                            if (requestFileInput) requestFileInput.value = '';
+                            appState.hasRequestFile = false;
+                            appState.currentRequestFileName = null;
+                        } else {
+                            throw new Error(result.error);
+                        }
+                    } catch (error) {
+                        showStatus(`❌ Ошибка удаления: ${error.message}`, 'error');
+                    }
+                } else {
+                    const fileInfo = document.getElementById('requestFileInfo');
+                    const requestFileInput = document.getElementById('requestFile');
+                    if (fileInfo) fileInfo.style.display = 'none';
+                    if (requestFileInput) requestFileInput.value = '';
+                    appState.hasRequestFile = false;
+                    appState.currentRequestFileName = null;
+                }
+            }
+        };
+    }
+}
+
+// Настройка событий
+function setupEventListeners() {
     const fields = document.querySelectorAll('input, select, textarea');
     fields.forEach(field => {
         if (field.type !== 'file') {
@@ -118,95 +182,6 @@ function handleMachineTypeChange() {
     }
 
     updateSubmitButton();
-}
-
-// ОСНОВНОЙ ОБРАБОТЧИК - ТОЛЬКО ФОРМИРОВАНИЕ ПРОТОКОЛА И СКАЧИВАНИЕ АРХИВА
-async function handleFormSubmit(e) {
-    e.preventDefault();
-
-    if (!validateForm(false)) {
-        showStatus('❌ Заполните все обязательные поля и загрузите изображения', 'error');
-        return;
-    }
-
-    const status = showLoading('📦 Формирование протокола и подготовка архива...');
-
-    try {
-        const formData = new FormData(e.target);
-
-        // Добавляем состояние переключателей
-        const toggles = ['driveSystemToggle', 'electricMotorToggle', 'sensorsToggle'];
-        toggles.forEach(toggleId => {
-            const toggle = document.getElementById(toggleId);
-            if (toggle) {
-                formData.append(toggleId, toggle.checked.toString());
-            }
-        });
-
-        // Добавляем ID черновика если есть (для загрузки существующих изображений)
-        if (appState.currentDraft) {
-            formData.append('draft_id', appState.currentDraft);
-        }
-
-        // Отправляем запрос на генерацию протокола и получение архива
-        const response = await fetch(`${API_BASE}/generate-protocol`, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Ошибка сервера: ${response.status} - ${errorText || response.statusText}`);
-        }
-
-        // Получаем имя файла из заголовков
-        const contentDisposition = response.headers.get('Content-Disposition');
-        let filename = 'protocol_package.zip';
-        
-        if (contentDisposition) {
-            const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-            if (match && match[1]) {
-                filename = match[1].replace(/['"]/g, '');
-            }
-        }
-
-        // Скачиваем ZIP архив
-        const blob = await response.blob();
-        
-        // Проверяем, что это ZIP архив
-        if (!blob.type.includes('zip') && !filename.endsWith('.zip')) {
-            const text = await blob.text();
-            try {
-                const errorData = JSON.parse(text);
-                throw new Error(errorData.error || 'Не удалось создать архив');
-            } catch {
-                throw new Error('Получен некорректный формат файла');
-            }
-        }
-
-        // Инициируем скачивание
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        // ТОЛЬКО УВЕДОМЛЕНИЕ ОБ УСПЕШНОМ СКАЧИВАНИИ
-        showStatus(`✅ Архив "${filename}" успешно загружен`, 'success');
-        
-        // НЕ сохраняем черновик автоматически
-        // НЕ сбрасываем форму
-        // НЕ перенаправляем на главную
-
-    } catch (error) {
-        console.error('Ошибка при формировании протокола:', error);
-        showStatus(`❌ Ошибка: ${error.message}`, 'error');
-    } finally {
-        status.remove();
-    }
 }
 
 // Валидация
@@ -284,6 +259,7 @@ async function saveDraft() {
             }
         });
 
+        // Сначала сохраняем черновик
         const response = await fetch(`${API_BASE}/save-draft`, {
             method: 'POST',
             body: formData
@@ -292,11 +268,32 @@ async function saveDraft() {
         const result = await response.json();
 
         if (result.success) {
+            const draftId = result.draft_id;
+
+            // Если есть файл заявки, загружаем его отдельно
+            const requestFile = document.getElementById('requestFile');
+            if (requestFile && requestFile.files.length > 0) {
+                const fileFormData = new FormData();
+                fileFormData.append('requestFile', requestFile.files[0]);
+
+                const uploadResponse = await fetch(`${API_BASE}/drafts/${draftId}/upload-request`, {
+                    method: 'POST',
+                    body: fileFormData
+                });
+
+                const uploadResult = await uploadResponse.json();
+                if (!uploadResult.success) {
+                    console.warn('Файл заявки не загружен:', uploadResult.error);
+                } else {
+                    console.log('Файл заявки загружен:', uploadResult.filename);
+                }
+            }
+
             showNotification('✅ Черновик успешно сохранен!');
-            appState.currentDraft = result.draft_id;
+            appState.currentDraft = draftId;
 
             const url = new URL(window.location);
-            url.searchParams.set('draft', result.draft_id);
+            url.searchParams.set('draft', draftId);
             window.history.replaceState({}, '', url);
 
             setTimeout(() => {
@@ -409,6 +406,9 @@ async function populateForm(draft) {
         await loadDraftImages(draft.id, draft.image_files);
     }
 
+    // Загружаем информацию о файле заявки
+    await loadRequestFileInfoForEdit(draft.id);
+
     initializeFieldStyles();
     updateSubmitButton();
 }
@@ -449,6 +449,34 @@ async function loadDraftImages(draftId, imageFiles) {
     }
 
     updateSubmitButton();
+}
+
+// Функция загрузки информации о заявке для редактирования
+async function loadRequestFileInfoForEdit(draftId) {
+    try {
+        const response = await fetch(`${API_BASE}/drafts/${draftId}/request-file`);
+
+        if (response.ok) {
+            const fileInfo = document.getElementById('requestFileInfo');
+            const fileNameSpan = document.getElementById('currentRequestFileName');
+            const removeBtn = document.getElementById('removeRequestFile');
+
+            // Показываем информацию о файле
+            if (fileInfo) {
+                fileInfo.style.display = 'block';
+                const filename = response.headers.get('Content-Disposition');
+                if (fileNameSpan) {
+                    fileNameSpan.textContent = 'Файл заявки загружен';
+                }
+                appState.hasRequestFile = true;
+            }
+
+            // Обработчик удаления уже настроен в setupRequestFileHandlers
+        }
+    } catch (error) {
+        console.log('Нет файла заявки:', error);
+        appState.hasRequestFile = false;
+    }
 }
 
 // Утилиты
@@ -841,15 +869,16 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
 // Функция для проверки параметра delete при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const draftId = urlParams.get('draft');
     const hasDelete = window.location.search.includes('delete');
-    
+
     if (draftId && hasDelete && !window._deleteProcessed) {
-        window._deleteProcessed = true; // Предотвращаем повторные срабатывания
-        
+        window._deleteProcessed = true;
+
         setTimeout(() => {
             if (confirm('⚠️ ВНИМАНИЕ!\n\nВы действительно хотите ПОЛНОСТЬЮ УДАЛИТЬ этот станок?\n\n' +
                        'Будут удалены:\n' +
@@ -857,7 +886,7 @@ document.addEventListener('DOMContentLoaded', function() {
                        '• Все фотографии\n' +
                        '• Вся история изменений\n\n' +
                        'Это действие НЕОБРАТИМО!')) {
-                
+
                 deleteDraft(draftId);
             } else {
                 window.location.href = '/add-draft?draft=' + draftId;
@@ -869,11 +898,11 @@ document.addEventListener('DOMContentLoaded', function() {
 // Функция удаления
 async function deleteDraft(draftId) {
     const status = document.getElementById('statusMessage') || createStatusElement();
-    
+
     status.innerHTML = '🔄 Удаление станка...';
     status.className = 'status-message info';
     status.style.display = 'block';
-    
+
     try {
         const response = await fetch(`/api/drafts/${draftId}/delete?confirm=yes`, {
             method: 'POST',
@@ -881,14 +910,14 @@ async function deleteDraft(draftId) {
                 'Content-Type': 'application/json'
             }
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             status.innerHTML = '✅ Станок успешно удален! Перенаправление...';
             status.className = 'status-message success';
             status.style.display = 'block';
-            
+
             setTimeout(() => {
                 window.location.href = '/';
             }, 2000);
@@ -897,11 +926,11 @@ async function deleteDraft(draftId) {
         }
     } catch (error) {
         console.error('Ошибка удаления:', error);
-        
+
         status.innerHTML = `❌ Ошибка: ${error.message}`;
         status.className = 'status-message error';
         status.style.display = 'block';
-        
+
         setTimeout(() => {
             if (confirm('Не удалось удалить станок. Вернуться к редактированию?')) {
                 window.location.href = '/add-draft?draft=' + draftId;
