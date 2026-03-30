@@ -62,7 +62,7 @@ async function loadRequestFileInfo() {
         if (response.ok) {
             const requestCard = document.getElementById('requestFileStatus');
             if (requestCard) {
-                requestCard.innerHTML = '📄 <span style="color: #10b981;">Есть файл</span> <span style="font-size: 12px; margin-left: 5px;">(нажмите для просмотра)</span>';
+                requestCard.innerHTML = 'Нажмите для просмотра';
                 requestCard.classList.remove('empty');
                 requestCard.style.color = '#10b981';
                 requestCard.style.cursor = 'pointer';
