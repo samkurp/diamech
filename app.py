@@ -49,33 +49,19 @@ class Config:
 supabase = None
 if Config.SUPABASE_URL and Config.SUPABASE_KEY:
     try:
-        print("\n" + "=" * 50)
-        print("🔄 ИНИЦИАЛИЗАЦИЯ SUPABASE")
-        print("=" * 50)
-        print(f"📌 URL: {Config.SUPABASE_URL[:50]}...")
-        print(f"📌 Key length: {len(Config.SUPABASE_KEY)} символов")
-
         from supabase import create_client
 
         supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 
         # Проверка подключения
         test_query = supabase.table('drafts').select('*').limit(1).execute()
-        print("✅ Supabase: успешно подключен!")
-        print("✅ Таблица 'drafts' доступна")
-        print("=" * 50 + "\n")
 
     except ImportError as e:
-        print(f"❌ Ошибка импорта supabase: {e}")
-        print("   Установите: pip install supabase==2.12.0")
         supabase = None
     except Exception as e:
-        print(f"❌ Ошибка подключения к Supabase: {e}")
-        print(f"   Тип ошибки: {type(e).__name__}")
         supabase = None
 else:
-    print("\n⚠️ Supabase не настроен - переменные окружения отсутствуют")
-    print("   Установите SUPABASE_URL и SUPABASE_KEY в переменных окружения\n")
+    supabase = None
 
 
 # ============================================
