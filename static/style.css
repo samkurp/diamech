@@ -7,20 +7,35 @@
 }
 
 :root {
-    --primary: #3b82f6;
-    --primary-dark: #2563eb;
-    --primary-light: #60a5fa;
-    --success: #10b981;
-    --warning: #f59e0b;
-    --danger: #ef4444;
+    /* Новая цветовая палитра */
+    --primary: #1f91dc;
+    --primary-dark: #167bbd;
+    --primary-medium: #66a6e3;
+    --primary-light: #92bbeb;
+    --primary-pale: #b8d1f2;
+    --primary-bg: #dce8f8;
+    --white: #ffffff;
+    
+    /* Фоновые цвета */
     --dark-bg: #0f172a;
     --card-bg: rgba(30, 41, 59, 0.7);
     --form-bg: rgba(30, 41, 59, 0.5);
+    
+    /* Статусные цвета */
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --purple: #8b5cf6;
+    --pink: #ec4899;
+    
+    /* Текстовые цвета */
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
+    
+    /* Границы и эффекты */
     --border: rgba(148, 163, 184, 0.15);
-    --border-hover: rgba(59, 130, 246, 0.3);
+    --border-hover: rgba(31, 145, 220, 0.3);
     --shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
     --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.2);
     --radius: 10px;
@@ -34,8 +49,8 @@ body {
     min-height: 100vh;
     line-height: 1.6;
     background-image:
-        radial-gradient(at 20% 20%, rgba(59, 130, 246, 0.1) 0px, transparent 50%),
-        radial-gradient(at 80% 80%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
+        radial-gradient(at 20% 20%, rgba(31, 145, 220, 0.1) 0px, transparent 50%),
+        radial-gradient(at 80% 80%, rgba(102, 166, 227, 0.1) 0px, transparent 50%);
     background-attachment: fixed;
 }
 
@@ -694,7 +709,7 @@ button[type="submit"]:disabled {
     text-transform: uppercase;
 }
 
-.status-value.sborka { background: #3b82f6; color: white; }
+.status-value.sborka { background: var(--primary); color: white; }
 .status-value.sobran { background: #64748b; color: white; }
 .status-value.на-испытании { background: #f59e0b; color: white; }
 .status-value.испытан { background: #10b981; color: white; }
@@ -931,8 +946,8 @@ small {
 
 .date-input:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(31, 145, 220, 0.1);
 }
 
 .date-input:invalid {
@@ -941,7 +956,7 @@ small {
 
 .info-item .shipping-date {
     font-weight: 500;
-    color: #3b82f6;
+    color: var(--primary);
 }
 
 /* МИНИМАЛИСТИЧНЫЙ ДИЗАЙН ДЛЯ ПРОСМОТРА СТАНКА */
@@ -1714,7 +1729,7 @@ small {
 }
 
 .request-text-content strong {
-    color: #3b82f6;
+    color: var(--primary);
     display: block;
     margin-top: 15px;
     margin-bottom: 5px;
@@ -1727,4 +1742,809 @@ small {
 #requestTextModal .customer-modal-content {
     max-width: 800px;
     width: 90%;
+}
+/* Стили для таблиц пневматики и других компонентов */
+.pneumatics-card {
+    padding: 0;
+    overflow: hidden;
+}
+
+.pneumatics-header {
+    background: rgba(31, 145, 220, 0.1);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.pneumatics-title {
+    font-size: 1.1rem;
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.pneumatics-content {
+    padding: 20px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table thead tr {
+    border-bottom: 1px solid var(--border);
+}
+
+.data-table th {
+    text-align: left;
+    padding: 10px 5px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.data-table th.text-center {
+    text-align: center;
+}
+
+.data-table tbody tr {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.data-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.data-table td {
+    padding: 12px 5px;
+    color: var(--text-primary);
+}
+
+.data-table td.text-center {
+    text-align: center;
+}
+
+.data-table .quantity {
+    color: var(--primary-medium);
+    font-weight: 600;
+}
+
+.data-table .model-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 4px;
+}
+
+/* Стили для кнопок действий */
+.action-btn-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    text-decoration: none;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.action-btn-inline:hover {
+    background: rgba(31, 145, 220, 0.1);
+    border-color: var(--primary);
+}
+
+/* Стили для разделов с иконками */
+.section-icon {
+    font-size: 1.2rem;
+    margin-right: 8px;
+}
+
+/* Стили для флекс контейнеров */
+.flex-row {
+    display: flex;
+    gap: 8px;
+}
+
+.flex-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.flex-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Стили для индикаторов обязательных полей */
+.required-indicator {
+    color: var(--danger);
+}
+
+/* Стили для сообщений об ошибках */
+.error-message-inline {
+    color: var(--danger);
+    font-size: 0.85rem;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Стили для информации о файле запроса */
+.request-file-info {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 6px;
+    border-left: 3px solid var(--success);
+}
+
+.request-file-icon {
+    color: var(--success);
+}
+
+.request-file-name {
+    color: var(--text-primary);
+}
+
+.remove-file-btn {
+    margin-left: 10px;
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* Стили для разделителей */
+.divider-horizontal {
+    height: 1px;
+    background: rgba(148, 163, 184, 0.1);
+    margin: 10px 0;
+}
+
+/* Стили для подсказок */
+.mobile-hint {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    margin-top: 15px;
+    display: none;
+}
+
+/* Стили для пустых состояний */
+.empty-state-inline {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+}
+
+/* Стили для карточек информации */
+.info-card-minimal {
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: var(--radius-sm);
+    padding: 15px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.info-card-minimal:hover {
+    border-color: var(--primary);
+    background: rgba(30, 41, 59, 0.7);
+}
+
+/* Стили для кнопок навигации */
+.btn-back-minimal {
+    padding: 10px 20px;
+    background: rgba(30, 41, 59, 0.6);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.btn-back-minimal:hover {
+    background: rgba(31, 145, 220, 0.1);
+    border-color: var(--primary);
+}
+
+/* Стили для модальных окон */
+.customer-modal-content {
+    max-width: 800px;
+    width: 90%;
+}
+
+/* Стили для меню */
+.menu-centered {
+    text-align: center;
+    padding: 10px;
+}
+
+/* Стили для списков с одной колонкой */
+.single-column-list {
+    grid-template-columns: 1fr;
+}
+
+/* Стили для прозрачных карточек */
+.transparent-card {
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+
+/* Стили для заголовков таблиц */
+.table-main-title {
+    text-align: center;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Стили для цветовых схем секций */
+.section-blue {
+    background: rgba(31, 145, 220, 0.1);
+}
+
+.section-purple {
+    background: rgba(139, 92, 246, 0.1);
+}
+
+.section-pink {
+    background: rgba(236, 72, 153, 0.1);
+}
+
+.section-green {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.section-blue-title {
+    color: var(--primary);
+}
+
+.section-purple-title {
+    color: var(--purple);
+}
+
+.section-pink-title {
+    color: var(--pink);
+}
+
+.section-green-title {
+    color: var(--success);
+}
+
+/* Стили для контента заявки */
+.request-text-content {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 15px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 8px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* Утилитарные классы */
+.hidden {
+    display: none;
+}
+
+.visible {
+    display: block;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mt-15 {
+    margin-top: 15px;
+}
+
+.mb-15 {
+    margin-bottom: 15px;
+}
+
+.max-w-200 {
+    max-width: 200px;
+}
+
+/* Утилитарные классы для замены inline стилей */
+.d-flex {
+    display: flex;
+}
+
+.gap-8 {
+    gap: 8px;
+}
+
+.gap-10 {
+    gap: 10px;
+}
+
+.gap-12 {
+    gap: 12px;
+}
+
+.gap-15 {
+    gap: 15px;
+}
+
+.gap-20 {
+    gap: 20px;
+}
+
+.gap-25 {
+    gap: 25px;
+}
+
+.gap-30 {
+    gap: 30px;
+}
+
+.flex-column {
+    flex-direction: column;
+}
+
+.flex-wrap {
+    flex-wrap: wrap;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.justify-start {
+    justify-content: flex-start;
+}
+
+.align-center {
+    align-items: center;
+}
+
+.text-left {
+    text-align: left;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.text-secondary {
+    color: var(--text-secondary);
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+.text-danger {
+    color: var(--danger);
+}
+
+.text-primary {
+    color: var(--text-primary);
+}
+
+.text-success {
+    color: var(--success);
+}
+
+.bg-transparent {
+    background: transparent;
+}
+
+.border-none {
+    border: none;
+}
+
+.p-0 {
+    padding: 0;
+}
+
+.p-10 {
+    padding: 10px;
+}
+
+.p-12 {
+    padding: 12px;
+}
+
+.p-14 {
+    padding: 14px;
+}
+
+.p-15 {
+    padding: 15px;
+}
+
+.p-20 {
+    padding: 20px;
+}
+
+.px-20 {
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.py-15 {
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+.m-0 {
+    margin: 0;
+}
+
+.mt-0 {
+    margin-top: 0;
+}
+
+.mb-0 {
+    margin-bottom: 0;
+}
+
+.mt-10 {
+    margin-top: 10px;
+}
+
+.mt-20 {
+    margin-top: 20px;
+}
+
+.mt-30 {
+    margin-top: 30px;
+}
+
+.mb-10 {
+    margin-bottom: 10px;
+}
+
+.mb-12 {
+    margin-bottom: 12px;
+}
+
+.mb-20 {
+    margin-bottom: 20px;
+}
+
+.ml-10 {
+    margin-left: 10px;
+}
+
+.ml-auto {
+    margin-left: auto;
+}
+
+.mr-8 {
+    margin-right: 8px;
+}
+
+.mr-10 {
+    margin-right: 10px;
+}
+
+.mr-12 {
+    margin-right: 12px;
+}
+
+.w-100 {
+    width: 100%;
+}
+
+.h-1 {
+    height: 1px;
+}
+
+.max-h-70vh {
+    max-height: 70vh;
+}
+
+.overflow-y-auto {
+    overflow-y: auto;
+}
+
+.hidden {
+    display: none;
+}
+
+.block {
+    display: block;
+}
+
+.inline-block {
+    display: inline-block;
+}
+
+.relative {
+    position: relative;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.font-mono {
+    font-family: monospace;
+}
+
+.font-size-14 {
+    font-size: 14px;
+}
+
+.font-size-20 {
+    font-size: 20px;
+}
+
+.font-size-24 {
+    font-size: 24px;
+}
+
+.font-size-36 {
+    font-size: 36px;
+}
+
+.font-weight-500 {
+    font-weight: 500;
+}
+
+.font-weight-600 {
+    font-weight: 600;
+}
+
+.line-height-16 {
+    line-height: 1.6;
+}
+
+.white-space-pre-wrap {
+    white-space: pre-wrap;
+}
+
+.border-radius-50 {
+    border-radius: 50%;
+}
+
+.border-radius-6 {
+    border-radius: 6px;
+}
+
+.border-radius-8 {
+    border-radius: 8px;
+}
+
+.border-left-3 {
+    border-left: 3px solid;
+}
+
+.border-solid {
+    border-style: solid;
+}
+
+.opacity-0 {
+    opacity: 0;
+}
+
+.opacity-6 {
+    opacity: 0.6;
+}
+
+.opacity-8 {
+    opacity: 0.8;
+}
+
+.transition {
+    transition: var(--transition);
+}
+
+.hover-scale {
+    transition: var(--transition);
+}
+
+.hover-scale:hover {
+    transform: scale(1.05);
+}
+
+/* Специфичные классы для элементов */
+.divider-horizontal {
+    height: 1px;
+    background: rgba(148, 163, 184, 0.1);
+    margin: 10px 0;
+}
+
+.mobile-hint {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    margin-top: 10px;
+    display: none;
+}
+
+.request-text-content {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding: 15px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 8px;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.info-card-minimal {
+    cursor: pointer;
+}
+
+.btn-back-minimal {
+    display: flex;
+}
+
+.empty-value {
+    text-align: center;
+    padding: 20px;
+}
+
+.draft-title-primary {
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+    color: var(--primary);
+}
+
+.action-btn-start {
+    justify-content: flex-start;
+    text-decoration: none;
+}
+
+.icon-large {
+    font-size: 1.2rem;
+    margin-right: 10px;
+}
+
+.icon-medium {
+    font-size: 1rem;
+    margin-right: 8px;
+    opacity: 0.8;
+}
+
+.section-header-blue {
+    background: rgba(59, 130, 246, 0.1);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.section-header-purple {
+    background: rgba(139, 92, 246, 0.1);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.section-header-pink {
+    background: rgba(236, 72, 153, 0.1);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.section-header-green {
+    background: rgba(16, 185, 129, 0.1);
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.section-title {
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.section-title-color-blue {
+    color: var(--primary);
+}
+
+.section-title-color-purple {
+    color: var(--purple);
+}
+
+.section-title-color-pink {
+    color: var(--pink);
+}
+
+.section-title-color-green {
+    color: var(--success);
+}
+
+.section-content-padding {
+    padding: 20px;
+}
+
+.subsection-title {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.file-info-box {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 6px;
+    border-left: 3px solid var(--success);
+}
+
+.remove-file-btn {
+    margin-left: 10px;
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.menu-centered {
+    text-align: center;
+    padding: 10px;
+}
+
+.drafts-grid-single {
+    grid-template-columns: 1fr;
+}
+
+.draft-item-no-style {
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+
+.table-header-centered {
+    text-align: center;
+}
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 20px;
+}
+
+.color-inherit {
+    color: inherit;
+}
+
+.flex-1 {
+    flex: 1;
+}
+
+.grid-cols-2 {
+    grid-template-columns: 1fr 1fr;
+}
+
+.overflow-hidden {
+    overflow: hidden;
 }

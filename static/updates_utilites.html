@@ -197,7 +197,7 @@
             </div>
 
             <!-- Подсказка для мобильных -->
-            <div style="text-align: center; color: var(--text-muted); font-size: 0.7rem; margin-top: 15px; display: none;" class="mobile-hint">
+            <div class="mobile-hint">
                 <span class="icon">📱</span> Для удобства контент отображается в одну колонку
             </div>
 
@@ -288,7 +288,7 @@
             // Формируем HTML
             let html = `
                 <!-- Контейнер с адаптивной сеткой -->
-                <div class="drafts-list" style="grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div class="drafts-list grid-cols-2 gap-30">
                     <!-- ЛЕВАЯ КОЛОНКА: Обновления ПО -->
                     <div>
             `;
@@ -296,14 +296,14 @@
             // САПФИР-3
             if (hasSapphire) {
                 html += `
-                    <div class="draft-item" style="padding: 0; overflow: hidden;">
-                        <div style="background: rgba(59, 130, 246, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
-                            <h3 style="font-size: 1.1rem; color: var(--primary); display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <div class="draft-item overflow-hidden p-0">
+                        <div class="section-header-blue">
+                            <h3 class="section-title section-title-color-blue">
                                 <span class="sapphire-icon">📡</span> САПФИР-3
                             </h3>
                         </div>
-                        <div style="padding: 20px;">
-                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="section-content-padding">
+                            <div class="d-flex flex-column gap-12">
                 `;
                 
                 data.sapphire.forEach(item => {
@@ -320,14 +320,14 @@
             // ЯШМА
             if (hasYashma) {
                 html += `
-                    <div class="draft-item" style="padding: 0; overflow: hidden; margin-top: 20px;">
-                        <div style="background: rgba(139, 92, 246, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
-                            <h3 style="font-size: 1.1rem; color: #8b5cf6; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <div class="draft-item overflow-hidden p-0 mt-20">
+                        <div class="section-header-purple">
+                            <h3 class="section-title section-title-color-purple">
                                 <span class="yashma-icon">💎</span> ЯШМА
                             </h3>
                         </div>
-                        <div style="padding: 20px;">
-                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="section-content-padding">
+                            <div class="d-flex flex-column gap-12">
                 `;
                 
                 data.yashma.forEach(item => {
@@ -344,14 +344,14 @@
             // СТШ
             if (hasStsh) {
                 html += `
-                    <div class="draft-item" style="padding: 0; overflow: hidden; margin-top: 20px;">
-                        <div style="background: rgba(236, 72, 153, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
-                            <h3 style="font-size: 1.1rem; color: #ec4899; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <div class="draft-item overflow-hidden p-0 mt-20">
+                        <div class="section-header-pink">
+                            <h3 class="section-title section-title-color-pink">
                                 <span class="stsh-icon">🔧</span> СТШ
                             </h3>
                         </div>
-                        <div style="padding: 20px;">
-                            <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="section-content-padding">
+                            <div class="d-flex flex-column gap-12">
                 `;
                 
                 data.stsh.forEach(item => {
@@ -375,24 +375,24 @@
             // Утилиты (общий блок)
             if (hasExternalUtils || hasInternalUtils || hasDocs) {
                 html += `
-                    <div class="draft-item" style="padding: 0; overflow: hidden;">
-                        <div style="background: rgba(16, 185, 129, 0.1); padding: 15px 20px; border-bottom: 1px solid var(--border);">
-                            <h3 style="font-size: 1.1rem; color: #10b981; display: flex; align-items: center; gap: 8px; margin: 0;">
+                    <div class="draft-item overflow-hidden p-0">
+                        <div class="section-header-green">
+                            <h3 class="section-title section-title-color-green">
                                 <span class="utilities-icon">🧰</span> Утилиты
                             </h3>
                         </div>
-                        <div style="padding: 20px;">
-                            <div style="display: flex; flex-direction: column; gap: 20px;">
+                        <div class="section-content-padding">
+                            <div class="d-flex flex-column gap-20">
                 `;
                 
                 // Группа: Стороннее ПО
                 if (hasExternalUtils) {
                     html += `
                         <div>
-                            <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                            <h4 class="subsection-title">
                                 <span class="external-icon">🔌</span> Стороннее ПО для настройки
                             </h4>
-                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div class="d-flex flex-column gap-8">
                     `;
                     
                     data.external_utils.forEach(item => {
@@ -409,10 +409,10 @@
                 if (hasInternalUtils) {
                     html += `
                         <div>
-                            <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                            <h4 class="subsection-title">
                                 <span class="internal-icon">⚡</span> Внутренние утилиты
                             </h4>
-                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div class="d-flex flex-column gap-8">
                     `;
                     
                     data.internal_utils.forEach(item => {
@@ -429,10 +429,10 @@
                 if (hasDocs) {
                     html += `
                         <div>
-                            <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px;">
+                            <h4 class="subsection-title">
                                 <span class="docs-icon">📚</span> Документация
                             </h4>
-                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div class="d-flex flex-column gap-8">
                     `;
                     
                     data.docs.forEach(item => {
@@ -470,15 +470,15 @@
             };
             
             const icon = iconMap[iconType] || '⚙️';
-            const dateHtml = item.date ? `<span style="font-size: 0.75rem; color: var(--text-secondary);">${item.date}</span>` : '';
+            const dateHtml = item.date ? `<span class="text-secondary font-size-14">${item.date}</span>` : '';
             
             return `
-                <a href="${item.file}" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                    <span style="font-size: 1.2rem; margin-right: 10px;" class="${iconType}-icon">${icon}</span>
-                    <div style="display: flex; flex-direction: column; flex: 1;">
-                        <span style="font-weight: 600;">${escapeHtml(item.title)}</span>
+                <a href="${item.file}" class="action-btn action-btn-start" target="_blank">
+                    <span class="icon-large ${iconType}-icon">${icon}</span>
+                    <div class="d-flex flex-column flex-1">
+                        <span class="font-weight-600">${escapeHtml(item.title)}</span>
                         ${dateHtml}
-                        ${item.description ? `<span style="font-size: 0.7rem; color: var(--text-secondary);">${escapeHtml(item.description)}</span>` : ''}
+                        ${item.description ? `<span class="text-secondary font-size-14">${escapeHtml(item.description)}</span>` : ''}
                     </div>
                     <span class="download-badge">${item.badge || 'ZIP'}</span>
                 </a>
@@ -508,10 +508,10 @@
             }
             
             return `
-                <a href="${item.file}" class="action-btn" target="_blank" style="justify-content: flex-start; text-decoration: none;">
-                    <span style="margin-right: 10px; opacity: 0.8;">${icon}</span>
-                    <span style="flex: 1;">${escapeHtml(item.title)}</span>
-                    ${item.description ? `<span style="font-size: 0.7rem; color: var(--text-secondary); margin-right: 8px;">${escapeHtml(item.description)}</span>` : ''}
+                <a href="${item.file}" class="action-btn action-btn-start" target="_blank">
+                    <span class="mr-10 opacity-8">${icon}</span>
+                    <span class="flex-1">${escapeHtml(item.title)}</span>
+                    ${item.description ? `<span class="text-secondary font-size-14 mr-8">${escapeHtml(item.description)}</span>` : ''}
                     <span class="download-badge">${item.badge || 'ZIP'}</span>
                 </a>
             `;

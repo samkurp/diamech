@@ -194,7 +194,7 @@
         </header>
 
         <!-- Навигационное меню -->
-        <div class="menu" style="text-align: center; padding:10px">
+        <div class="menu menu-centered">
             <a href="/static/add_draft.html" class="back-button">
                 Добавить Станок
             </a>
@@ -220,12 +220,12 @@
             </div>
 
             <!-- Компактная таблица с вертикальными заголовками -->
-            <div class="drafts-list" style="grid-template-columns: 1fr;">
-                <div class="draft-item" style="padding: 0; background: transparent; border: none;">
+            <div class="drafts-list drafts-grid-single">
+                <div class="draft-item draft-item-no-style">
                     <table class="pneumatics-table rotors-table">
                         <thead>
                             <tr>
-                                <th colspan="5" style="text-align: center;">Справочные данные роторов</th>
+                                <th colspan="5" class="table-header-centered">Справочные данные роторов</th>
                             </tr>
                             <tr>
                                 <th>
@@ -315,14 +315,14 @@
             </div>
 
             <!-- Компактная информация под таблицей -->
-            <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; color: var(--text-secondary); font-size: 0.8rem; margin-top: 20px;">
+            <div class="footer-links">
                 <span><span class="icon">📌</span> Значения справочные</span>
                 <span><span class="icon">⚖️</span> Вес в кг</span>
                 <span><span class="icon">📏</span> Размеры в мм</span>
             </div>
             
             <!-- Подсказка для мобильных пользователей -->
-            <div style="text-align: center; color: var(--text-muted); font-size: 0.7rem; margin-top: 10px; display: none;" class="mobile-hint">
+            <div class="mobile-hint">
                 <span class="icon">📱</span> Для удобства заголовки повернуты вертикально
             </div>
         </div>

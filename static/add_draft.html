@@ -66,7 +66,7 @@
                                 <label for="new">Новый</label>
                             </div>
                         </div>
-                        <small id="workTypeError" class="error-message" style="display: none;">
+                        <small id="workTypeError" class="error-message hidden">
                             Пожалуйста, выберите тип работы
                         </small>
                     </div>
@@ -86,10 +86,10 @@
                             <small>Поддерживаемые форматы: DOC, DOCX</small>
                         </div>
 
-                        <div id="requestFileInfo" style="display: none; margin-top: 10px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border-left: 3px solid #10b981;">
-                            <span style="color: #10b981;">📄 </span>
-                            <span id="currentRequestFileName" style="color: var(--text-primary);"></span>
-                            <button type="button" id="removeRequestFile" style="margin-left: 10px; background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px;">✕</button>
+                        <div id="requestFileInfo" class="file-info-box">
+                            <span class="text-success">📄 </span>
+                            <span id="currentRequestFileName" class="text-primary"></span>
+                            <button type="button" id="removeRequestFile" class="remove-file-btn">✕</button>
                         </div>
                     </div>
                         <div class="form-row">
