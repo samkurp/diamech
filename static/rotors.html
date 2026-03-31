@@ -2,341 +2,46 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Станки в работе - Роторы</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Роторы - Станки в работе</title>
     <link rel="stylesheet" href="/static/style.css">
-    <style>
-        /* Дополнительные стили для вертикальных заголовков и компактной таблицы */
-        .pneumatics-table.rotors-table {
-            font-size: 0.85rem;
-            width: 100%;
-            table-layout: fixed; /* Фиксированная разметка для контроля ширины */
-            border-collapse: collapse;
-        }
-        
-        /* Базовая ширина колонок */
-        .pneumatics-table.rotors-table th:nth-child(1) { width: 18%; } /* Тип ротора */
-        .pneumatics-table.rotors-table th:nth-child(2) { width: 16%; } /* Вес */
-        .pneumatics-table.rotors-table th:nth-child(3) { width: 22%; } /* Длина ремня */
-        .pneumatics-table.rotors-table th:nth-child(4) { width: 22%; } /* Радиус 1 */
-        .pneumatics-table.rotors-table th:nth-child(5) { width: 22%; } /* Радиус 2 */
-        
-        /* Контейнер для вертикального текста */
-        .vertical-header {
-            writing-mode: vertical-rl; /* Вертикальное направление текста */
-            text-orientation: mixed;
-            transform: rotate(180deg); /* Поворот для правильного чтения сверху вниз */
-            white-space: nowrap;
-            height: 100px; /* Фиксированная высота для вертикального текста */
-            padding: 5px 0;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto;
-        }
-        
-        /* Стили для ячеек с данными */
-        .pneumatics-table.rotors-table td {
-            padding: 10px 5px;
-            text-align: center;
-            word-break: break-word;
-            font-size: 0.85rem;
-        }
-        
-        /* Первая колонка (название ротора) выравниваем по левому краю */
-        .pneumatics-table.rotors-table td:first-child {
-            text-align: left;
-            padding-left: 8px;
-            font-weight: 500;
-            border-right: 1px solid rgba(148, 163, 184, 0.1);
-        }
-        
-        /* Заголовок таблицы */
-        .pneumatics-table.rotors-table thead tr:first-child th {
-            text-align: center;
-            font-size: 1rem;
-            padding: 12px 5px;
-            background: linear-gradient(to right, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05));
-        }
-        
-        /* Вторая строка заголовков (с вертикальным текстом) */
-        .pneumatics-table.rotors-table thead tr:nth-child(2) th {
-            padding: 5px 2px;
-            text-align: center;
-            vertical-align: bottom;
-            border-bottom: 2px solid var(--primary);
-            background: rgba(30, 41, 59, 0.8);
-            height: 100px; /* Фиксированная высота для вертикальных заголовков */
-        }
-        
-        /* Убираем псевдоэлемент после th для чистоты */
-        .pneumatics-table.rotors-table th::after {
-            display: none;
-        }
-        
-        /* Адаптация для очень маленьких экранов */
-        @media (max-width: 480px) {
-            .pneumatics-table.rotors-table {
-                font-size: 0.75rem;
-            }
-            
-            .vertical-header {
-                height: 80px;
-                font-size: 0.75rem;
-                padding: 3px 0;
-            }
-            
-            .pneumatics-table.rotors-table thead tr:nth-child(2) th {
-                height: 80px;
-            }
-            
-            .pneumatics-table.rotors-table td {
-                padding: 8px 2px;
-                font-size: 0.75rem;
-            }
-            
-            .pneumatics-table.rotors-table td:first-child {
-                padding-left: 4px;
-                font-size: 0.7rem;
-            }
-            
-            /* Еще более точная настройка ширины для мобильных */
-            .pneumatics-table.rotors-table th:nth-child(1) { width: 16%; }
-            .pneumatics-table.rotors-table th:nth-child(2) { width: 16%; }
-            .pneumatics-table.rotors-table th:nth-child(3) { width: 23%; }
-            .pneumatics-table.rotors-table th:nth-child(4) { width: 23%; }
-            .pneumatics-table.rotors-table th:nth-child(5) { width: 22%; }
-        }
-        
-        /* Для экранов 360px и меньше */
-        @media (max-width: 360px) {
-            .vertical-header {
-                height: 70px;
-                font-size: 0.7rem;
-            }
-            
-            .pneumatics-table.rotors-table td {
-                padding: 6px 1px;
-                font-size: 0.7rem;
-            }
-            
-            .pneumatics-table.rotors-table td:first-child {
-                font-size: 0.65rem;
-            }
-        }
-        
-        /* Убираем горизонтальный скролл, если он все еще появляется */
-        .pneumatics-container {
-            overflow-x: hidden;
-            padding: 15px;
-        }
-        
-        .drafts-list {
-            overflow-x: hidden;
-        }
-        
-        /* Адаптация для планшетов */
-        @media (min-width: 768px) and (max-width: 1023px) {
-            .pneumatics-table.rotors-table {
-                font-size: 0.9rem;
-            }
-            
-            .vertical-header {
-                height: 90px;
-                font-size: 0.85rem;
-            }
-        }
-        
-        /* Для больших экранов возвращаем горизонтальный текст */
-        @media (min-width: 1024px) {
-            .vertical-header {
-                writing-mode: horizontal-tb;
-                transform: none;
-                height: auto;
-                padding: 12px 5px;
-                white-space: normal;
-                display: table-cell;
-                text-align: center;
-            }
-            
-            .pneumatics-table.rotors-table thead tr:nth-child(2) th {
-                height: auto;
-                padding: 12px 5px;
-            }
-            
-            .pneumatics-table.rotors-table {
-                table-layout: auto; /* Автоматическая ширина на десктопах */
-            }
-        }
-        
-        /* Подсветка числовых значений */
-        .pneumatics-table.rotors-table td:not(:first-child) {
-            font-weight: 500;
-            color: var(--primary-light);
-        }
-        
-        /* Единицы измерения сделать меньше */
-        .unit-hint {
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            display: block;
-            margin-top: 2px;
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1><span class="icon">⚙️</span> Параметры роторов</h1>
-        </header>
+        <div class="main-container">
+            <header>
+                <h1>⚙️ Роторы</h1>
+                <p class="subtitle">Справочная информация по роторам и балансировочным оправкам</p>
+            </header>
 
-        <!-- Навигационное меню -->
-        <div class="menu" style="text-align: center; padding:10px">
-            <a href="/static/add_draft.html" class="back-button">
-                Добавить Станок
-            </a>
-            <a href="/" class="back-button">
-                Список станков
-            </a>
-            <a href="/static/pneumatics.html" class="back-button">
-                Комплектующие пневматики
-            </a>
-            <a href="/static/frequency_converter.html" class="back-button">
-                Параметры частотников
-            </a>
-        </div>
-
-        <!-- Основной контейнер с таблицей -->
-        <div class="pneumatics-container">
-            <!-- Заголовок страницы -->
-            <div class="pneumatics-header">
-                <h2>
-                    <span class="icon">📊</span> Таблица роторов
-                </h2>
-                <p>Геометрические параметры и характеристики роторов для балансировки</p>
+            <div class="menu">
+                <a href="/" class="back-button">← Список станков</a>
+                <a href="/add-draft" class="back-button">+ Добавить станок</a>
+                <a href="/static/history.html" class="back-button">📜 История</a>
+                <a href="/static/shipped.html" class="back-button">🚚 Отгруженные</a>
+                <a href="/static/frequency_converter.html" class="back-button">🔌 Частотники</a>
+                <a href="/static/pneumatics.html" class="back-button">💨 Пневматика</a>
+                <a href="/static/updates_utilites.html" class="back-button">🛠️ Обновления ПО</a>
             </div>
 
-            <!-- Компактная таблица с вертикальными заголовками -->
-            <div class="drafts-list" style="grid-template-columns: 1fr;">
-                <div class="draft-item" style="padding: 0; background: transparent; border: none;">
-                    <table class="pneumatics-table rotors-table">
-                        <thead>
-                            <tr>
-                                <th colspan="5" style="text-align: center;">Справочные данные роторов</th>
-                            </tr>
-                            <tr>
-                                <th>
-                                    <span class="vertical-header">Тип ротора</span>
-                                </th>
-                                <th>
-                                    <span class="vertical-header">Вес (кг)</span>
-                                </th>
-                                <th>
-                                    <span class="vertical-header">Длина ремня (мм)</span>
-                                </th>
-                                <th>
-                                    <span class="vertical-header">Радиус 1 (мм)</span>
-                                </th>
-                                <th>
-                                    <span class="vertical-header">Радиус 2 (мм)</span>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>РК1.6</td>
-                                <td>1.6</td>
-                                <td>700</td>
-                                <td>40</td>
-                                <td>40</td>
-                            </tr>
-                            <tr>
-                                <td>РК16</td>
-                                <td>16</td>
-                                <td>950</td>
-                                <td>80</td>
-                                <td>80</td>
-                            </tr>
-                            <tr>
-                                <td>РК50</td>
-                                <td>50</td>
-                                <td>1200</td>
-                                <td>120</td>
-                                <td>120</td>
-                            </tr>
-                            <tr>
-                                <td>РК160</td>
-                                <td>160</td>
-                                <td>1500</td>
-                                <td>160</td>
-                                <td>160</td>
-                            </tr>
-                            <tr>
-                                <td>РК500</td>
-                                <td>500</td>
-                                <td>1800</td>
-                                <td>200</td>
-                                <td>200</td>
-                            </tr>
-                            <tr>
-                                <td>Шеврон</td>
-                                <td>85</td>
-                                <td>1400</td>
-                                <td>150</td>
-                                <td>280</td>
-                            </tr>
-                            <tr>
-                                <td>Вентилятор</td>
-                                <td>45</td>
-                                <td>1100</td>
-                                <td>180</td>
-                                <td>220</td>
-                            </tr>
-                            <tr>
-                                <td>Генератор</td>
-                                <td>28</td>
-                                <td>1050</td>
-                                <td>95</td>
-                                <td>135</td>
-                            </tr>
-                            <tr>
-                                <td>Шпиндель</td>
-                                <td>12</td>
-                                <td>850</td>
-                                <td>55</td>
-                                <td>75</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <div class="drafts-container">
+                <div class="drafts-list">
+                    <div class="draft-item">
+                        <h3 class="draft-title draft-title-primary">🔄 Роторы</h3>
+                        <div class="d-flex flex-column gap-8">
+                            <a href="#" class="action-btn action-btn-start">📄 Информация о роторах</a>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Компактная информация под таблицей -->
-            <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; color: var(--text-secondary); font-size: 0.8rem; margin-top: 20px;">
-                <span><span class="icon">📌</span> Значения справочные</span>
-                <span><span class="icon">⚖️</span> Вес в кг</span>
-                <span><span class="icon">📏</span> Размеры в мм</span>
-            </div>
-            
-            <!-- Подсказка для мобильных пользователей -->
-            <div style="text-align: center; color: var(--text-muted); font-size: 0.7rem; margin-top: 10px; display: none;" class="mobile-hint">
-                <span class="icon">📱</span> Для удобства заголовки повернуты вертикально
-            </div>
+            <footer>
+                <p>Система учета оборудования станков 2026</p>
+            </footer>
         </div>
-
-        <footer>
-            <p>Система учета оборудования станков © 2025</p>
-        </footer>
     </div>
-    
-    <script>
-        // Показываем подсказку только на мобильных устройствах
-        if (window.innerWidth <= 768) {
-            document.querySelector('.mobile-hint').style.display = 'block';
-        }
-    </script>
 </body>
 </html>

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -8,7 +7,7 @@
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -19,24 +18,13 @@
             </header>
 
             <div class="menu">
-                <a href="/add-draft" class="back-button">
-                    + Добавить станок
-                </a>
-                <a href="/static/history.html" class="back-button">
-                    📜 История
-                </a>
-                <a href="/static/shipped.html" class="back-button">
-                    🚚 Отгруженные
-                </a>
-                <a href="/static/frequency_converter.html" class="back-button">
-                    🔌 Частотники
-                </a>
-                <a href="/static/pneumatics.html" class="back-button">
-                    💨 Пневматика
-                </a>
-                <a href="/static/updates_utilites.html" class="back-button">
-                    🛠️ Обновления ПО
-                </a>
+                <a href="/add-draft" class="back-button">+ Добавить станок</a>
+                <a href="/static/history.html" class="back-button">📜 История</a>
+                <a href="/static/shipped.html" class="back-button">🚚 Отгруженные</a>
+                <a href="/static/frequency_converter.html" class="back-button">🔌 Частотники</a>
+                <a href="/static/pneumatics.html" class="back-button">💨 Пневматика</a>
+                <a href="/static/rotors.html" class="back-button">⚙️ Роторы</a>
+                <a href="/static/updates_utilites.html" class="back-button">🛠️ Обновления ПО</a>
             </div>
 
             <div class="drafts-container">
@@ -45,17 +33,14 @@
                         <div class="icon">📝</div>
                         <h3>Нет станков в работе</h3>
                         <p>Добавьте первый станок через форму ввода данных</p>
-                        <a href="/add-draft" class="action-btn" style="max-width: 200px; margin-top: 15px;">
-                            + Добавить станок
-                        </a>
+                        <a href="/add-draft" class="action-btn max-w-200 mt-15">+ Добавить станок</a>
                     </div>
                 </div>
-
-                <div id="statusMessage" class="status-message" style="display: none;"></div>
+                <div id="statusMessage" class="status-message hidden"></div>
             </div>
 
             <footer>
-                <p>Система учета оборудования станков</p>
+                <p>Система учета оборудования станков 2026</p>
             </footer>
         </div>
     </div>

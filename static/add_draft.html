@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -8,13 +7,10 @@
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Кнопка сохранения черновика -->
-    <button class="save-draft-btn" title="Сохранить черновик">
-        💾
-    </button>
+    <button class="save-draft-btn" title="Сохранить черновик">💾</button>
 
     <div class="container">
         <div class="main-container">
@@ -24,28 +20,14 @@
             </header>
 
             <div class="menu">
-    <a href="/" class="back-button">
-        ← На главную
-    </a>
-    <a href="/static/history.html" class="back-button">
-        📜 История
-    </a>
-    <a href="/static/shipped.html" class="back-button">
-        🚚 Отгруженные
-    </a>
-    <a href="/static/frequency_converter.html" class="back-button">
-        🔌 Частотники
-    </a>
-    <a href="/static/pneumatics.html" class="back-button">
-        💨 Пневматика
-    </a>
-    <a href="/static/rotors.html" class="back-button">
-        ⚙️ Роторы
-    </a>
-    <a href="/static/updates_utilites.html" class="back-button">
-        🛠️ Обновления ПО
-    </a>
-</div>
+                <a href="/" class="back-button">← На главную</a>
+                <a href="/static/history.html" class="back-button">📜 История</a>
+                <a href="/static/shipped.html" class="back-button">🚚 Отгруженные</a>
+                <a href="/static/frequency_converter.html" class="back-button">🔌 Частотники</a>
+                <a href="/static/pneumatics.html" class="back-button">💨 Пневматика</a>
+                <a href="/static/rotors.html" class="back-button">⚙️ Роторы</a>
+                <a href="/static/updates_utilites.html" class="back-button">🛠️ Обновления ПО</a>
+            </div>
 
             <div class="form-container">
                 <form id="machineForm" enctype="multipart/form-data">
@@ -66,32 +48,27 @@
                                 <label for="new">Новый</label>
                             </div>
                         </div>
-                        <small id="workTypeError" class="error-message" style="display: none;">
-                            Пожалуйста, выберите тип работы
-                        </small>
+                        <small id="workTypeError" class="error-message hidden">Пожалуйста, выберите тип работы</small>
+                    </div>
+
+                    <!-- Заявка -->
+                    <div class="form-section">
+                        <h3>📄 Заявка</h3>
+                        <div class="form-group">
+                            <label for="requestFile">Файл заявки (Word):</label>
+                            <input type="file" id="requestFile" name="requestFile" accept=".doc,.docx" class="file-input">
+                            <small>Поддерживаемые форматы: DOC, DOCX</small>
+                        </div>
+                        <div id="requestFileInfo" class="file-info-box">
+                            <span class="text-success">📄 </span>
+                            <span id="currentRequestFileName" class="text-primary"></span>
+                            <button type="button" id="removeRequestFile" class="remove-file-btn">✕</button>
+                        </div>
                     </div>
 
                     <!-- Основная информация -->
                     <div class="form-section">
                         <h3>Основная информация</h3>
-                        <!-- Заявка -->
-                    <div class="form-section">
-                        <h3>📄 Заявка</h3>
-
-                        <div class="form-group">
-                            <label for="requestFile">Файл заявки (Word):</label>
-                            <input type="file" id="requestFile" name="requestFile"
-                                   accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                                   class="file-input">
-                            <small>Поддерживаемые форматы: DOC, DOCX</small>
-                        </div>
-
-                        <div id="requestFileInfo" style="display: none; margin-top: 10px; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; border-left: 3px solid #10b981;">
-                            <span style="color: #10b981;">📄 </span>
-                            <span id="currentRequestFileName" style="color: var(--text-primary);"></span>
-                            <button type="button" id="removeRequestFile" style="margin-left: 10px; background: none; border: none; color: #ef4444; cursor: pointer; font-size: 14px;">✕</button>
-                        </div>
-                    </div>
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="machineType" class="required">Тип станка:</label>
@@ -105,28 +82,19 @@
                                     <option value="ВМВ">ВМВ</option>
                                 </select>
                             </div>
-
                             <div class="form-group">
                                 <label for="liftingCapacity" class="required">Грузоподъёмность/Модель:</label>
-                                <input type="number" id="liftingCapacity" name="liftingCapacity"
-                                       placeholder="Например: 10" step="0.1" required
-                                       inputmode="decimal">
+                                <input type="number" id="liftingCapacity" name="liftingCapacity" placeholder="Например: 10" step="0.1" required>
                             </div>
                         </div>
-
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="serialNumber" class="required">Заводской номер:</label>
-                                <input type="text" id="serialNumber" name="serialNumber"
-                                       placeholder="Введите заводской номер" required
-                                       inputmode="decimal">
+                                <input type="text" id="serialNumber" name="serialNumber" placeholder="Введите заводской номер" required>
                             </div>
-                            
                             <div class="form-group">
                                 <label for="customer" class="required">Заказчик:</label>
-                                <input type="text" id="customer" name="customer"
-                                       placeholder="Введите заказчика" required
-                                       inputmode="text">
+                                <input type="text" id="customer" name="customer" placeholder="Введите заказчика" required>
                             </div>
                         </div>
                     </div>
@@ -140,7 +108,6 @@
                                 <span class="checkbox-ios-switch"></span>
                             </label>
                         </div>
-
                         <div class="section-content">
                             <div class="form-row">
                                 <div class="form-group">
@@ -156,14 +123,11 @@
                                         <option value="Нет">Нет</option>
                                     </select>
                                 </div>
-
                                 <div class="form-group">
                                     <label for="driveNumber">Номер привода:</label>
-                                    <input type="text" id="driveNumber" name="driveNumber"
-                                           placeholder="Номер привода">
+                                    <input type="text" id="driveNumber" name="driveNumber" placeholder="Номер привода">
                                 </div>
                             </div>
-
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="brakeResistor">Тормозной резистор:</label>
@@ -180,7 +144,6 @@
                                         <option value="Нет">Нет</option>
                                     </select>
                                 </div>
-
                                 <div class="form-group">
                                     <label for="resistorCount">Количество резисторов:</label>
                                     <select id="resistorCount" name="resistorCount">
@@ -204,16 +167,12 @@
                                 <span class="checkbox-ios-switch"></span>
                             </label>
                         </div>
-                    
                         <div class="section-content">
                             <div class="form-row">
                                 <div class="form-group">
                                     <label for="electricMotor">Тип двигателя:</label>
-                                    <input type="text" id="electricMotor" name="electricMotor"
-                                           placeholder="Введите тип двигателя вручную"
-                                           inputmode="text">
+                                    <input type="text" id="electricMotor" name="electricMotor" placeholder="Введите тип двигателя вручную">
                                 </div>
-                                
                                 <div class="form-group">
                                     <label for="EnginePower">Мощность:</label>
                                     <select id="EnginePower" name="EnginePower">
@@ -236,12 +195,9 @@
                                         <option value="55кВт">55кВт</option>
                                     </select>
                                 </div>
-                                
                                 <div class="form-group">
                                     <label for="motorNumber">Номер двигателя:</label>
-                                    <input type="text" id="motorNumber" name="motorNumber"
-                                           placeholder="Номер двигателя"
-                                           inputmode="text">
+                                    <input type="text" id="motorNumber" name="motorNumber" placeholder="Номер двигателя">
                                 </div>
                             </div>
                         </div>
@@ -256,7 +212,6 @@
                                 <span class="checkbox-ios-switch"></span>
                             </label>
                         </div>
-
                         <div class="section-content">
                             <div class="form-row">
                                 <div class="form-group">
@@ -268,19 +223,13 @@
                                         <option value="Нет">Нет</option>
                                     </select>
                                 </div>
-
                                 <div class="form-group">
                                     <label for="angleSensorNumber">Номер датчика угла:</label>
-                                    <input type="text" id="angleSensorNumber" name="angleSensorNumber"
-                                           placeholder="Номер датчика"
-                                           inputmode="decimal">
+                                    <input type="text" id="angleSensorNumber" name="angleSensorNumber" placeholder="Номер датчика">
                                 </div>
-                                
                                 <div class="form-group">
                                     <label for="speedSensorNumber">Номер отметчика:</label>
-                                    <input type="text" id="speedSensorNumber" name="speedSensorNumber"
-                                           placeholder="Номер отметчика"
-                                           inputmode="decimal">
+                                    <input type="text" id="speedSensorNumber" name="speedSensorNumber" placeholder="Номер отметчика">
                                 </div>
                             </div>
                         </div>
@@ -289,7 +238,6 @@
                     <!-- Датчики вибрации -->
                     <div class="form-section">
                         <h3>Датчики вибрации</h3>
-
                         <div id="leftVibrationSection">
                             <h4>Левый датчик вибрации</h4>
                             <div class="form-row">
@@ -309,22 +257,15 @@
                                     </select>
                                 </div>
                             </div>
-
                             <div class="form-group">
                                 <label for="leftSensitivity">Чувствительность:</label>
-                                <input type="text" id="leftSensitivity" name="leftSensitivity"
-                                       placeholder="Например: 100"
-                                       inputmode="decimal">
+                                <input type="text" id="leftSensitivity" name="leftSensitivity" placeholder="Например: 100">
                             </div>
-
                             <div class="form-group">
                                 <label for="leftSensorNumber">Номер датчика:</label>
-                                <input type="text" id="leftSensorNumber" name="leftSensorNumber"
-                                       placeholder="Номер левого датчика"
-                                       inputmode="decimal">
+                                <input type="text" id="leftSensorNumber" name="leftSensorNumber" placeholder="Номер левого датчика">
                             </div>
                         </div>
-
                         <div id="rightVibrationSection">
                             <h4>Правый датчик вибрации</h4>
                             <div class="form-row">
@@ -342,19 +283,13 @@
                                     </select>
                                 </div>
                             </div>
-
                             <div class="form-group">
                                 <label for="rightSensitivity">Чувствительность:</label>
-                                <input type="text" id="rightSensitivity" name="rightSensitivity"
-                                       placeholder="Например: 100"
-                                       inputmode="decimal">
+                                <input type="text" id="rightSensitivity" name="rightSensitivity" placeholder="Например: 100">
                             </div>
-
                             <div class="form-group">
                                 <label for="rightSensorNumber">Номер датчика:</label>
-                                <input type="text" id="rightSensorNumber" name="rightSensorNumber"
-                                       placeholder="Номер правого датчика"
-                                       inputmode="decimal">
+                                <input type="text" id="rightSensorNumber" name="rightSensorNumber" placeholder="Номер правого датчика">
                             </div>
                         </div>
                     </div>
@@ -362,7 +297,6 @@
                     <!-- Измерительное оборудование -->
                     <div class="form-section" id="signalProcessingSection">
                         <h3>Измерительное оборудование</h3>
-
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="measuringDevice">Измерительный прибор:</label>
@@ -375,15 +309,11 @@
                                     <option value="Яшма">Яшма</option>
                                 </select>
                             </div>
-
                             <div class="form-group">
                                 <label for="measuringDeviceNumber">Номер прибора:</label>
-                                <input type="text" id="measuringDeviceNumber" name="measuringDeviceNumber"
-                                       placeholder="Номер измерительного прибора"
-                                       inputmode="decimal">
+                                <input type="text" id="measuringDeviceNumber" name="measuringDeviceNumber" placeholder="Номер измерительного прибора">
                             </div>
                         </div>
-
                         <div id="signalProcessorSection">
                             <div class="form-row">
                                 <div class="form-group">
@@ -396,12 +326,9 @@
                                         <option value="Нет">Нет</option>
                                     </select>
                                 </div>
-
                                 <div class="form-group">
                                     <label for="signalProcessorNumber">Номер блока:</label>
-                                    <input type="text" id="signalProcessorNumber" name="signalProcessorNumber"
-                                           placeholder="Номер блока обработки"
-                                           inputmode="decimal">
+                                    <input type="text" id="signalProcessorNumber" name="signalProcessorNumber" placeholder="Номер блока обработки">
                                 </div>
                             </div>
                         </div>
@@ -410,32 +337,26 @@
                     <!-- Фотографии -->
                     <div class="form-section">
                         <h3>Фотографии оборудования</h3>
-
                         <div class="form-group">
-                            <label for="images" >Выберите фотографии:</label>
-                            <input type="file" id="images" name="images" multiple
-                                   accept="image/*" class="file-input" >
+                            <label for="images">Выберите фотографии:</label>
+                            <input type="file" id="images" name="images" multiple accept="image/*" class="file-input">
                             <small>Поддерживаемые форматы: PNG, JPG, JPEG, GIF, BMP</small>
                         </div>
-
                         <div id="imagePreview" class="image-preview"></div>
                     </div>
 
                     <!-- Дополнительная информация -->
                     <div class="form-section">
                         <h3>Дополнительная информация</h3>
-
                         <div class="form-group">
                             <label for="notes">Примечания:</label>
-                            <textarea id="notes" name="notes" rows="3"
-                                      placeholder="Дополнительная информация о оборудовании"></textarea>
+                            <textarea id="notes" name="notes" rows="3" placeholder="Дополнительная информация о оборудовании"></textarea>
                         </div>
                     </div>
 
                     <!-- Статус станка -->
                     <div class="form-section">
                         <h3>Статус станка</h3>
-
                         <div class="form-group">
                             <label for="machineStatus" class="required">Текущий статус:</label>
                             <select id="machineStatus" name="machineStatus" required>
@@ -451,45 +372,41 @@
                             <small>Станки со статусом "Отгружен" автоматически перемещаются в архив</small>
                         </div>
                     </div>
-                    <!-- Вставьте этот блок после поля "Статус станка" -->
 
                     <!-- Дата отгрузки -->
                     <div class="form-section">
                         <h3>Дата отгрузки</h3>
-
                         <div class="form-group">
                             <label for="shippingDate">Планируемая дата отгрузки:</label>
-                            <input type="date" id="shippingDate" name="shippingDate"
-                                   placeholder="Выберите дату"
-                                   class="date-input">
+                            <input type="date" id="shippingDate" name="shippingDate" class="date-input">
                             <small>Укажите планируемую дату отгрузки оборудования</small>
                         </div>
                     </div>
-                    </form>
-                    
-                    <div id="statusMessage" class="status-message"></div>
-                    </div>
-                    
-                    <footer>
-                        <p>Система учета оборудования станков</p>
-                    </footer>
-                    </div>
-                    </div>
-                    
-                    <!-- Модальное окно для изображений -->
-                    <div id="imageModal" class="modal">
-                        <span class="close">&times;</span>
-                        <img class="modal-content" id="modalImage">
-                        <div class="modal-caption">
-                            <span id="modalCaption"></span>
-                            <div class="modal-nav">
-                                <button id="prevBtn" class="nav-btn">❮</button>
-                                <span id="imageCounter"></span>
-                                <button id="nextBtn" class="nav-btn">❯</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <script src="/static/script.js"></script>
-                    </body>
-                    </html>
+                </form>
+
+                <div id="statusMessage" class="status-message"></div>
+            </div>
+
+            <footer>
+                <p>Система учета оборудования станков 2026</p>
+            </footer>
+        </div>
+    </div>
+
+    <!-- Модальное окно для изображений -->
+    <div id="imageModal" class="modal">
+        <span class="close">&times;</span>
+        <img class="modal-content" id="modalImage">
+        <div class="modal-caption">
+            <span id="modalCaption"></span>
+            <div class="modal-nav">
+                <button id="prevBtn" class="nav-btn">❮</button>
+                <span id="imageCounter"></span>
+                <button id="nextBtn" class="nav-btn">❯</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
