@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Балансировка ротора - Метод трех пусков</title>
+    <title>Балансировка ротора - Векторный метод (с фазометром)</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,13 +13,14 @@
     <div class="container">
         <div class="main-container">
             <header>
-                <h1>⚖️ Балансировка ротора</h1>
-                <p class="subtitle">Метод трех пусков без фазоизмерительной аппаратуры</p>
+                <h1>📐 Балансировка ротора</h1>
+                <p class="subtitle">Векторный метод с фазоизмерительной аппаратурой</p>
             </header>
 
             <div class="menu">
                 <a href="/" class="back-button">🏠 Главная</a>
                 <a href="/add-draft" class="back-button">+ Станок</a>
+                <a href="/static/three_run_balancing.html" class="back-button">⚖️ Метод трех пусков</a>
                 <a href="/static/history.html" class="back-button">📜 История</a>
                 <a href="/static/shipped.html" class="back-button">🚚 Отгруженные</a>
             </div>
@@ -31,35 +32,54 @@
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="V0" class="required">Исходная вибрация V₀ (мкм)</label>
+                            <label for="V0" class="required">Исходная амплитуда V₀ (мкм)</label>
                             <input type="number" id="V0" step="0.1" placeholder="Например: 2.0">
                             <small>Амплитуда вибрации до установки пробного груза</small>
                         </div>
                         <div class="form-group">
-                            <label for="P" class="required">Масса пробного груза (г)</label>
-                            <input type="number" id="P" step="0.1" placeholder="Например: 1.0">
-                            <small>Масса пробного груза в граммах</small>
+                            <label for="phi0" class="required">Исходная фаза φ₀ (°)</label>
+                            <input type="number" id="phi0" step="0.1" placeholder="Например: 45.0">
+                            <small>Фаза вибрации до установки пробного груза</small>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="V1" class="required">Вибрация с грузом на 0° V₁ (мкм)</label>
-                            <input type="number" id="V1" step="0.1" placeholder="Например: 3.5">
-                            <small>Амплитуда вибрации с грузом на угле 0°</small>
+                            <label for="Vt" class="required">Амплитуда с пробным грузом Vₜ (мкм)</label>
+                            <input type="number" id="Vt" step="0.1" placeholder="Например: 3.5">
+                            <small>Амплитуда вибрации после установки пробного груза</small>
                         </div>
                         <div class="form-group">
-                            <label for="V2" class="required">Вибрация с грузом на 120° V₂ (мкм)</label>
-                            <input type="number" id="V2" step="0.1" placeholder="Например: 4.2">
-                            <small>Амплитуда вибрации с грузом на угле 120°</small>
+                            <label for="phi_t" class="required">Фаза с пробным грузом φₜ (°)</label>
+                            <input type="number" id="phi_t" step="0.1" placeholder="Например: 95.0">
+                            <small>Фаза вибрации после установки пробного груза</small>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="P" class="required">Масса пробного груза (г)</label>
+                            <input type="number" id="P" step="0.1" placeholder="Например: 1.0">
+                            <small>Масса пробного груза в граммах</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Погрешности измерений</label>
+                            <div class="d-flex gap-10">
+                                <input type="number" id="ampUncertainty" step="0.1" placeholder="Амплитуда ± (мкм)" value="0.1">
+                                <input type="number" id="phaseUncertainty" step="0.5" placeholder="Фаза ± (°)" value="2.0">
+                            </div>
+                            <small>Погрешности для Монте-Карло анализа</small>
                         </div>
                     </div>
                 </div>
 
-                <!-- Кнопка расчета -->
-                <div style="display: flex; justify-content: center; margin: 20px 0;">
+                <!-- Кнопки управления -->
+                <div style="display: flex; justify-content: center; gap: 15px; margin: 20px 0;">
                     <button type="button" id="calculateBtn" class="back-button" style="background: var(--primary); color: white; border-color: var(--primary);">
                         🎯 Рассчитать корректирующий груз
+                    </button>
+                    <button type="button" id="monteCarloBtn" class="back-button">
+                        📊 Монте-Карло анализ
                     </button>
                 </div>
 
@@ -90,6 +110,14 @@
                             <div class="info-value-minimal" id="Wangle">-</div>
                         </div>
                         <div class="info-card-minimal">
+                            <div class="info-card-title-minimal">🎯 Удельное влияние K</div>
+                            <div class="info-value-minimal" id="Kvalue">-</div>
+                        </div>
+                        <div class="info-card-minimal">
+                            <div class="info-card-title-minimal">📐 Фаза K</div>
+                            <div class="info-value-minimal" id="Kangle">-</div>
+                        </div>
+                        <div class="info-card-minimal">
                             <div class="info-card-title-minimal">🎯 Остаточная вибрация</div>
                             <div class="info-value-minimal" id="residualVibration">-</div>
                         </div>
@@ -112,16 +140,24 @@
                     </div>
                 </div>
 
+                <!-- Монте-Карло результаты -->
+                <div class="form-section" id="monteCarloSection" style="display: none;">
+                    <h3>📊 Монте-Карло анализ</h3>
+                    <div id="monteCarloResults" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px;">
+                        <!-- Результаты будут вставлены сюда -->
+                    </div>
+                </div>
+
                 <!-- Сообщения -->
                 <div id="statusMessage" class="status-message hidden"></div>
             </div>
 
             <footer>
-                <p>Метод трех пусков | Балансировка роторов без фазометра</p>
+                <p>Векторный метод балансировки | С использованием фазоизмерительной аппаратуры</p>
             </footer>
         </div>
     </div>
 
-    <script src="/static/three_run_balancing.js"></script>
+    <script src="/static/vector_balancing.js"></script>
 </body>
 </html>

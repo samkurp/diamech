@@ -116,6 +116,7 @@ h1 {
 }
 
 .back-button {
+    text-align: center;
     padding: 10px 20px;
     background: var(--white);
     color: var(--text-primary);
@@ -125,7 +126,6 @@ h1 {
     font-size: 0.9rem;
     transition: var(--transition);
     border: 1px solid var(--border);
-    display: flex;
     align-items: center;
     gap: 8px;
     box-shadow: var(--shadow-sm);
@@ -1932,6 +1932,7 @@ small {
     .form-row,
     .customer-form-grid {
         grid-template-columns: 1fr;
+        gap: 0;
     }
 
     .menu {
@@ -2023,6 +2024,7 @@ small {
     }
 
     .back-button {
+        max-width: 200px;
         font-size: 0.85rem;
         padding: 8px 12px;
     }

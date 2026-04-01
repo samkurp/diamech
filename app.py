@@ -1223,7 +1223,6 @@ class SupabaseDB:
 # ========== API ЭНДПОИНТЫ ==========
 
 # ========== БАЛАНСИРОВКА МЕТОДОМ ТРЕХ ПУСКОВ ==========
-
 @app.route('/api/balancing/calculate', methods=['POST'])
 def calculate_balancing():
     """
@@ -1371,6 +1370,139 @@ def calculate_balancing():
             'success': False,
             'error': str(e)
         }), 500
+
+
+# ========== БАЛАНСИРОВКА ВЕКТОРНЫМ МЕТОДОМ ==========
+
+@app.route('/api/balancing/vector', methods=['POST'])
+def calculate_vector_balancing():
+    """
+    API для расчета балансировки векторным методом (с фазоизмерительной аппаратурой)
+    """
+    try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({
+                'success': False,
+                'error': 'Нет данных для расчета'
+            }), 400
+
+        # Получаем входные параметры
+        V0 = data.get('V0')  # исходная амплитуда вибрации (мкм)
+        phi0 = data.get('phi0')  # исходная фаза вибрации (градусы)
+        Vt = data.get('Vt')  # амплитуда вибрации с пробным грузом (мкм)
+        phi_t = data.get('phi_t')  # фаза вибрации с пробным грузом (градусы)
+        P = data.get('P')  # масса пробного груза (г)
+
+        # Валидация
+        required_fields = ['V0', 'phi0', 'Vt', 'phi_t', 'P']
+        for field in required_fields:
+            if data.get(field) is None:
+                return jsonify({
+                    'success': False,
+                    'error': f'Поле {field} обязательно для заполнения'
+                }), 400
+
+        try:
+            V0 = float(V0)
+            phi0 = float(phi0)
+            Vt = float(Vt)
+            phi_t = float(phi_t)
+            P = float(P)
+        except ValueError:
+            return jsonify({
+                'success': False,
+                'error': 'Все значения должны быть числами'
+            }), 400
+
+        if V0 <= 0 or Vt <= 0 or P <= 0:
+            return jsonify({
+                'success': False,
+                'error': 'Амплитуды и масса должны быть положительными числами'
+            }), 400
+
+        import math
+
+        def to_radians(degrees):
+            return degrees * math.pi / 180.0
+
+        def to_degrees(radians):
+            return radians * 180.0 / math.pi
+
+        print(f"\n=== Расчет векторным методом ===")
+        print(f"V0={V0} мкм, φ0={phi0}°")
+        print(f"Vt={Vt} мкм, φt={phi_t}°")
+        print(f"P={P} г")
+
+        # Шаг 1: Представляем векторы в комплексной форме
+        # Вектор исходной вибрации
+        V0_complex = V0 * (math.cos(to_radians(phi0)) + 1j * math.sin(to_radians(phi0)))
+
+        # Вектор вибрации с пробным грузом
+        Vt_complex = Vt * (math.cos(to_radians(phi_t)) + 1j * math.sin(to_radians(phi_t)))
+
+        # Шаг 2: Находим вектор влияния пробного груза W
+        # W = Vt - V0 (векторная разность)
+        W_complex = Vt_complex - V0_complex
+        W_magnitude = abs(W_complex)
+        W_angle = to_degrees(math.atan2(W_complex.imag, W_complex.real))
+        # Нормализуем угол
+        if W_angle < 0:
+            W_angle += 360
+
+        print(f"W = {W_magnitude:.3f} мкм @ {W_angle:.1f}°")
+
+        # Шаг 3: Вычисляем удельное влияние пробного груза
+        # K = W / P (вектор удельного влияния)
+        K_complex = W_complex / P
+        K_magnitude = abs(K_complex)
+        K_angle = to_degrees(math.atan2(K_complex.imag, K_complex.real))
+        if K_angle < 0:
+            K_angle += 360
+
+        print(f"K = {K_magnitude:.3f} мкм/г @ {K_angle:.1f}°")
+
+        # Шаг 4: Расчет корректирующего груза
+        # Корректирующий груз должен создать вектор, равный по величине V0, но противоположный по направлению
+        # G = -V0 / K
+        G_complex = -V0_complex / K_complex
+        correction_mass = abs(G_complex)
+        correction_angle = to_degrees(math.atan2(G_complex.imag, G_complex.real))
+        if correction_angle < 0:
+            correction_angle += 360
+
+        print(f"Корректирующий груз: {correction_mass:.3f} г @ {correction_angle:.1f}°")
+
+        # Шаг 5: Расчет остаточной вибрации после установки корректирующего груза
+        residual_complex = V0_complex + K_complex * correction_mass * (
+                    math.cos(to_radians(correction_angle)) + 1j * math.sin(to_radians(correction_angle)))
+        residual = abs(residual_complex)
+
+        print(f"Остаточная вибрация: {residual:.2f} мкм")
+        print("========================\n")
+
+        return jsonify({
+            'success': True,
+            'result': {
+                'correction_mass': round(correction_mass, 3),
+                'correction_angle': round(correction_angle, 1),
+                'W_magnitude': round(W_magnitude, 3),
+                'W_angle': round(W_angle, 1),
+                'K_magnitude': round(K_magnitude, 3),
+                'K_angle': round(K_angle, 1),
+                'residual': round(residual, 2)
+            }
+        })
+
+    except Exception as e:
+        print(f"❌ Ошибка векторного расчета балансировки: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 
 @app.route('/api/drafts/<draft_id>/request-text', methods=['GET'])
 def get_request_text(draft_id):

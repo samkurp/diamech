@@ -159,7 +159,7 @@ function showEmptyState(icon, title, message) {
             <h3>${title}</h3>
             <p>${message}</p>
             <a href="/add-draft" class="action-btn" style="max-width: 200px; margin-top: 15px;">
-                + Добавить станок
+                + Станок
             </a>
         </div>
     `;
