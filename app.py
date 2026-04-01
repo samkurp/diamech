@@ -1222,11 +1222,11 @@ class SupabaseDB:
 
 # ========== API ЭНДПОИНТЫ ==========
 
-# ========== БАЛАНСИРОВКА МЕТОДОМ ТРЕХ ПУСКОВ ==========
 @app.route('/api/balancing/calculate', methods=['POST'])
 def calculate_balancing():
     """
     API для расчета балансировки методом трех пусков
+    Возвращает только корректирующий груз и угол установки
     """
     try:
         data = request.get_json()
@@ -1241,19 +1241,23 @@ def calculate_balancing():
         V0 = data.get('V0')
         V1 = data.get('V1')
         V2 = data.get('V2')
+        V3 = data.get('V3')
         P = data.get('P')
 
         # Валидация
-        if not all([V0, V1, V2, P]):
-            return jsonify({
-                'success': False,
-                'error': 'Все поля (V0, V1, V2, P) обязательны для заполнения'
-            }), 400
+        required_fields = ['V0', 'V1', 'V2', 'V3', 'P']
+        for field in required_fields:
+            if data.get(field) is None:
+                return jsonify({
+                    'success': False,
+                    'error': f'Поле {field} обязательно для заполнения'
+                }), 400
 
         try:
             V0 = float(V0)
             V1 = float(V1)
             V2 = float(V2)
+            V3 = float(V3)
             P = float(P)
         except ValueError:
             return jsonify({
@@ -1261,105 +1265,49 @@ def calculate_balancing():
                 'error': 'Все значения должны быть числами'
             }), 400
 
-        if V0 <= 0 or V1 <= 0 or V2 <= 0 or P <= 0:
+        if V0 <= 0 or V1 <= 0 or V2 <= 0 or V3 <= 0 or P <= 0:
             return jsonify({
                 'success': False,
                 'error': 'Все значения должны быть положительными числами'
             }), 400
 
-        # Выполняем расчет методом трех пусков
         import math
 
-        def to_radians(degrees):
-            return degrees * math.pi / 180.0
+        # Преобразование амплитуд в квадраты для расчетов
+        V0_2 = V0 ** 2
+        V1_2 = V1 ** 2
+        V2_2 = V2 ** 2
+        V3_2 = V3 ** 2
 
-        def to_degrees(radians):
-            return radians * 180.0 / math.pi
+        # Расчет по методу трех пусков
+        # Формулы для нахождения вектора дисбаланса
+        cos_phi = (V1_2 - V0_2 - V2_2) / (2 * V0 * V2) if (2 * V0 * V2) != 0 else 0
 
-        print(f"\n=== Расчет балансировки ===")
-        print(f"V0={V0}, V1={V1}, V2={V2}, P={P}")
+        # Ограничиваем значение в пределах [-1, 1] для arccos
+        cos_phi = max(-1, min(1, cos_phi))
+        phi = math.acos(cos_phi)
 
-        # Шаг 1: Находим величину вектора влияния W
-        # По теореме косинусов для треугольника V1 и V2 с углом 120°
-        # delta = |V1 - V2|
-        delta_sq = V1 * V1 + V2 * V2 - 2 * V1 * V2 * math.cos(to_radians(120))
-        delta = math.sqrt(max(0, delta_sq))
+        # Расчет угла дисбаланса
+        # По значениям V1, V2, V3 определяем квадрант
+        # Упрощенный расчет для метода трех пусков
+        # Находим минимальную вибрацию
+        vib_values = [V1, V2, V3]
+        min_index = vib_values.index(min(vib_values))
 
-        print(f"delta = {delta:.3f}")
+        # Определяем угол корректирующего груза
+        angles = [0, 120, 240]
+        correction_angle = angles[min_index]
 
-        # W = delta / (2 * sin(60°))
-        W_magnitude = delta / (2 * math.sin(to_radians(60)))
-
-        print(f"W_magnitude = {W_magnitude:.3f}")
-
-        # Шаг 2: Находим угол между V0 и W
-        # По теореме косинусов из треугольника V0, W, V1
-        # V1² = V0² + W² + 2*V0*W*cos(α)
-        # cos(α) = (V1² - V0² - W²) / (2 * V0 * W)
-        cos_angle_v0_w = (V1 * V1 - V0 * V0 - W_magnitude * W_magnitude) / (2 * V0 * W_magnitude)
-        cos_angle_v0_w = max(-1, min(1, cos_angle_v0_w))
-        angle_v0_w = to_degrees(math.acos(cos_angle_v0_w))
-
-        print(f"angle_v0_w = {angle_v0_w:.1f}°")
-
-        # Шаг 3: Находим угол между V0 и V1
-        # V1² = V0² + W² + 2*V0*W*cos(β)
-        # cos(β) = (V1² - V0² - W²) / (2 * V0 * W)
-        # β = arccos(cos_angle_v0_w)
-        # Это тот же угол, что и angle_v0_w
-
-        # Шаг 4: Определяем фазу вектора W
-        # Используем V2 для определения знака
-        # Вычисляем теоретическое значение V2 для проверки
-        angle_120 = to_radians(120)
-
-        # Вычисляем угол между V0 и V2
-        # V2² = V0² + W² + 2*V0*W*cos(γ)
-        cos_angle_v0_v2 = (V2 * V2 - V0 * V0 - W_magnitude * W_magnitude) / (2 * V0 * W_magnitude)
-        cos_angle_v0_v2 = max(-1, min(1, cos_angle_v0_v2))
-        angle_v0_v2 = to_degrees(math.acos(cos_angle_v0_v2))
-
-        print(f"angle_v0_v2 = {angle_v0_v2:.1f}°")
-
-        # Определяем знак угла W
-        # Если V2 > V1, то W находится в положительной области
-        # Используем эмпирическое правило
-        if V2 > V1:
-            W_angle = angle_v0_w
-        else:
-            W_angle = 360 - angle_v0_w
-
-        print(f"W_angle = {W_angle:.1f}°")
-
-        # Шаг 5: Расчет корректирующего груза
-        correction_mass = P * (V0 / W_magnitude)
-
-        # Шаг 6: Определение угла установки корректирующего груза
-        # Корректирующий груз устанавливается в противофазе к дисбалансу
-        # Угол корректирующего груза = угол W + 180° (противоположное направление)
-        correction_angle = W_angle + 180
-        correction_angle = correction_angle % 360
-        if correction_angle < 0:
-            correction_angle += 360
-
-        print(f"correction_mass = {correction_mass:.3f} г")
-        print(f"correction_angle = {correction_angle:.1f}°")
-
-        # Шаг 7: Расчет остаточной вибрации
-        correction_effect = (correction_mass / P) * W_magnitude
-        residual = abs(V0 - correction_effect)
-
-        print(f"residual = {residual:.2f} мкм")
-        print("========================\n")
+        # Расчет массы корректирующего груза
+        # K = P * V0 / V_min
+        V_min = min(vib_values)
+        correction_mass = P * V0 / V_min if V_min > 0 else P
 
         return jsonify({
             'success': True,
             'result': {
                 'correction_mass': round(correction_mass, 3),
-                'correction_angle': round(correction_angle, 1),
-                'W_magnitude': round(W_magnitude, 3),
-                'W_angle': round(W_angle, 1),
-                'residual': round(residual, 2)
+                'correction_angle': round(correction_angle, 1)
             }
         })
 
@@ -1372,12 +1320,82 @@ def calculate_balancing():
         }), 500
 
 
+def estimate_W_magnitude_simple(V0, V1, V2, V3):
+    """Упрощенная оценка величины вектора влияния с использованием трех замеров"""
+    import math
+
+    def to_radians(degrees):
+        return degrees * math.pi / 180.0
+
+    # Используем усреднение по трем парам
+    # Для пары 0° и 120°
+    delta12 = math.sqrt(V1 ** 2 + V2 ** 2 - 2 * V1 * V2 * math.cos(to_radians(120)))
+    W1 = delta12 / (2 * math.sin(to_radians(60)))
+
+    # Для пары 120° и 240°
+    delta23 = math.sqrt(V2 ** 2 + V3 ** 2 - 2 * V2 * V3 * math.cos(to_radians(120)))
+    W2 = delta23 / (2 * math.sin(to_radians(60)))
+
+    # Для пары 240° и 0°
+    delta31 = math.sqrt(V3 ** 2 + V1 ** 2 - 2 * V3 * V1 * math.cos(to_radians(120)))
+    W3 = delta31 / (2 * math.sin(to_radians(60)))
+
+    # Усредняем
+    W_magnitude = (W1 + W2 + W3) / 3
+
+    return W_magnitude
+
+
+def estimate_W_angle_simple(V0, V1, V2, V3, W_magnitude):
+    """Упрощенная оценка угла вектора влияния"""
+    import math
+
+    def to_radians(degrees):
+        return degrees * math.pi / 180.0
+
+    def to_degrees(radians):
+        return radians * 180.0 / math.pi
+
+    # Вычисляем углы между V0 и каждым измерением
+    angles = []
+
+    # Для V1 (0°)
+    cos_angle1 = (V0 ** 2 + W_magnitude ** 2 - V1 ** 2) / (2 * V0 * W_magnitude) if V0 > 0 and W_magnitude > 0 else 0
+    cos_angle1 = max(-1, min(1, cos_angle1))
+    angle1 = to_degrees(math.acos(cos_angle1))
+    angles.append(angle1)
+
+    # Для V2 (120°)
+    cos_angle2 = (V0 ** 2 + W_magnitude ** 2 - V2 ** 2) / (2 * V0 * W_magnitude) if V0 > 0 and W_magnitude > 0 else 0
+    cos_angle2 = max(-1, min(1, cos_angle2))
+    angle2 = to_degrees(math.acos(cos_angle2))
+    angles.append(angle2)
+
+    # Для V3 (240°)
+    cos_angle3 = (V0 ** 2 + W_magnitude ** 2 - V3 ** 2) / (2 * V0 * W_magnitude) if V0 > 0 and W_magnitude > 0 else 0
+    cos_angle3 = max(-1, min(1, cos_angle3))
+    angle3 = to_degrees(math.acos(cos_angle3))
+    angles.append(angle3)
+
+    # Усредняем
+    avg_angle = sum(angles) / 3
+
+    # Определяем знак на основе сравнения амплитуд
+    if V3 > V1:
+        return avg_angle
+    else:
+        return -avg_angle
+
+
+
+
 # ========== БАЛАНСИРОВКА ВЕКТОРНЫМ МЕТОДОМ ==========
 
 @app.route('/api/balancing/vector', methods=['POST'])
 def calculate_vector_balancing():
     """
     API для расчета балансировки векторным методом (с фазоизмерительной аппаратурой)
+    Возвращает только корректирующий груз и угол установки
     """
     try:
         data = request.get_json()
@@ -1445,23 +1463,10 @@ def calculate_vector_balancing():
         # Шаг 2: Находим вектор влияния пробного груза W
         # W = Vt - V0 (векторная разность)
         W_complex = Vt_complex - V0_complex
-        W_magnitude = abs(W_complex)
-        W_angle = to_degrees(math.atan2(W_complex.imag, W_complex.real))
-        # Нормализуем угол
-        if W_angle < 0:
-            W_angle += 360
-
-        print(f"W = {W_magnitude:.3f} мкм @ {W_angle:.1f}°")
 
         # Шаг 3: Вычисляем удельное влияние пробного груза
         # K = W / P (вектор удельного влияния)
         K_complex = W_complex / P
-        K_magnitude = abs(K_complex)
-        K_angle = to_degrees(math.atan2(K_complex.imag, K_complex.real))
-        if K_angle < 0:
-            K_angle += 360
-
-        print(f"K = {K_magnitude:.3f} мкм/г @ {K_angle:.1f}°")
 
         # Шаг 4: Расчет корректирующего груза
         # Корректирующий груз должен создать вектор, равный по величине V0, но противоположный по направлению
@@ -1473,25 +1478,14 @@ def calculate_vector_balancing():
             correction_angle += 360
 
         print(f"Корректирующий груз: {correction_mass:.3f} г @ {correction_angle:.1f}°")
-
-        # Шаг 5: Расчет остаточной вибрации после установки корректирующего груза
-        residual_complex = V0_complex + K_complex * correction_mass * (
-                    math.cos(to_radians(correction_angle)) + 1j * math.sin(to_radians(correction_angle)))
-        residual = abs(residual_complex)
-
-        print(f"Остаточная вибрация: {residual:.2f} мкм")
         print("========================\n")
 
+        # Возвращаем только массу и угол (угол округляем до целого)
         return jsonify({
             'success': True,
             'result': {
                 'correction_mass': round(correction_mass, 3),
-                'correction_angle': round(correction_angle, 1),
-                'W_magnitude': round(W_magnitude, 3),
-                'W_angle': round(W_angle, 1),
-                'K_magnitude': round(K_magnitude, 3),
-                'K_angle': round(K_angle, 1),
-                'residual': round(residual, 2)
+                'correction_angle': round(correction_angle)  # Округляем до целого
             }
         })
 

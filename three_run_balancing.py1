@@ -1,0 +1,566 @@
+import math
+import numpy as np
+from typing import Tuple, Dict, List, Optional
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle, Arc
+
+
+class ThreeRunBalancing:
+    """
+    Метод трех пусков для балансировки роторов
+    С замерами на углах 0°, 120°, 240°
+    Без использования фазоизмерительной аппаратуры
+    """
+
+    def __init__(self):
+        self.debug = False
+        self.angles = [0, 120, 240]  # Углы установки пробного груза в градусах
+
+    def to_radians(self, degrees):
+        """Перевод градусов в радианы"""
+        return degrees * math.pi / 180.0
+
+    def to_degrees(self, radians):
+        """Перевод радиан в градусы"""
+        return radians * 180.0 / math.pi
+
+    def law_of_cosines(self, a, b, c):
+        """
+        Нахождение угла по теореме косинусов
+        a, b, c - стороны треугольника
+        Возвращает угол напротив стороны a
+        """
+        try:
+            cos_angle = (b ** 2 + c ** 2 - a ** 2) / (2 * b * c)
+            # Ограничиваем значение в пределах [-1, 1]
+            cos_angle = max(-1, min(1, cos_angle))
+            return math.acos(cos_angle)
+        except:
+            return math.pi / 2
+
+    def calculate_from_amplitudes(self, V0: float, V1: float, V2: float,
+                                  V3: float, P: float) -> Tuple[float, float, Dict]:
+        """
+        Основной расчет методом трех пусков с тремя замерами
+
+        Параметры:
+        V0 - амплитуда исходной вибрации (мкм)
+        V1 - амплитуда вибрации с грузом P на угле 0°
+        V2 - амплитуда вибрации с грузом P на угле 120°
+        V3 - амплитуда вибрации с грузом P на угле 240°
+        P - масса пробного груза (г)
+
+        Возвращает:
+        (correction_mass, correction_angle, stats) - масса (г), угол (°) и статистика
+        """
+
+        print("\n" + "=" * 60)
+        print("МЕТОД ТРЕХ ПУСКОВ - БАЛАНСИРОВКА БЕЗ ФАЗОМЕТРА")
+        print("Замеры на углах: 0°, 120°, 240°")
+        print("=" * 60)
+        print(f"\nИсходные данные:")
+        print(f"  V0 = {V0:.2f} мкм (исходная вибрация)")
+        print(f"  V1 = {V1:.2f} мкм (груз {P:.2f} г @ 0°)")
+        print(f"  V2 = {V2:.2f} мкм (груз {P:.2f} г @ 120°)")
+        print(f"  V3 = {V3:.2f} мкм (груз {P:.2f} г @ 240°)")
+        print(f"  Пробный груз = {P:.2f} г")
+
+        # ========== РАСШИРЕННЫЙ МЕТОД С 3 ЗАМЕРАМИ ==========
+
+        # Углы установки пробного груза в радианах
+        angles_rad = [self.to_radians(a) for a in self.angles]
+        amplitudes = [V1, V2, V3]
+
+        # Шаг 1: Находим вектор влияния W методом наименьших квадратов
+        # Уравнение: V_i = V0 + W * cos(θ_i - φ)
+        # Перепишем как: V_i = V0 + Wx*cos(θ_i) + Wy*sin(θ_i)
+
+        # Строим матрицу системы A * x = b
+        # где x = [V0_calc, Wx, Wy]
+        A = []
+        b = []
+
+        for i, theta in enumerate(angles_rad):
+            A.append([1, math.cos(theta), math.sin(theta)])
+            b.append(amplitudes[i])
+
+        A = np.array(A)
+        b = np.array(b)
+
+        # Решаем систему методом наименьших квадратов
+        try:
+            x, residuals, rank, s = np.linalg.lstsq(A, b, rcond=None)
+
+            V0_calc = x[0]
+            Wx = x[1]
+            Wy = x[2]
+
+            # Проверяем сходимость
+            V0_error = abs(V0_calc - V0) / V0 * 100 if V0 > 0 else 0
+
+            print(f"\n--- Результат аппроксимации МНК ---")
+            print(f"  Расчетное V0: {V0_calc:.3f} мкм")
+            print(f"  Исходное V0: {V0:.3f} мкм")
+            print(f"  Отклонение: {V0_error:.1f}%")
+
+            # Вектор влияния
+            W_magnitude = math.sqrt(Wx ** 2 + Wy ** 2)
+            W_angle = self.to_degrees(math.atan2(Wy, Wx))
+            if W_angle < 0:
+                W_angle += 360
+
+            # Вычисляем предсказанные значения для проверки
+            predicted = []
+            for theta in angles_rad:
+                pred = V0_calc + W_magnitude * math.cos(theta - self.to_radians(W_angle))
+                predicted.append(pred)
+
+            # Вычисляем ошибки предсказания
+            prediction_errors = []
+            for i in range(len(amplitudes)):
+                if amplitudes[i] > 0:
+                    error = abs(predicted[i] - amplitudes[i]) / amplitudes[i] * 100
+                    prediction_errors.append(error)
+
+            avg_prediction_error = np.mean(prediction_errors) if prediction_errors else 0
+
+            print(f"\n--- Вектор влияния пробного груза ---")
+            print(f"  Модуль W: {W_magnitude:.3f} мкм")
+            print(f"  Фаза W: {W_angle:.1f}°")
+            print(f"  Средняя ошибка предсказания: {avg_prediction_error:.1f}%")
+
+        except Exception as e:
+            print(f"⚠️ МНК не удался: {e}")
+            print("  Используем упрощенный метод усреднения...")
+
+            # Fallback к упрощенному методу
+            W_magnitude, W_angle, V0_calc, avg_prediction_error = self._simplified_method(
+                V0, V1, V2, V3
+            )
+            V0_error = abs(V0_calc - V0) / V0 * 100 if V0 > 0 else 0
+
+        # Шаг 2: Расчет корректирующего груза
+        correction_mass = P * (V0_calc / W_magnitude)
+
+        # Шаг 3: Определение угла установки корректирующего груза
+        # Корректирующий груз устанавливается в противофазе к дисбалансу
+        correction_angle = (W_angle + 180) % 360
+
+        print(f"\n--- Результат ---")
+        print(f"  Корректирующий груз: {correction_mass:.3f} г")
+        print(f"  Угол установки: {correction_angle:.1f}°")
+
+        # Шаг 4: Расчет остаточной вибрации
+        correction_effect = (correction_mass / P) * W_magnitude
+        residual = abs(V0_calc - correction_effect)
+
+        # Шаг 5: Оценка качества балансировки
+        quality_factor = (1 - residual / V0_calc) * 100 if V0_calc > 0 else 0
+        quality_factor = max(0, min(100, quality_factor))
+
+        # Шаг 6: Оценка достоверности расчета
+        confidence = max(0, min(100, 100 - avg_prediction_error))
+
+        print(f"  Ожидаемая остаточная вибрация: {residual:.2f} мкм")
+        print(f"  Качество балансировки: {quality_factor:.1f}%")
+        print(f"  Достоверность расчета: {confidence:.1f}%")
+        print("=" * 60)
+
+        # Статистика для возврата
+        stats = {
+            'W_magnitude': W_magnitude,
+            'W_angle': W_angle,
+            'residual': residual,
+            'quality_factor': quality_factor,
+            'confidence': confidence,
+            'V0_calculated': V0_calc,
+            'V0_error': V0_error,
+            'prediction_error': avg_prediction_error
+        }
+
+        return correction_mass, correction_angle, stats
+
+    def _simplified_method(self, V0: float, V1: float, V2: float, V3: float) -> Tuple[float, float, float, float]:
+        """
+        Упрощенный метод расчета с усреднением по трем парам замеров
+        Возвращает (W_magnitude, W_angle, V0_avg, avg_error)
+        """
+        # Усредненная оценка W по трем парам
+        # Для пары 0° и 120°
+        delta12 = math.sqrt(V1 ** 2 + V2 ** 2 - 2 * V1 * V2 * math.cos(self.to_radians(120)))
+        W1 = delta12 / (2 * math.sin(self.to_radians(60)))
+
+        # Для пары 120° и 240°
+        delta23 = math.sqrt(V2 ** 2 + V3 ** 2 - 2 * V2 * V3 * math.cos(self.to_radians(120)))
+        W2 = delta23 / (2 * math.sin(self.to_radians(60)))
+
+        # Для пары 240° и 0°
+        delta31 = math.sqrt(V3 ** 2 + V1 ** 2 - 2 * V3 * V1 * math.cos(self.to_radians(120)))
+        W3 = delta31 / (2 * math.sin(self.to_radians(60)))
+
+        W_magnitude = (W1 + W2 + W3) / 3
+
+        # Оценка угла
+        angles = []
+
+        # Для V1 (0°)
+        cos_angle1 = (V0 ** 2 + W_magnitude ** 2 - V1 ** 2) / (
+                    2 * V0 * W_magnitude) if V0 > 0 and W_magnitude > 0 else 0
+        cos_angle1 = max(-1, min(1, cos_angle1))
+        angle1 = self.to_degrees(math.acos(cos_angle1))
+
+        # Для V2 (120°)
+        cos_angle2 = (V0 ** 2 + W_magnitude ** 2 - V2 ** 2) / (
+                    2 * V0 * W_magnitude) if V0 > 0 and W_magnitude > 0 else 0
+        cos_angle2 = max(-1, min(1, cos_angle2))
+        angle2 = self.to_degrees(math.acos(cos_angle2))
+
+        # Для V3 (240°)
+        cos_angle3 = (V0 ** 2 + W_magnitude ** 2 - V3 ** 2) / (
+                    2 * V0 * W_magnitude) if V0 > 0 and W_magnitude > 0 else 0
+        cos_angle3 = max(-1, min(1, cos_angle3))
+        angle3 = self.to_degrees(math.acos(cos_angle3))
+
+        # Усредняем углы
+        avg_angle = (angle1 + angle2 + angle3) / 3
+
+        # Определяем знак на основе сравнения амплитуд
+        if V3 > V1:
+            W_angle = avg_angle
+        else:
+            W_angle = -avg_angle
+
+        # Нормализуем угол
+        if W_angle < 0:
+            W_angle += 360
+
+        # Оценка V0_calc (усредненное)
+        V0_calc = V0  # Используем измеренное значение
+
+        # Оценка ошибки предсказания
+        predicted = []
+        for i, theta in enumerate(self.angles):
+            pred = V0_calc + W_magnitude * math.cos(self.to_radians(theta - W_angle))
+            predicted.append(pred)
+
+        amps = [V1, V2, V3]
+        errors = []
+        for i in range(len(amps)):
+            if amps[i] > 0:
+                error = abs(predicted[i] - amps[i]) / amps[i] * 100
+                errors.append(error)
+
+        avg_error = np.mean(errors) if errors else 0
+
+        return W_magnitude, W_angle, V0_calc, avg_error
+
+    def calculate_residual(self, V0, correction_mass, test_mass, W_magnitude):
+        """Расчет ожидаемой остаточной вибрации"""
+        correction_effect = (correction_mass / test_mass) * W_magnitude
+        residual = abs(V0 - correction_effect)
+        return residual
+
+    def graphical_method(self, V0, V1, V2, V3, P):
+        """
+        Графический метод для визуализации
+        Строит векторную диаграмму и находит корректирующий груз
+        """
+        correction_mass, correction_angle, stats = self.calculate_from_amplitudes(V0, V1, V2, V3, P)
+
+        fig, ax = plt.subplots(figsize=(12, 10))
+        ax.set_aspect('equal')
+        ax.grid(True, alpha=0.3)
+        ax.axhline(y=0, color='k', linestyle='-', alpha=0.3)
+        ax.axvline(x=0, color='k', linestyle='-', alpha=0.3)
+
+        W_magnitude = stats['W_magnitude']
+        W_angle = stats['W_angle']
+
+        # Строим вектор V0 (направляем по оси X)
+        V0_x = V0
+        V0_y = 0
+        ax.arrow(0, 0, V0_x, V0_y, head_width=V0 * 0.05, head_length=V0 * 0.1,
+                 fc='blue', ec='blue', linewidth=2, label=f'V0 = {V0:.1f} мкм')
+
+        # Строим вектор W
+        W_rad = self.to_radians(W_angle)
+        W_x = W_magnitude * math.cos(W_rad)
+        W_y = W_magnitude * math.sin(W_rad)
+        ax.arrow(0, 0, W_x, W_y, head_width=W_magnitude * 0.05, head_length=W_magnitude * 0.1,
+                 fc='red', ec='red', linewidth=2, label=f'W = {W_magnitude:.1f} мкм @ {W_angle:.1f}°')
+
+        # Строим вектор V1 = V0 + W
+        V1_x = V0_x + W_x
+        V1_y = V0_y + W_y
+        ax.arrow(0, 0, V1_x, V1_y, head_width=V1 * 0.05, head_length=V1 * 0.1,
+                 fc='green', ec='green', linewidth=2, label=f'V1 (0°) = {V1:.1f} мкм')
+
+        # Строим вектор V2 = V0 + W*e^(i*120°)
+        W2_rad = self.to_radians(W_angle + 120)
+        W2_x = W_magnitude * math.cos(W2_rad)
+        W2_y = W_magnitude * math.sin(W2_rad)
+        V2_x = V0_x + W2_x
+        V2_y = V0_y + W2_y
+        ax.arrow(0, 0, V2_x, V2_y, head_width=V2 * 0.05, head_length=V2 * 0.1,
+                 fc='orange', ec='orange', linewidth=2, label=f'V2 (120°) = {V2:.1f} мкм')
+
+        # Строим вектор V3 = V0 + W*e^(i*240°)
+        W3_rad = self.to_radians(W_angle + 240)
+        W3_x = W_magnitude * math.cos(W3_rad)
+        W3_y = W_magnitude * math.sin(W3_rad)
+        V3_x = V0_x + W3_x
+        V3_y = V0_y + W3_y
+        ax.arrow(0, 0, V3_x, V3_y, head_width=V3 * 0.05, head_length=V3 * 0.1,
+                 fc='purple', ec='purple', linewidth=2, label=f'V3 (240°) = {V3:.1f} мкм')
+
+        # Строим корректирующий вектор G (противоположный V0)
+        G_magnitude = correction_mass / P * W_magnitude
+        G_rad = self.to_radians(correction_angle)
+        G_x = G_magnitude * math.cos(G_rad)
+        G_y = G_magnitude * math.sin(G_rad)
+        ax.arrow(0, 0, G_x, G_y, head_width=G_magnitude * 0.05, head_length=G_magnitude * 0.1,
+                 fc='cyan', ec='cyan', linewidth=2, linestyle='--',
+                 label=f'Корректирующий: {correction_mass:.2f} г @ {correction_angle:.1f}°')
+
+        # Строим окружности для наглядности
+        circle0 = Circle((0, 0), V0, fill=False, linestyle='--', alpha=0.5, color='blue')
+        circle1 = Circle((0, 0), V1, fill=False, linestyle='--', alpha=0.5, color='green')
+        circle2 = Circle((0, 0), V2, fill=False, linestyle='--', alpha=0.5, color='orange')
+        circle3 = Circle((0, 0), V3, fill=False, linestyle='--', alpha=0.5, color='purple')
+        ax.add_patch(circle0)
+        ax.add_patch(circle1)
+        ax.add_patch(circle2)
+        ax.add_patch(circle3)
+
+        # Настройка графика
+        max_val = max(V0, V1, V2, V3, W_magnitude, G_magnitude) * 1.2
+        ax.set_xlim(-max_val, max_val)
+        ax.set_ylim(-max_val, max_val)
+        ax.set_xlabel('X, мкм')
+        ax.set_ylabel('Y, мкм')
+        ax.set_title('Векторная диаграмма - Метод трех пусков\n(замеры на 0°, 120°, 240°)')
+        ax.legend(loc='upper right', fontsize=8)
+        ax.grid(True, alpha=0.3)
+
+        # Добавляем текстовую информацию
+        textstr = f'Качество балансировки: {stats["quality_factor"]:.1f}%\nДостоверность: {stats["confidence"]:.1f}%'
+        props = dict(boxstyle='round', facecolor='wheat', alpha=0.8)
+        ax.text(0.02, 0.98, textstr, transform=ax.transAxes, fontsize=10,
+                verticalalignment='top', bbox=props)
+
+        plt.tight_layout()
+        plt.show()
+
+        return fig, ax
+
+
+class ThreeRunWithOptimization(ThreeRunBalancing):
+    """
+    Расширенная версия с оптимизацией и учетом погрешностей
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.measurement_uncertainty = 0.1  # Погрешность измерений в мкм
+
+    def monte_carlo_simulation(self, V0, V1, V2, V3, P, n_simulations=1000):
+        """
+        Монте-Карло симуляция для оценки точности
+        """
+        results_mass = []
+        results_angle = []
+        results_quality = []
+
+        for _ in range(n_simulations):
+            # Добавляем случайный шум к измерениям
+            V0_noise = max(0.01, V0 + np.random.normal(0, self.measurement_uncertainty))
+            V1_noise = max(0.01, V1 + np.random.normal(0, self.measurement_uncertainty))
+            V2_noise = max(0.01, V2 + np.random.normal(0, self.measurement_uncertainty))
+            V3_noise = max(0.01, V3 + np.random.normal(0, self.measurement_uncertainty))
+
+            try:
+                mass, angle, stats = self.calculate_from_amplitudes(
+                    V0_noise, V1_noise, V2_noise, V3_noise, P
+                )
+                results_mass.append(mass)
+                results_angle.append(angle)
+                results_quality.append(stats['quality_factor'])
+            except:
+                continue
+
+        # Статистический анализ
+        mass_mean = np.mean(results_mass)
+        mass_std = np.std(results_mass)
+        angle_mean = np.mean(results_angle)
+        angle_std = np.std(results_angle)
+        quality_mean = np.mean(results_quality)
+
+        print(f"\n--- Монте-Карло анализ ({n_simulations} симуляций) ---")
+        print(f"  Масса: {mass_mean:.3f} ± {mass_std:.3f} г")
+        print(f"  Угол: {angle_mean:.1f} ± {angle_std:.1f}°")
+        print(f"  Качество: {quality_mean:.1f}%")
+
+        # Доверительные интервалы
+        mass_ci_95 = [mass_mean - 1.96 * mass_std, mass_mean + 1.96 * mass_std]
+        angle_ci_95 = [angle_mean - 1.96 * angle_std, angle_mean + 1.96 * angle_std]
+
+        print(f"  Доверительный интервал 95% для массы: [{mass_ci_95[0]:.3f}, {mass_ci_95[1]:.3f}] г")
+        print(f"  Доверительный интервал 95% для угла: [{angle_ci_95[0]:.1f}, {angle_ci_95[1]:.1f}]°")
+
+        return {
+            'mass': {'mean': mass_mean, 'std': mass_std, 'ci_95': mass_ci_95},
+            'angle': {'mean': angle_mean, 'std': angle_std, 'ci_95': angle_ci_95},
+            'quality': {'mean': quality_mean}
+        }
+
+    def sensitivity_analysis(self, V0, V1, V2, V3, P):
+        """
+        Анализ чувствительности к погрешностям измерений
+        """
+        perturbations = [-0.2, -0.1, -0.05, 0, 0.05, 0.1, 0.2]
+        results = {
+            'V0': {'mass': [], 'angle': [], 'quality': []},
+            'V1': {'mass': [], 'angle': [], 'quality': []},
+            'V2': {'mass': [], 'angle': [], 'quality': []},
+            'V3': {'mass': [], 'angle': [], 'quality': []}
+        }
+
+        for pert in perturbations:
+            # Изменяем V0
+            V0_mod = max(0.01, V0 * (1 + pert))
+            mass, angle, stats = self.calculate_from_amplitudes(V0_mod, V1, V2, V3, P)
+            results['V0']['mass'].append(mass)
+            results['V0']['angle'].append(angle)
+            results['V0']['quality'].append(stats['quality_factor'])
+
+            # Изменяем V1
+            V1_mod = max(0.01, V1 * (1 + pert))
+            mass, angle, stats = self.calculate_from_amplitudes(V0, V1_mod, V2, V3, P)
+            results['V1']['mass'].append(mass)
+            results['V1']['angle'].append(angle)
+            results['V1']['quality'].append(stats['quality_factor'])
+
+            # Изменяем V2
+            V2_mod = max(0.01, V2 * (1 + pert))
+            mass, angle, stats = self.calculate_from_amplitudes(V0, V1, V2_mod, V3, P)
+            results['V2']['mass'].append(mass)
+            results['V2']['angle'].append(angle)
+            results['V2']['quality'].append(stats['quality_factor'])
+
+            # Изменяем V3
+            V3_mod = max(0.01, V3 * (1 + pert))
+            mass, angle, stats = self.calculate_from_amplitudes(V0, V1, V2, V3_mod, P)
+            results['V3']['mass'].append(mass)
+            results['V3']['angle'].append(angle)
+            results['V3']['quality'].append(stats['quality_factor'])
+
+        print(f"\n--- Анализ чувствительности ---")
+        for param, values in results.items():
+            mass_sensitivity = np.std(values['mass']) / np.mean(values['mass']) * 100
+            angle_sensitivity = np.std(values['angle'])
+            quality_sensitivity = np.std(values['quality'])
+            print(
+                f"  {param}: масса ± {mass_sensitivity:.1f}%, угол ± {angle_sensitivity:.1f}°, качество ± {quality_sensitivity:.1f}%")
+
+        return results
+
+
+def main():
+    """
+    Пример использования метода трех пусков с тремя замерами
+    """
+
+    # Пример данных
+    print("=" * 60)
+    print("ПРИМЕР РАСЧЕТА МЕТОДОМ ТРЕХ ПУСКОВ")
+    print("Замеры на углах 0°, 120°, 240°")
+    print("=" * 60)
+
+    # Входные данные
+    V0 = 2.0  # Исходная вибрация, мкм
+    V1 = 3.5  # Вибрация с грузом на 0°, мкм
+    V2 = 4.2  # Вибрация с грузом на 120°, мкм
+    V3 = 3.8  # Вибрация с грузом на 240°, мкм
+    P = 1.0  # Масса пробного груза, г
+
+    # Создаем экземпляр класса
+    balancer = ThreeRunBalancing()
+
+    # Выполняем расчет
+    correction_mass, correction_angle, stats = balancer.calculate_from_amplitudes(V0, V1, V2, V3, P)
+
+    print("\n" + "=" * 60)
+    print("ИТОГОВЫЙ РЕЗУЛЬТАТ:")
+    print(f"  Установите груз массой {correction_mass:.3f} г")
+    print(f"  на угол {correction_angle:.1f}°")
+    print(f"  (относительно метки, против часовой стрелки)")
+    print("=" * 60)
+
+    # Дополнительный анализ с оптимизацией
+    print("\n" + "=" * 60)
+    print("РАСШИРЕННЫЙ АНАЛИЗ С УЧЕТОМ ПОГРЕШНОСТЕЙ")
+    print("=" * 60)
+
+    advanced = ThreeRunWithOptimization()
+
+    # Монте-Карло симуляция
+    advanced.monte_carlo_simulation(V0, V1, V2, V3, P, n_simulations=500)
+
+    # Анализ чувствительности
+    advanced.sensitivity_analysis(V0, V1, V2, V3, P)
+
+    # Визуализация
+    print("\nСтроим векторную диаграмму...")
+    balancer.graphical_method(V0, V1, V2, V3, P)
+
+
+def interactive_input():
+    """
+    Интерактивный ввод данных
+    """
+    print("\n" + "=" * 60)
+    print("МЕТОД ТРЕХ ПУСКОВ - ИНТЕРАКТИВНЫЙ РЕЖИМ")
+    print("Замеры на углах 0°, 120°, 240°")
+    print("=" * 60)
+
+    try:
+        V0 = float(input("\nИсходная вибрация V0 (мкм): "))
+        V1 = float(input("Вибрация с грузом на 0° V1 (мкм): "))
+        V2 = float(input("Вибрация с грузом на 120° V2 (мкм): "))
+        V3 = float(input("Вибрация с грузом на 240° V3 (мкм): "))
+        P = float(input("Масса пробного груза (г): "))
+
+        balancer = ThreeRunBalancing()
+        mass, angle, stats = balancer.calculate_from_amplitudes(V0, V1, V2, V3, P)
+
+        print("\n" + "=" * 60)
+        print("ИТОГОВЫЙ РЕЗУЛЬТАТ:")
+        print(f"  Корректирующий груз: {mass:.3f} г")
+        print(f"  Угол установки: {angle:.1f}°")
+        print(f"  Качество балансировки: {stats['quality_factor']:.1f}%")
+        print(f"  Достоверность расчета: {stats['confidence']:.1f}%")
+        print("=" * 60)
+
+        # Предложение визуализации
+        show_plot = input("\nПостроить векторную диаграмму? (y/n): ").lower()
+        if show_plot == 'y':
+            balancer.graphical_method(V0, V1, V2, V3, P)
+
+    except ValueError:
+        print("Ошибка: введите корректные числовые значения")
+
+
+if __name__ == "__main__":
+    print("\nВЫБЕРИТЕ РЕЖИМ РАБОТЫ:")
+    print("1 - Демонстрационный режим (с примером данных)")
+    print("2 - Интерактивный режим (ввод своих данных)")
+    print("3 - Выход")
+
+    choice = input("\nВаш выбор (1/2/3): ")
+
+    if choice == '1':
+        main()
+    elif choice == '2':
+        interactive_input()
+    else:
+        print("Выход из программы.")

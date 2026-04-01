@@ -115,6 +115,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const monteCarloSection = document.getElementById('monteCarloSection');
     const statusMessage = document.getElementById('statusMessage');
 
+    // Функция округления массы до десятых
+    function roundMass(value) {
+        return Math.round(value * 10) / 10;
+    }
+
+    // Функция округления угла до целых
+    function roundAngle(value) {
+        return Math.round(value);
+    }
+
     // Проверка валидности ввода
     function validateInputs() {
         const V0 = parseFloat(V0Input.value);
@@ -167,18 +177,17 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const result = await balancer.calculateFromMeasurements(V0, phi0, Vt, phi_t, P);
 
+            // Округляем результаты
+            const roundedMass = roundMass(result.correction_mass);
+            const roundedAngle = roundAngle(result.correction_angle);
+
             // Обновляем результаты на странице
-            document.getElementById('correctionMass').textContent = `${result.correction_mass} г`;
-            document.getElementById('correctionAngle').textContent = `${result.correction_angle}°`;
-            document.getElementById('Wmagnitude').textContent = `${result.W_magnitude} мкм`;
-            document.getElementById('Wangle').textContent = `${result.W_angle}°`;
-            document.getElementById('Kvalue').textContent = `${result.K_magnitude} мкм/г`;
-            document.getElementById('Kangle').textContent = `${result.K_angle}°`;
-            document.getElementById('residualVibration').textContent = `${result.residual} мкм`;
+            document.getElementById('correctionMass').textContent = `${roundedMass} г`;
+            document.getElementById('correctionAngle').textContent = `${roundedAngle}°`;
 
             // Обновляем инструкцию
-            document.getElementById('instrMass').textContent = `${result.correction_mass} г`;
-            document.getElementById('instrAngle').textContent = `${result.correction_angle}°`;
+            document.getElementById('instrMass').textContent = `${roundedMass} г`;
+            document.getElementById('instrAngle').textContent = `${roundedAngle}°`;
 
             // Показываем секцию результатов
             resultsSection.style.display = 'block';
@@ -193,7 +202,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 timestamp: new Date().toISOString(),
                 method: 'vector',
                 V0, phi0, Vt, phi_t, P,
-                result
+                result: {
+                    correction_mass: roundedMass,
+                    correction_angle: roundedAngle
+                }
             });
 
         } catch (error) {
@@ -235,18 +247,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
                         <div style="background: white; border-radius: 8px; padding: 15px;">
                             <div style="font-weight: 600; color: var(--text-secondary); margin-bottom: 10px;">⚖️ Корректирующий груз</div>
-                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">${result.mass.mean.toFixed(3)} ± ${result.mass.std.toFixed(3)} г</div>
+                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">${result.mass.mean.toFixed(2)} ± ${result.mass.std.toFixed(2)} г</div>
                             <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px;">
-                                Диапазон: ${result.mass.min.toFixed(3)} - ${result.mass.max.toFixed(3)} г<br>
-                                95% ДИ: [${result.mass.ci_95[0].toFixed(3)}, ${result.mass.ci_95[1].toFixed(3)}] г
+                                Диапазон: ${result.mass.min.toFixed(2)} - ${result.mass.max.toFixed(2)} г<br>
+                                95% ДИ: [${result.mass.ci_95[0].toFixed(2)}, ${result.mass.ci_95[1].toFixed(2)}] г
                             </div>
                         </div>
                         <div style="background: white; border-radius: 8px; padding: 15px;">
                             <div style="font-weight: 600; color: var(--text-secondary); margin-bottom: 10px;">🎯 Угол установки</div>
-                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">${result.angle.mean.toFixed(1)} ± ${result.angle.std.toFixed(1)}°</div>
+                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">${result.angle.mean.toFixed(0)} ± ${result.angle.std.toFixed(0)}°</div>
                             <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px;">
-                                Диапазон: ${result.angle.min.toFixed(1)} - ${result.angle.max.toFixed(1)}°<br>
-                                95% ДИ: [${result.angle.ci_95[0].toFixed(1)}, ${result.angle.ci_95[1].toFixed(1)}]°
+                                Диапазон: ${result.angle.min.toFixed(0)} - ${result.angle.max.toFixed(0)}°<br>
+                                95% ДИ: [${result.angle.ci_95[0].toFixed(0)}, ${result.angle.ci_95[1].toFixed(0)}]°
                             </div>
                         </div>
                     </div>
