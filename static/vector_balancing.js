@@ -29,71 +29,6 @@ class VectorBalancing {
             throw error;
         }
     }
-
-    async monteCarloSimulation(V0, phi0, Vt, phi_t, P, ampUncertainty, phaseUncertainty, nSimulations = 1000) {
-        console.log('Монте-Карло анализ:', { V0, phi0, Vt, phi_t, P, ampUncertainty, phaseUncertainty, nSimulations });
-
-        // Имитация Монте-Карло на клиенте
-        const masses = [];
-        const angles = [];
-
-        for (let i = 0; i < nSimulations; i++) {
-            // Добавляем случайный шум
-            const V0_noise = Math.max(0.01, V0 + (Math.random() - 0.5) * 2 * ampUncertainty);
-            const Vt_noise = Math.max(0.01, Vt + (Math.random() - 0.5) * 2 * ampUncertainty);
-            const phi0_noise = phi0 + (Math.random() - 0.5) * 2 * phaseUncertainty;
-            const phi_t_noise = phi_t + (Math.random() - 0.5) * 2 * phaseUncertainty;
-
-            try {
-                const result = await this.calculateFromMeasurements(V0_noise, phi0_noise, Vt_noise, phi_t_noise, P);
-                masses.push(result.correction_mass);
-                angles.push(result.correction_angle);
-            } catch (e) {
-                continue;
-            }
-        }
-
-        if (masses.length === 0) {
-            throw new Error('Не удалось выполнить симуляции');
-        }
-
-        // Статистический анализ
-        const massMean = this.mean(masses);
-        const massStd = this.std(masses, massMean);
-        const angleMean = this.mean(angles);
-        const angleStd = this.std(angles, angleMean);
-
-        // Доверительные интервалы 95%
-        const massCI95 = [massMean - 1.96 * massStd, massMean + 1.96 * massStd];
-        const angleCI95 = [angleMean - 1.96 * angleStd, angleMean + 1.96 * angleStd];
-
-        return {
-            mass: {
-                mean: massMean,
-                std: massStd,
-                ci_95: massCI95,
-                min: Math.min(...masses),
-                max: Math.max(...masses)
-            },
-            angle: {
-                mean: angleMean,
-                std: angleStd,
-                ci_95: angleCI95,
-                min: Math.min(...angles),
-                max: Math.max(...angles)
-            },
-            n_simulations: masses.length
-        };
-    }
-
-    mean(arr) {
-        return arr.reduce((a, b) => a + b, 0) / arr.length;
-    }
-
-    std(arr, mean) {
-        const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / arr.length;
-        return Math.sqrt(variance);
-    }
 }
 
 // Инициализация приложения
@@ -106,13 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const VtInput = document.getElementById('Vt');
     const phi_tInput = document.getElementById('phi_t');
     const PInput = document.getElementById('P');
-    const ampUncertaintyInput = document.getElementById('ampUncertainty');
-    const phaseUncertaintyInput = document.getElementById('phaseUncertainty');
     const calculateBtn = document.getElementById('calculateBtn');
-    const monteCarloBtn = document.getElementById('monteCarloBtn');
     const resetBtn = document.getElementById('resetBtn');
     const resultsSection = document.getElementById('resultsSection');
-    const monteCarloSection = document.getElementById('monteCarloSection');
     const statusMessage = document.getElementById('statusMessage');
 
     // Функция округления массы до десятых
@@ -217,77 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Монте-Карло анализ
-    async function runMonteCarlo() {
-        const validation = validateInputs();
-        if (!validation.valid) {
-            showStatus(`❌ ${validation.errors.join(', ')}`, 'error');
-            return;
-        }
-
-        const V0 = parseFloat(V0Input.value);
-        const phi0 = parseFloat(phi0Input.value);
-        const Vt = parseFloat(VtInput.value);
-        const phi_t = parseFloat(phi_tInput.value);
-        const P = parseFloat(PInput.value);
-        const ampUncertainty = parseFloat(ampUncertaintyInput.value) || 0.1;
-        const phaseUncertainty = parseFloat(phaseUncertaintyInput.value) || 2.0;
-
-        monteCarloBtn.disabled = true;
-        monteCarloBtn.textContent = '⏳ Анализ...';
-
-        try {
-            const result = await balancer.monteCarloSimulation(V0, phi0, Vt, phi_t, P, ampUncertainty, phaseUncertainty);
-
-            // Формируем HTML для результатов
-            const html = `
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: var(--primary); margin-bottom: 15px;">📊 Статистический анализ (${result.n_simulations} симуляций)</h4>
-
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-                        <div style="background: white; border-radius: 8px; padding: 15px;">
-                            <div style="font-weight: 600; color: var(--text-secondary); margin-bottom: 10px;">⚖️ Корректирующий груз</div>
-                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">${result.mass.mean.toFixed(2)} ± ${result.mass.std.toFixed(2)} г</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px;">
-                                Диапазон: ${result.mass.min.toFixed(2)} - ${result.mass.max.toFixed(2)} г<br>
-                                95% ДИ: [${result.mass.ci_95[0].toFixed(2)}, ${result.mass.ci_95[1].toFixed(2)}] г
-                            </div>
-                        </div>
-                        <div style="background: white; border-radius: 8px; padding: 15px;">
-                            <div style="font-weight: 600; color: var(--text-secondary); margin-bottom: 10px;">🎯 Угол установки</div>
-                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">${result.angle.mean.toFixed(0)} ± ${result.angle.std.toFixed(0)}°</div>
-                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 8px;">
-                                Диапазон: ${result.angle.min.toFixed(0)} - ${result.angle.max.toFixed(0)}°<br>
-                                95% ДИ: [${result.angle.ci_95[0].toFixed(0)}, ${result.angle.ci_95[1].toFixed(0)}]°
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="background: var(--warning-light); border-radius: 8px; padding: 12px;">
-                        <div style="font-size: 0.85rem; color: var(--text-secondary);">
-                            📌 <strong>Интерпретация:</strong><br>
-                            Доверительный интервал 95% означает, что при повторных измерениях с указанными погрешностями,
-                            истинное значение корректирующего груза с вероятностью 95% находится в указанном диапазоне.
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.getElementById('monteCarloResults').innerHTML = html;
-            monteCarloSection.style.display = 'block';
-            monteCarloSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-            showStatus('✅ Монте-Карло анализ выполнен', 'success');
-
-        } catch (error) {
-            console.error('Ошибка Монте-Карло анализа:', error);
-            showStatus(`❌ Ошибка анализа: ${error.message}`, 'error');
-        } finally {
-            monteCarloBtn.disabled = false;
-            monteCarloBtn.textContent = '📊 Монте-Карло анализ';
-        }
-    }
-
     // Сохранение в локальную историю
     function saveToLocalHistory(calculation) {
         try {
@@ -312,7 +172,6 @@ document.addEventListener('DOMContentLoaded', () => {
         phi_tInput.value = '';
         PInput.value = '';
         resultsSection.style.display = 'none';
-        monteCarloSection.style.display = 'none';
 
         showStatus('🔄 Форма очищена', 'info');
         setTimeout(() => {
@@ -344,7 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Обработчики событий
     calculateBtn.addEventListener('click', calculateAndDisplay);
-    monteCarloBtn.addEventListener('click', runMonteCarlo);
     resetBtn.addEventListener('click', resetForm);
 
     // Загрузка последнего расчета
@@ -355,10 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.ctrlKey && e.key === 'Enter') {
             e.preventDefault();
             calculateAndDisplay();
-        }
-        if (e.ctrlKey && e.altKey && e.key === 'm') {
-            e.preventDefault();
-            runMonteCarlo();
         }
     });
 });

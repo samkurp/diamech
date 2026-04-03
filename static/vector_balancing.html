@@ -62,10 +62,9 @@
                             <input type="number" id="P" step="0.1" placeholder="Например: 1.0">
                         </div>
                         <div class="form-group">
-                            <label>Погрешности измерений</label>
+                       
                             <div class="d-flex gap-10">
-                                <input type="number" id="ampUncertainty" step="0.1" placeholder="Амплитуда ± (мкм)" value="0.1">
-                                <input type="number" id="phaseUncertainty" step="0.5" placeholder="Фаза ± (°)" value="2.0">
+
                             </div>
                         </div>
                     </div>
@@ -75,9 +74,6 @@
                 <div style="display: flex; justify-content: center; gap: 15px; margin: 20px 0;">
                     <button type="button" id="calculateBtn" class="back-button" style="background: var(--primary); color: white; border-color: var(--primary);">
                         🎯 Рассчитать корректирующий груз
-                    </button>
-                    <button type="button" id="monteCarloBtn" class="back-button">
-                        📊 Монте-Карло анализ
                     </button>
                 </div>
 
@@ -112,14 +108,6 @@
                         <button type="button" id="resetBtn" class="back-button">
                             🔄 Очистить все
                         </button>
-                    </div>
-                </div>
-
-                <!-- Монте-Карло результаты -->
-                <div class="form-section" id="monteCarloSection" style="display: none;">
-                    <h3>📊 Монте-Карло анализ</h3>
-                    <div id="monteCarloResults" style="background: var(--bg-secondary); border-radius: 12px; padding: 20px;">
-                        <!-- Результаты будут вставлены сюда -->
                     </div>
                 </div>
 
