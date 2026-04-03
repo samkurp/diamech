@@ -4,12 +4,29 @@ let currentPage = 1;
 let currentDate = '';
 let totalPages = 1;
 
+// Оптимизация: Кэш для истории
+let historyCache = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 30000; // 30 секунд
+
 document.addEventListener('DOMContentLoaded', function() {
     loadHistory();
     initFilters();
 });
 
-async function loadHistory() {
+async function loadHistory(forceRefresh = false) {
+    const now = Date.now();
+    const cacheKey = `page_${currentPage}_date_${currentDate}`;
+    
+    // Проверяем кэш
+    if (!forceRefresh && historyCache && historyCache.key === cacheKey && 
+        cacheTimestamp && (now - cacheTimestamp < CACHE_DURATION)) {
+        renderHistory(historyCache.data);
+        renderPagination(historyCache.pagination);
+        hideLoading();
+        return;
+    }
+    
     showLoading('Загрузка истории...');
 
     try {
@@ -22,6 +39,13 @@ async function loadHistory() {
         const result = await response.json();
 
         if (result.success) {
+            // Кэшируем данные
+            historyCache = {
+                key: cacheKey,
+                data: result.history,
+                pagination: result.pagination
+            };
+            
             renderHistory(result.history);
             renderPagination(result.pagination);
         } else {
@@ -49,7 +73,11 @@ function renderHistory(history) {
         return;
     }
 
-    container.innerHTML = history.map(item => {
+    // Оптимизация: Используем DocumentFragment
+    const fragment = document.createDocumentFragment();
+    const tempContainer = document.createElement('div');
+    
+    tempContainer.innerHTML = history.map(item => {
         const date = new Date(item.created_at);
         const formattedDate = date.toLocaleString('ru-RU', {
             day: '2-digit',
@@ -102,6 +130,14 @@ function renderHistory(history) {
             </div>
         `;
     }).join('');
+    
+    // Переносим содержимое во фрагмент
+    while (tempContainer.firstChild) {
+        fragment.appendChild(tempContainer.firstChild);
+    }
+    
+    container.innerHTML = '';
+    container.appendChild(fragment);
 }
 
 function renderPagination(pagination) {

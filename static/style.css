@@ -1,4 +1,4 @@
-/* Reset и базовые стили */
+/* Reset и базовые стили - Оптимизировано для производительности */
 * {
     margin: 0;
     padding: 0;
@@ -55,12 +55,30 @@
     --transition: all 0.2s ease;
 }
 
+/* Оптимизация: Will-change для анимированных элементов */
+.will-animate {
+    will-change: transform, opacity;
+}
+
 body {
     background: linear-gradient(135deg, var(--primary-bg) 0%, #eef3fc 100%);
     color: var(--text-primary);
     min-height: 100vh;
     line-height: 1.6;
     background-attachment: fixed;
+    /* Оптимизация: Аппаратное ускорение для скролла */
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Оптимизация: Ленивая загрузка изображений */
+img.lazy {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+img.lazy.loaded {
+    opacity: 1;
 }
 
 /* Контейнеры */
@@ -504,11 +522,14 @@ button[type="submit"] {
     align-items: center;
     justify-content: center;
     gap: 10px;
+    /* Оптимизация: Аппаратное ускорение */
+    will-change: transform, box-shadow;
+    transform: translateZ(0);
 }
 
 button[type="submit"]:hover:not(:disabled) {
     background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
-    transform: translateY(-2px);
+    transform: translateY(-2px) translateZ(0);
     box-shadow: var(--shadow);
 }
 
@@ -516,6 +537,7 @@ button[type="submit"]:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     background: var(--text-muted);
+    transform: none;
 }
 
 /* Save Draft Button */
@@ -652,11 +674,14 @@ button[type="submit"]:disabled {
     border: 1px solid var(--border);
     transition: var(--transition);
     box-shadow: var(--shadow-sm);
+    /* Оптимизация: Аппаратное ускорение для анимаций */
+    will-change: transform, box-shadow;
+    transform: translateZ(0);
 }
 
 .draft-item:hover {
     border-color: var(--primary-light);
-    transform: translateY(-2px);
+    transform: translateY(-2px) translateZ(0);
     box-shadow: var(--shadow);
 }
 

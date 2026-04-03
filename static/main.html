@@ -4,10 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Станки в работе</title>
-    <link rel="stylesheet" href="/static/style.css">
+    
+    <!-- Оптимизация: Предзагрузка критических ресурсов -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="/static/style.css" as="style">
+    <link rel="preload" href="/static/drafts.js" as="script">
+    
+    <!-- Стили -->
+    <link rel="stylesheet" href="/static/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Оптимизация: DNS prefetch для API -->
+    <link rel="dns-prefetch" href="//api.supabase.co">
 </head>
 <body>
     <div class="container">
@@ -17,7 +26,7 @@
                 <p class="subtitle">Управление производственными процессами</p>
             </header>
 
-            <div class="menu">
+            <nav class="menu" role="navigation" aria-label="Основное меню">
                 <a href="/" class="back-button">🏠 Главная</a>
                 <a href="/add-draft" class="back-button">+ Станок</a>
                 <a href="/static/history.html" class="back-button">📜 История</a>
@@ -28,9 +37,9 @@
                 <a href="/static/updates_utilites.html" class="back-button">🛠️ Обновления ПО</a>
                 <a href="/static/three_run_balancing.html" class="back-button">⚖️ Метод трех пусков</a>
                 <a href="/static/vector_balancing.html" class="back-button">➡️ Векторная балансировка</a>
-            </div>
+            </nav>
 
-            <div class="drafts-container">
+            <main class="drafts-container">
                 <div id="draftsList" class="drafts-list">
                     <div class="empty-state">
                         <div class="icon">📝</div>
@@ -39,8 +48,8 @@
                         <a href="/add-draft" class="action-btn max-w-200 mt-15">+ Станок</a>
                     </div>
                 </div>
-                <div id="statusMessage" class="status-message hidden"></div>
-            </div>
+                <div id="statusMessage" class="status-message hidden" role="alert"></div>
+            </main>
 
             <footer>
                 <p>Система учета оборудования станков 2026</p>
@@ -48,6 +57,9 @@
         </div>
     </div>
 
-    <script src="/static/drafts.js"></script>
+    <!-- Оптимизация: Асинхронная загрузка скриптов -->
+    <script src="/static/utils.js" defer></script>
+    <script src="/static/lazy-loader.js" defer></script>
+    <script src="/static/drafts.js" defer></script>
 </body>
 </html>

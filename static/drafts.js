@@ -26,22 +26,31 @@ const STATUS_CONFIG = {
     }
 };
 
+// Оптимизация: Кэш для данных черновиков
+let draftsCache = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 30000; // 30 секунд кэш
+
 // Инициализация
 document.addEventListener('DOMContentLoaded', () => {
     loadDrafts();
 });
 
-// Загрузка черновиков
-async function loadDrafts() {
+// Загрузка черновиков с кэшированием
+async function loadDrafts(forceRefresh = false) {
+    const now = Date.now();
+    
+    // Проверяем кэш
+    if (!forceRefresh && draftsCache && cacheTimestamp && (now - cacheTimestamp < CACHE_DURATION)) {
+        renderDrafts(draftsCache);
+        return;
+    }
+    
     try {
         const response = await fetch('/api/drafts?status=active');
         const result = await response.json();
 
-        const draftsList = document.getElementById('draftsList');
-
         if (result.success && result.drafts.length > 0) {
-            draftsList.innerHTML = '';
-
             // Фильтруем активные станки
             const activeDrafts = result.drafts.filter(draft =>
                 draft.machine_status !== 'Отгружен'
@@ -52,14 +61,11 @@ async function loadDrafts() {
                 return;
             }
 
-            // Сортируем
-            const sortedDrafts = sortDrafts(activeDrafts);
-
-            sortedDrafts.forEach(draft => {
-                const draftElement = createDraftElement(draft);
-                draftsList.appendChild(draftElement);
-            });
-
+            // Сортируем и кэшируем
+            draftsCache = sortDrafts(activeDrafts);
+            cacheTimestamp = now;
+            
+            renderDrafts(draftsCache);
         } else {
             showEmptyState('📝', 'Нет станков в работе', 'Добавьте первый станок');
         }
@@ -67,6 +73,25 @@ async function loadDrafts() {
     } catch (error) {
         showStatus(`Ошибка загрузки: ${error.message}`, 'error');
     }
+}
+
+// Рендеринг черновиков (вынесено для оптимизации)
+function renderDrafts(drafts) {
+    const draftsList = document.getElementById('draftsList');
+    
+    if (!draftsList) return;
+    
+    draftsList.innerHTML = '';
+    
+    // Используем DocumentFragment для оптимизации DOM операций
+    const fragment = document.createDocumentFragment();
+    
+    drafts.forEach(draft => {
+        const draftElement = createDraftElement(draft);
+        fragment.appendChild(draftElement);
+    });
+    
+    draftsList.appendChild(fragment);
 }
 
 // Создание элемента черновика
