@@ -151,10 +151,15 @@
             </div>
 
             <!-- Дополнительная информация -->
+            <!-- Дополнительная информация -->
             <div class="section-minimal">
-                <div class="section-title-minimal">📝 Примечания</div>
+                <div class="section-title-minimal">
+                    📝 Примечания
+                </div>
                 <div class="info-card-minimal">
-                    <div id="notes" class="info-value-minimal empty">Примечаний нет</div>
+                    <div id="notes" class="info-value-minimal empty" style="white-space: pre-wrap; word-wrap: break-word; cursor: pointer; transition: all 0.2s ease;">
+                        Примечаний нет
+                    </div>
                 </div>
             </div>
 
@@ -265,7 +270,33 @@
             </div>
         </div>
     </div>
+    <!-- Добавьте это модальное окно перед закрывающим тегом body, после других модальных окон -->
 
+    <!-- Модальное окно для редактирования примечаний -->
+    <div id="notesModal" class="customer-modal">
+        <div class="customer-modal-content" style="max-width: 700px;">
+            <div class="customer-modal-header">
+                <div class="customer-modal-title">
+                    <span class="modal-icon">📝</span>
+                    <h3>Редактирование примечаний</h3>
+                </div>
+                <span class="customer-modal-close" onclick="closeNotesModal()">&times;</span>
+            </div>
+            <div class="customer-modal-body">
+                <form id="notesForm" class="customer-form">
+                    <div class="customer-form-group full-width">
+                        <label for="notesText">Примечания</label>
+                        <textarea id="notesText" class="customer-textarea" rows="10"
+                                  placeholder="Введите примечания по станку..."></textarea>
+                    </div>
+                    <div class="customer-modal-actions">
+                        <button type="submit" class="btn-save-customer">💾 Сохранить</button>
+                        <button type="button" class="btn-cancel-customer" onclick="closeNotesModal()">✕ Отмена</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
     <script src="/static/view_machine.js"></script>
 </body>
 </html>

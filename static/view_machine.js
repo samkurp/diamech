@@ -34,6 +34,7 @@ async function loadMachineData() {
         if (result.success) {
             machineData = result.draft;
             displayMachineData();
+            setupNotesClickHandler();
             loadMachineImages();
             await loadCustomerData();
             await loadRequestFileInfo();
@@ -369,10 +370,19 @@ function displayMachineData() {
     }
 
     // Примечания
+    // В функции displayMachineData, замените существующий блок с примечаниями на этот:
+
+    // Примечания
     const notes = data.notes || '';
+    const notesElement = document.getElementById('notes');
     if (notes) {
-        document.getElementById('notes').textContent = notes;
-        document.getElementById('notes').classList.remove('empty');
+        notesElement.textContent = notes;
+        notesElement.classList.remove('empty');
+   
+    } else {
+        notesElement.textContent = 'Примечаний нет';
+        notesElement.classList.add('empty');
+
     }
 }
 
@@ -617,6 +627,149 @@ function showStatus(message, type = 'info') {
         }, 3000);
     }
 }
+
+// ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ПРИМЕЧАНИЯМИ ==========
+
+// Инициализация кликабельного блока примечаний
+function setupNotesClickHandler() {
+    const notesBlock = document.getElementById('notes');
+    if (notesBlock) {
+        notesBlock.style.cursor = 'pointer';
+        notesBlock.style.transition = 'all 0.2s ease';
+
+        // Добавляем иконку редактирования при наведении
+        notesBlock.addEventListener('mouseenter', () => {
+            if (!notesBlock.classList.contains('empty')) {
+                notesBlock.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+            } else {
+                notesBlock.style.backgroundColor = 'rgba(239, 68, 68, 0.05)';
+            }
+            notesBlock.title = 'Нажмите для редактирования';
+        });
+
+        notesBlock.addEventListener('mouseleave', () => {
+            notesBlock.style.backgroundColor = '';
+        });
+
+        notesBlock.addEventListener('click', () => openNotesModal());
+    }
+}
+
+// Открытие модального окна для редактирования примечаний
+function openNotesModal() {
+    const modal = document.getElementById('notesModal');
+    const notesTextarea = document.getElementById('notesText');
+
+    if (!modal || !notesTextarea) return;
+
+    // Получаем текущие примечания
+    const currentNotes = machineData?.data?.notes || '';
+    notesTextarea.value = currentNotes;
+
+    // Показываем модальное окно
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+
+    // Устанавливаем фокус на текстовое поле
+    setTimeout(() => {
+        notesTextarea.focus();
+        // Перемещаем курсор в конец текста
+        notesTextarea.setSelectionRange(notesTextarea.value.length, notesTextarea.value.length);
+    }, 100);
+
+    // Настраиваем обработчик отправки формы
+    const notesForm = document.getElementById('notesForm');
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        await saveNotes();
+        notesForm.removeEventListener('submit', handleSubmit);
+    };
+
+    // Удаляем старый обработчик, если есть, и добавляем новый
+    notesForm.removeEventListener('submit', notesForm._submitHandler);
+    notesForm._submitHandler = handleSubmit;
+    notesForm.addEventListener('submit', notesForm._submitHandler);
+}
+
+// Закрытие модального окна примечаний
+function closeNotesModal() {
+    const modal = document.getElementById('notesModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Сохранение примечаний
+async function saveNotes() {
+    const notesTextarea = document.getElementById('notesText');
+    const newNotes = notesTextarea.value.trim();
+    const saveBtn = document.querySelector('#notesForm .btn-save-customer');
+
+    if (!saveBtn) return;
+
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '⏳ Сохранение...';
+
+    try {
+        // Берём все текущие данные станка
+        const currentData = machineData.data || {};
+
+        // Создаём FormData для отправки
+        const formData = new FormData();
+
+        // Копируем все поля, кроме notes (чтобы избежать дублирования)
+        for (const [key, value] of Object.entries(currentData)) {
+            if (key !== 'notes' && value !== undefined && value !== null) {
+                formData.append(key, value);
+            }
+        }
+        // Добавляем новое значение notes (даже пустое)
+        formData.append('notes', newNotes);
+
+        // Обязательно передаём draft_id для upsert
+        formData.append('draft_id', machineData.id);
+
+        // Отправляем на универсальный эндпоинт save-draft
+        const response = await fetch(`${API_BASE}/save-draft`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Обновляем локальные данные
+            machineData.data.notes = newNotes;
+
+            // Обновляем отображение на странице
+            const notesElement = document.getElementById('notes');
+            if (newNotes) {
+                notesElement.textContent = newNotes;
+                notesElement.classList.remove('empty');
+
+            } else {
+                notesElement.textContent = 'Примечаний нет';
+                notesElement.classList.add('empty');
+
+            }
+
+            showStatus('✅ Примечания успешно сохранены', 'success');
+            closeNotesModal();
+        } else {
+            throw new Error(result.error || 'Ошибка сохранения');
+        }
+
+    } catch (error) {
+        console.error('Ошибка сохранения примечаний:', error);
+        showStatus(`❌ Ошибка: ${error.message}`, 'error');
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    }
+}
+
 // Функция для генерации протокола
 async function generateProtocol() {
     if (!machineData) {
