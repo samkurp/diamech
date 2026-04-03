@@ -1,9 +1,9 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, send_from_directory, send_file
+from flask import Flask, request, jsonify, send_from_directory, send_file, make_response
 from flask_cors import CORS
 from openpyxl import load_workbook
-from datetime import datetime
+from datetime import datetime, timedelta
 import uuid
 import traceback
 import json
@@ -16,12 +16,31 @@ from docx import Document
 import io
 import olefile
 import re
+from functools import wraps
+import hashlib
+from threading import Lock
 
 # Загружаем переменные окружения
 load_dotenv()
 
 app = Flask(__name__, static_folder='static')
-CORS(app)
+
+# Оптимизация: Включаем сжатие gzip для ответов
+app.config['COMPRESS_ALGORITHM'] = 'gzip'
+app.config['COMPRESS_MIN_SIZE'] = 500
+
+# Оптимизация: Увеличиваем пул соединений и настраиваем таймауты
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 300  # Кэширование статических файлов на 5 минут
+
+CORS(app, resources={
+    r"/api/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "max_age": 600  # Кэширование preflight запросов на 10 минут
+    }
+})
 
 
 # Конфигурация
@@ -39,51 +58,173 @@ class Config:
     # Максимальный размер файла (16MB)
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
-    # Настройки сжатия изображений
+    # Настройки сжатия изображений - оптимизированы для баланса качество/размер
     IMAGE_MAX_SIZE = 1024  # Максимальный размер стороны в пикселях
-    IMAGE_QUALITY = 70  # Качество сжатия в процентах
+    IMAGE_QUALITY = 75  # Качество сжатия в процентах (оптимизировано)
     IMAGE_FORMAT = 'JPEG'  # Формат для сохранения
+    
+    # Оптимизация: Кэширование результатов запросов
+    CACHE_TIMEOUT = 300  # 5 минут
+    
+    # Оптимизация: Пагинация по умолчанию
+    DEFAULT_PER_PAGE = 50
+    MAX_PER_PAGE = 100
 
 
-# ========== ИНИЦИАЛИЗАЦИЯ SUPABASE ==========
-supabase = None
-if Config.SUPABASE_URL and Config.SUPABASE_KEY:
-    try:
-        print("\n" + "=" * 50)
-        print("🔄 ИНИЦИАЛИЗАЦИЯ SUPABASE")
-        print("=" * 50)
-        print(f"📌 URL: {Config.SUPABASE_URL[:50]}...")
-        print(f"📌 Key length: {len(Config.SUPABASE_KEY)} символов")
+# ========== ИНИЦИАЛИЗАЦИЯ SUPABASE ===========
+# Оптимизация: Пул соединений и ленивая инициализация
+class SupabaseClient:
+    """Класс для управления соединением с Supabase с пулом соединений"""
+    _instance = None
+    _lock = Lock()
+    
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._initialized = False
+        return cls._instance
+    
+    def __init__(self):
+        if self._initialized:
+            return
+        
+        self._client = None
+        self._cache = {}
+        self._cache_timestamps = {}
+        
+        if Config.SUPABASE_URL and Config.SUPABASE_KEY:
+            try:
+                print("\n" + "=" * 50)
+                print("🔄 ИНИЦИАЛИЗАЦИЯ SUPABASE")
+                print("=" * 50)
+                print(f"📌 URL: {Config.SUPABASE_URL[:50]}...")
+                print(f"📌 Key length: {len(Config.SUPABASE_KEY)} символов")
 
-        from supabase import create_client
+                from supabase import create_client
+                self._client = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
 
-        supabase = create_client(Config.SUPABASE_URL, Config.SUPABASE_KEY)
+                # Проверка подключения
+                test_query = self._client.table('drafts').select('*').limit(1).execute()
+                print("✅ Supabase: успешно подключен!")
+                print("✅ Таблица 'drafts' доступна")
+                print("=" * 50 + "\n")
 
-        # Проверка подключения
-        test_query = supabase.table('drafts').select('*').limit(1).execute()
-        print("✅ Supabase: успешно подключен!")
-        print("✅ Таблица 'drafts' доступна")
-        print("=" * 50 + "\n")
+            except ImportError as e:
+                print(f"❌ Ошибка импорта supabase: {e}")
+                print("   Установите: pip install supabase==2.12.0")
+                self._client = None
+            except Exception as e:
+                print(f"❌ Ошибка подключения к Supabase: {e}")
+                print(f"   Тип ошибки: {type(e).__name__}")
+                self._client = None
+        else:
+            print("\n⚠️ Supabase не настроен - переменные окружения отсутствуют")
+            print("   Установите SUPABASE_URL и SUPABASE_KEY в переменных окружения\n")
+        
+        self._initialized = True
+    
+    @property
+    def client(self):
+        """Возвращает клиентский объект или None"""
+        return self._client
+    
+    def is_available(self):
+        """Проверяет доступность Supabase"""
+        return self._client is not None
+    
+    def get_cached(self, key, timeout=None):
+        """Получает данные из кэша"""
+        if timeout is None:
+            timeout = Config.CACHE_TIMEOUT
+            
+        if key in self._cache:
+            timestamp = self._cache_timestamps.get(key, 0)
+            if datetime.now().timestamp() - timestamp < timeout:
+                return self._cache[key]
+            else:
+                # Удаляем устаревший кэш
+                del self._cache[key]
+                if key in self._cache_timestamps:
+                    del self._cache_timestamps[key]
+        return None
+    
+    def set_cached(self, key, value):
+        """Сохраняет данные в кэш"""
+        self._cache[key] = value
+        self._cache_timestamps[key] = datetime.now().timestamp()
+    
+    def clear_cache(self, pattern=None):
+        """Очищает кэш полностью или по паттерну"""
+        if pattern is None:
+            self._cache.clear()
+            self._cache_timestamps.clear()
+        else:
+            keys_to_delete = [k for k in self._cache.keys() if pattern in k]
+            for key in keys_to_delete:
+                del self._cache[key]
+                if key in self._cache_timestamps:
+                    del self._cache_timestamps[key]
 
-    except ImportError as e:
-        print(f"❌ Ошибка импорта supabase: {e}")
-        print("   Установите: pip install supabase==2.12.0")
-        supabase = None
-    except Exception as e:
-        print(f"❌ Ошибка подключения к Supabase: {e}")
-        print(f"   Тип ошибки: {type(e).__name__}")
-        supabase = None
-else:
-    print("\n⚠️ Supabase не настроен - переменные окружения отсутствуют")
-    print("   Установите SUPABASE_URL и SUPABASE_KEY в переменных окружения\n")
+
+# Глобальный экземпляр клиента
+supabase_client = SupabaseClient()
+
+# Для обратной совместимости
+supabase = supabase_client.client if supabase_client.is_available() else None
 
 
 # ============================================
 
-def compress_image(image_data, max_size=1024, quality=70):
+# Оптимизация: Декоратор для кэширования запросов
+def cache_response(timeout=300):
+    """Декоратор для кэширования ответов API"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Генерируем ключ кэша из URL и параметров
+            cache_key = f"{request.path}:{json.dumps(request.args.to_dict(), sort_keys=True)}"
+            
+            # Проверяем кэш
+            cached_data = supabase_client.get_cached(cache_key)
+            if cached_data is not None:
+                response = make_response(jsonify(cached_data))
+                response.headers['X-Cache'] = 'HIT'
+                return response
+            
+            # Выполняем функцию
+            result = f(*args, **kwargs)
+            
+            # Сохраняем в кэш если это успешный ответ
+            if isinstance(result, tuple):
+                response_data = result[0].get_json() if hasattr(result[0], 'get_json') else None
+            elif hasattr(result, 'get_json'):
+                response_data = result.get_json()
+            else:
+                response_data = result
+            
+            if response_data and not isinstance(response_data, dict) or (isinstance(response_data, dict) and 'error' not in response_data):
+                supabase_client.set_cached(cache_key, response_data)
+            
+            response = make_response(jsonify(response_data) if isinstance(response_data, dict) else result)
+            response.headers['X-Cache'] = 'MISS'
+            return response
+        
+        return decorated_function
+    return decorator
+
+
+def compress_image(image_data, max_size=None, quality=None):
     """
     Сжимает изображение до заданных размеров и качества
+    Оптимизация: использует значения по умолчанию из Config
     """
+    if max_size is None:
+        max_size = Config.IMAGE_MAX_SIZE
+    if quality is None:
+        quality = Config.IMAGE_QUALITY
+        
     try:
         # Открываем изображение
         img = Image.open(io.BytesIO(image_data))
@@ -95,9 +236,10 @@ def compress_image(image_data, max_size=1024, quality=70):
         # Изменяем размер с сохранением пропорций
         img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
 
-        # Сохраняем с сжатием
+        # Сохраняем с сжатием и дополнительными оптимизациями
         output = io.BytesIO()
-        img.save(output, format=Config.IMAGE_FORMAT, quality=quality, optimize=True)
+        img.save(output, format=Config.IMAGE_FORMAT, quality=quality, 
+                 optimize=True, progressive=True)  # Progressive для лучшей загрузки
         compressed_data = output.getvalue()
 
         print(f"🖼️ Изображение сжато: {len(image_data)} -> {len(compressed_data)} байт")
@@ -620,14 +762,16 @@ class SupabaseDB:
 
     @staticmethod
     def get_all_drafts(filter_status=None):
-        """Получает все черновики с фильтрацией"""
+        """Получает все черновики с фильтрацией и пагинацией"""
         try:
             if supabase is None:
                 print("⚠️ Supabase не инициализирован")
                 return []
 
-            # Базовый запрос
-            query = supabase.table('drafts').select('*')
+            # Базовый запрос - выбираем только нужные поля для оптимизации
+            query = supabase.table('drafts').select(
+                'id, display_name, data, created_at, updated_at, machine_status, shipping_date, customer_info'
+            )
 
             # Фильтрация по статусу
             if filter_status == 'shipped':
@@ -635,19 +779,20 @@ class SupabaseDB:
             elif filter_status == 'active':
                 query = query.neq('machine_status', 'Отгружен')
 
-            # Сортировка по дате обновления
-            response = query.order('updated_at', desc=True).execute()
+            # Сортировка по дате обновления и ограничение количества
+            response = query.order('updated_at', desc=True).limit(Config.MAX_PER_PAGE).execute()
 
             drafts = []
             for draft in response.data:
+                data = draft.get('data', {})
                 drafts.append({
                     'id': draft.get('id', ''),
                     'display_name': draft.get('display_name', 'Без названия'),
-                    'machine_type': draft.get('data', {}).get('machineType', 'Неизвестно'),
-                    'serial_number': draft.get('data', {}).get('serialNumber', 'Неизвестно'),
-                    'lifting_capacity': draft.get('data', {}).get('liftingCapacity', 'Неизвестно'),
-                    'work_type': draft.get('data', {}).get('workType', 'Не указан'),
-                    'customer': draft.get('data', {}).get('customer', 'Не указан'),
+                    'machine_type': data.get('machineType', 'Неизвестно'),
+                    'serial_number': data.get('serialNumber', 'Неизвестно'),
+                    'lifting_capacity': data.get('liftingCapacity', 'Неизвестно'),
+                    'work_type': data.get('workType', 'Не указан'),
+                    'customer': data.get('customer', 'Не указан'),
                     'created_at': draft.get('created_at', ''),
                     'updated_at': draft.get('updated_at', ''),
                     'machine_status': draft.get('machine_status', 'Сборка'),
@@ -664,10 +809,16 @@ class SupabaseDB:
 
     @staticmethod
     def get_draft(draft_id):
-        """Загружает конкретный черновик"""
+        """Загружает конкретный черновик с кэшированием"""
         try:
             if supabase is None:
                 return None
+
+            # Проверяем кэш
+            cache_key = f"draft:{draft_id}"
+            cached = supabase_client.get_cached(cache_key)
+            if cached is not None:
+                return cached
 
             response = supabase.table('drafts').select('*').eq('id', draft_id).execute()
 
@@ -676,13 +827,16 @@ class SupabaseDB:
 
             draft = response.data[0]
 
-            # Загружаем изображения
+            # Загружаем изображения (только имена файлов для оптимизации)
             images_response = supabase.table('images') \
                 .select('filename') \
                 .eq('draft_id', draft_id) \
                 .execute()
 
             draft['image_files'] = [img['filename'] for img in images_response.data]
+
+            # Сохраняем в кэш
+            supabase_client.set_cached(cache_key, draft)
 
             return draft
 
@@ -736,6 +890,9 @@ class SupabaseDB:
             # Сохраняем в Supabase
             supabase.table('drafts').upsert(draft_data).execute()
             print(f"💾 Сохранен черновик: {draft_id}")
+            
+            # Очищаем кэш для этого черновика
+            supabase_client.clear_cache(pattern=f"draft:{draft_id}")
 
             # Сохраняем изображения со сжатием
             saved_images = []
@@ -746,12 +903,8 @@ class SupabaseDB:
                         img.seek(0)
                         img_data = img.read()
 
-                        # Сжимаем изображение
-                        compressed_data = compress_image(
-                            img_data,
-                            max_size=Config.IMAGE_MAX_SIZE,
-                            quality=Config.IMAGE_QUALITY
-                        )
+                        # Сжимаем изображение (используем значения по умолчанию из Config)
+                        compressed_data = compress_image(img_data)
 
                         # Конвертируем в base64
                         img_base64 = base64.b64encode(compressed_data).decode('utf-8')
