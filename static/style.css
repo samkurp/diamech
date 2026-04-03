@@ -500,7 +500,6 @@ button[type="submit"] {
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition);
-    margin-top: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1053,6 +1052,7 @@ small {
 }
 
 .customer-modal-content {
+    height: 95%;
     position: relative;
     background: var(--white);
     margin: 40px auto;
@@ -1173,9 +1173,7 @@ small {
 .customer-modal-actions {
     display: flex;
     gap: 12px;
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
-    background: var(--bg-secondary);
+    margin-top: 10px;
 }
 
 .btn-save-customer {
