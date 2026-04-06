@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify, send_from_directory, send_file
+from flask import Flask, request, jsonify, send_from_directory, send_file, make_response
 from flask_cors import CORS
 from openpyxl import load_workbook
 from datetime import datetime
@@ -8,6 +8,7 @@ import uuid
 import traceback
 import json
 import base64
+from flask_compress import Compress
 from werkzeug.utils import secure_filename
 from PIL import Image
 import zipfile
@@ -22,6 +23,12 @@ load_dotenv()
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
+
+# Включаем сжатие Gzip/Brotli для всех ответов
+Compress(app)
+app.config['COMPRESS_ALGORITHM'] = 'br'  # Brotli (лучше чем gzip)
+app.config['COMPRESS_LEVEL'] = 6  # Уровень сжатия (1-9, 6 - оптимальный баланс)
+app.config['COMPRESS_MIN_SIZE'] = 500  # Минимальный размер для сжатия в байтах
 
 
 # Конфигурация
@@ -2447,8 +2454,16 @@ def serve_view_machine():
 
 @app.route('/static/<path:path>')
 def serve_static(path):
-    """Статические файлы"""
-    return send_from_directory('static', path)
+    """Статические файлы с кэшированием"""
+    response = send_from_directory('static', path)
+    
+    # Добавляем заголовки кэширования для статических ресурсов
+    if path.endswith(('.css', '.js', '.webp', '.jpg', '.jpeg', '.png', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot')):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+    elif path.endswith('.html'):
+        response.headers['Cache-Control'] = 'public, max-age=3600'
+    
+    return response
 
 
 @app.route('/favicon.ico')
