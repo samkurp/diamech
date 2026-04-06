@@ -1,43 +1,27 @@
-// Глобальные переменные
-let allMachines = [];
-let searchTimeout = null;
+/**
+ * Optimized Shipped Machines Page
+ */
+'use strict';
 
-// Инициализация
-document.addEventListener('DOMContentLoaded', () => {
-    initSearch();
-    loadShippedMachines();
-});
+let allMachines = [], searchTimeout = null;
 
-// Инициализация минималистичного поиска
+document.addEventListener('DOMContentLoaded', () => { initSearch(); loadShippedMachines(); });
+
 function initSearch() {
     const searchInput = document.getElementById('searchInput');
     const clearBtn = document.getElementById('clearSearch');
-
     if (!searchInput || !clearBtn) return;
 
-    // Поиск с дебаунсом
     searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
-
-        // Показываем/скрываем кнопку очистки
         clearBtn.classList.toggle('visible', this.value.length > 0);
-
-        // Поиск через 250мс после остановки ввода
-        searchTimeout = setTimeout(() => {
-            performSearch(this.value.trim());
-        }, 250);
+        searchTimeout = setTimeout(() => performSearch(this.value.trim()), 250);
     });
 
-    // Поиск по Enter
     searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            clearTimeout(searchTimeout);
-            performSearch(this.value.trim());
-        }
+        if (e.key === 'Enter') { e.preventDefault(); clearTimeout(searchTimeout); performSearch(this.value.trim()); }
     });
 
-    // Очистка поиска
     clearBtn.addEventListener('click', function(e) {
         e.preventDefault();
         searchInput.value = '';
@@ -46,311 +30,127 @@ function initSearch() {
         performSearch('');
     });
 
-    // Фокус на поисковую строку
     searchInput.focus();
 }
 
-// Загрузка отгруженных станков
 async function loadShippedMachines() {
     try {
         const response = await fetch('/api/drafts?status=shipped');
         const result = await response.json();
-
+        
         if (result.success) {
             allMachines = result.drafts;
             displayMachines(allMachines);
-
-            // После отображения загружаем данные заказчиков
             setTimeout(() => loadAllCustomerData(), 100);
         } else {
-            showEmptyState('📦', 'Нет отгруженных станков',
-                          'Станки со статусом "Отгружен" появятся здесь автоматически');
+            showEmptyState('📦', 'Нет отгруженных станков', 'Станки со статусом "Отгружен" появятся здесь автоматически');
             allMachines = [];
         }
-    } catch (error) {
-        showStatus(`Ошибка загрузки: ${error.message}`, 'error');
-    }
+    } catch (error) { Utils.showStatus(`Ошибка загрузки: ${error.message}`, 'error'); }
 }
 
-// Загрузка данных всех заказчиков
 async function loadAllCustomerData() {
     const shippedList = document.getElementById('shippedList');
     if (!shippedList) return;
-
-    const draftElements = shippedList.querySelectorAll('.draft-item');
-
-    for (const draftElement of draftElements) {
-        const draftId = draftElement.dataset.draftId;
+    
+    for (const el of shippedList.querySelectorAll('.draft-item')) {
+        const draftId = el.dataset.draftId;
         if (draftId) {
             try {
                 const response = await fetch(`/api/drafts/${draftId}/customer`);
                 const result = await response.json();
-
-                if (result.success) {
-                    const customerData = result.customer_data || {};
-                    updateDraftCustomerDisplay(draftElement, customerData);
-                }
-            } catch (error) {
-                console.log(`Ошибка загрузки данных заказчика для ${draftId}:`, error);
-            }
+                if (result.success) updateDraftCustomerDisplay(el, result.customer_data || {});
+            } catch (error) { console.log(`Ошибка загрузки заказчика для ${draftId}:`, error); }
         }
     }
 }
 
-// Поиск станков
-function performSearch(query) {
-    if (!query.trim()) {
-        displayMachines(allMachines);
-        return;
-    }
+function performSearch(query) { displayMachines(query.trim() ? searchMachines(query) : allMachines); }
 
-    const results = searchMachines(query);
-    displayMachines(results);
-}
-
-// Алгоритм поиска
 function searchMachines(query) {
-    const normalizedQuery = query.toLowerCase().trim();
-
-    return allMachines.filter(machine => {
-        // Подготавливаем поля для поиска
-        const fields = [
-            machine.display_name || '',
-            machine.machine_type || '',
-            machine.serial_number || '',
-            machine.customer || '',
-            machine.work_type || ''
-        ].map(field => field.toLowerCase());
-
-        // Ищем в каждом поле
-        return fields.some(field => field.includes(normalizedQuery));
-    });
+    const q = query.toLowerCase().trim();
+    return allMachines.filter(m => [m.display_name, m.machine_type, m.serial_number, m.customer, m.work_type].some(f => (f || '').toLowerCase().includes(q)));
 }
 
-
-// Отображение станков
 function displayMachines(machines) {
     const shippedList = document.getElementById('shippedList');
     const noResults = document.getElementById('noResults');
-
     if (!shippedList || !noResults) return;
 
     if (machines.length > 0) {
         shippedList.innerHTML = '';
-
-        // Сортировка по заводскому номеру (serial_number) по убыванию
-        const sortedMachines = [...machines].sort((a, b) => {
-            // Извлекаем заводские номера (serial_number)
-            const serialA = a.serial_number || '';
-            const serialB = b.serial_number || '';
-            
-            // Извлекаем числовую часть из заводского номера
-            const numA = extractNumberFromSerial(serialA);
-            const numB = extractNumberFromSerial(serialB);
-            
-            // Если удалось извлечь числа из обоих номеров
-            if (numA !== null && numB !== null) {
-                return numB - numA; // По убыванию (большие номера сверху)
-            }
-            
-            // Если не удалось извлечь числа, сравниваем как строки
-            return serialB.localeCompare(serialA);
+        const sorted = [...machines].sort((a, b) => {
+            const numA = extractNumberFromSerial(a.serial_number);
+            const numB = extractNumberFromSerial(b.serial_number);
+            return (numA !== null && numB !== null) ? numB - numA : (b.serial_number || '').localeCompare(a.serial_number || '');
         });
-
-        sortedMachines.forEach(draft => {
-            const draftElement = createShippedElement(draft);
-            shippedList.appendChild(draftElement);
-        });
-
+        
+        sorted.forEach(draft => shippedList.appendChild(createShippedElement(draft)));
         shippedList.style.display = 'grid';
         noResults.style.display = 'none';
-
     } else {
         shippedList.style.display = 'none';
         noResults.style.display = 'block';
     }
 }
 
-// Вспомогательная функция для извлечения числа из заводского номера
 function extractNumberFromSerial(serial) {
     if (!serial) return null;
-    
-    // Ищем все цифры в строке
-    const numbers = serial.match(/\d+/g);
-    if (!numbers) return null;
-    
-    // Объединяем все найденные цифры в одно число
-    const fullNumber = numbers.join('');
-    
-    // Преобразуем в число
-    const num = parseInt(fullNumber, 10);
-    
-    // Проверяем, что получилось валидное число
+    const nums = serial.match(/\d+/g);
+    if (!nums) return null;
+    const num = parseInt(nums.join(''), 10);
     return isNaN(num) ? null : num;
 }
 
-// Создание элемента станка
 function createShippedElement(draft) {
-    const draftDiv = document.createElement('div');
-    draftDiv.className = 'draft-item';
-    draftDiv.classList.add('status-shipped');
-    draftDiv.classList.add('clickable-draft');
-    draftDiv.dataset.draftId = draft.id;
+    const div = document.createElement('div');
+    div.className = 'draft-item status-shipped clickable-draft';
+    div.dataset.draftId = draft.id;
 
-    // Форматируем дату
-    const updatedDate = formatDate(draft.updated_at);
-    const createdDate = formatDate(draft.created_at);
+    div.innerHTML = `<div class="draft-info">
+        <div class="info-item"><span class="info-label">Название:</span><span class="info-value draft-title">${Utils.escapeHtml(draft.display_name)}</span></div>
+        <div class="info-item"><span class="info-label">Тип работы:</span><span class="info-value">${Utils.escapeHtml(draft.work_type)}</span></div>
+        <div class="info-item"><span class="info-label">Заказчик:</span><span class="info-value customer-value" id="customer-${draft.id}">${Utils.escapeHtml(draft.customer || 'Не указан')}</span></div>
+    </div>`;
 
-    draftDiv.innerHTML = `
-        <div class="draft-info">
-            <div class="info-item">
-                <span class="info-label">Название:</span>
-                <span class="info-value draft-title">${draft.display_name}</span>
-            </div>
-
-            <div class="info-item">
-                <span class="info-label">Тип работы:</span>
-                <span class="info-value">${draft.work_type}</span>
-            </div>
-
-            <div class="info-item">
-                <span class="info-label">Заказчик:</span>
-                <span class="info-value customer-value" id="customer-${draft.id}">
-                    ${draft.customer || 'Не указан'}
-                </span>
-            </div>
-
-        </div>
-    `;
-
-    // Обработчик клика на весь элемент (кроме заказчика)
-    draftDiv.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('customer-value')) {
-            window.location.href = `/view-machine.html?id=${draft.id}`;
-        }
+    div.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('customer-value')) window.location.href = `/view-machine.html?id=${draft.id}`;
     });
-
-    return draftDiv;
+    return div;
 }
 
-// Обновление отображения заказчика в элементе списка
-function updateDraftCustomerDisplay(draftElement, customerData) {
-    const customerElement = draftElement.querySelector('.customer-value');
-    if (!customerElement) return;
+function updateDraftCustomerDisplay(el, data) {
+    const customerEl = el.querySelector('.customer-value');
+    if (!customerEl) return;
 
-    // Обновляем текст, если есть данные заказчика
-    if (customerData && customerData.customerName) {
-        customerElement.textContent = customerData.customerName;
-    }
+    if (data && data.customerName) customerEl.textContent = data.customerName;
+    customerEl.classList.remove('customer-clickable', 'customer-has-info');
+    customerEl.onclick = null;
+    customerEl.style.cursor = 'default';
 
-    // Убираем все классы для кликабельности
-    customerElement.classList.remove('customer-clickable');
-    customerElement.classList.remove('customer-has-info');
-
-    // Убираем обработчик клика
-    customerElement.onclick = null;
-    customerElement.style.cursor = 'default';
-
-    // Если есть дополнительные данные, просто показываем их
-    if (customerData && (
-        customerData.productionAddress ||
-        customerData.hotelName ||
-        customerData.contactPerson ||
-        customerData.contactPhone
-    )) {
-        // Добавляем только индикатор наличия информации
-        customerElement.classList.add('customer-has-info');
-
-        // Создаем текст для всплывающей подсказки
-        let tooltipText = customerData.customerName || customerElement.textContent;
-
-        if (customerData.productionAddress) {
-            tooltipText += `\n🏭 ${customerData.productionAddress}`;
-        }
-
-        if (customerData.hotelName) {
-            tooltipText += `\n🏨 ${customerData.hotelName}`;
-            if (customerData.hotelAddress) {
-                tooltipText += ` (${customerData.hotelAddress})`;
-            }
-        }
-
-        if (customerData.contactPerson) {
-            tooltipText += `\n👤 ${customerData.contactPerson}`;
-        }
-
-        if (customerData.contactPhone) {
-            tooltipText += `\n📞 ${customerData.contactPhone}`;
-        }
-
-        if (customerData.contactEmail) {
-            tooltipText += `\n📧 ${customerData.contactEmail}`;
-        }
-
-        customerElement.title = tooltipText;
-    } else {
-        // Убираем title если нет доп. информации
-        customerElement.title = '';
-    }
+    if (data && (data.productionAddress || data.hotelName || data.contactPerson || data.contactPhone)) {
+        customerEl.classList.add('customer-has-info');
+        let tooltip = data.customerName || customerEl.textContent;
+        if (data.productionAddress) tooltip += `\n🏭 ${data.productionAddress}`;
+        if (data.hotelName) { tooltip += `\n🏨 ${data.hotelName}`; if (data.hotelAddress) tooltip += ` (${data.hotelAddress})`; }
+        if (data.contactPerson) tooltip += `\n👤 ${data.contactPerson}`;
+        if (data.contactPhone) tooltip += `\n📞 ${data.contactPhone}`;
+        if (data.contactEmail) tooltip += `\n📧 ${data.contactEmail}`;
+        customerEl.title = tooltip;
+    } else { customerEl.title = ''; }
 }
 
-// Форматирование даты
-function formatDate(dateString) {
-    if (!dateString) return '-';
-
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('ru-RU', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-    } catch {
-        return dateString;
-    }
-}
-
-// Показ состояния "пусто"
 function showEmptyState(icon, title, message) {
     const shippedList = document.getElementById('shippedList');
-    if (!shippedList) return;
-
-    shippedList.innerHTML = `
-        <div class="empty-state">
-            <div class="icon">${icon}</div>
-            <h3>${title}</h3>
-            <p>${message}</p>
-        </div>
-    `;
-    shippedList.style.display = 'block';
+    if (shippedList) {
+        shippedList.innerHTML = `<div class="empty-state"><div class="icon">${icon}</div><h3>${Utils.escapeHtml(title)}</h3><p>${Utils.escapeHtml(message)}</p></div>`;
+        shippedList.style.display = 'block';
+    }
 }
 
-// Показ статуса
-function showStatus(message, type) {
-    const statusElement = document.getElementById('statusMessage');
-    if (!statusElement) return;
-
-    statusElement.textContent = message;
-    statusElement.className = `status-message ${type}`;
-    statusElement.style.display = 'block';
-
-    setTimeout(() => {
-        statusElement.style.display = 'none';
-    }, 3000);
-}
-
-// Глобальная функция для очистки поиска
 window.clearSearch = function() {
     const searchInput = document.getElementById('searchInput');
     const clearBtn = document.getElementById('clearSearch');
-
-    if (searchInput) {
-        searchInput.value = '';
-        searchInput.focus();
-        searchInput.dispatchEvent(new Event('input'));
-    }
-
-    if (clearBtn) {
-        clearBtn.classList.remove('visible');
-    }
-}
+    if (searchInput) { searchInput.value = ''; searchInput.focus(); searchInput.dispatchEvent(new Event('input')); }
+    if (clearBtn) clearBtn.classList.remove('visible');
+};
