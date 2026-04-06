@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: diamech
+    runtime: python
+    plan: free
+    buildCommand: |
+      pip install --upgrade pip
+      pip install --no-cache-dir --force-reinstall supabase==2.12.0
+      pip install --no-cache-dir -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DISABLE_POETRY
+        value: "true"
+      - key: PYTHON_VERSION
+        value: 3.11.0
