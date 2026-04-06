@@ -7,9 +7,15 @@ import zipfile
 import tempfile
 from openpyxl import load_workbook
 from werkzeug.utils import secure_filename
-from .config import Config
-from .image_utils import compress_image, allowed_file
-from .database import SupabaseDB
+
+try:
+    from .config import Config
+    from .image_utils import compress_image, allowed_file
+    from .database import SupabaseDB
+except ImportError:
+    from config import Config
+    from image_utils import compress_image, allowed_file
+    from database import SupabaseDB
 
 
 def generate_folder_name(data):

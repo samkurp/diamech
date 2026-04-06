@@ -3,7 +3,12 @@
 """
 import traceback
 from datetime import datetime
-from .config import Config
+
+# Обработка импортов с поддержкой относительных и абсолютных импортов
+try:
+    from .config import Config
+except ImportError:
+    from config import Config
 
 # Глобальная переменная для клиента Supabase
 supabase = None
@@ -481,7 +486,10 @@ class SupabaseDB:
     @staticmethod
     def save_request_file(draft_id, file):
         """Сохраняет файл заявки и извлекает текст"""
-        from .document_utils import extract_text_from_file
+        try:
+            from .document_utils import extract_text_from_file
+        except ImportError:
+            from document_utils import extract_text_from_file
         from werkzeug.utils import secure_filename
         
         try:
@@ -691,7 +699,10 @@ class SupabaseDB:
     @staticmethod
     def save_draft(data, images=None):
         """Сохраняет новый черновик со сжатыми изображениями"""
-        from .image_utils import compress_image, allowed_file
+        try:
+            from .image_utils import compress_image, allowed_file
+        except ImportError:
+            from image_utils import compress_image, allowed_file
         import base64
         import uuid
         from werkzeug.utils import secure_filename
@@ -818,7 +829,10 @@ class SupabaseDB:
     @staticmethod
     def update_draft(draft_id, data, images=None):
         """Обновляет существующий черновик с сохранением истории изменений"""
-        from .image_utils import compress_image, allowed_file
+        try:
+            from .image_utils import compress_image, allowed_file
+        except ImportError:
+            from image_utils import compress_image, allowed_file
         import base64
         from werkzeug.utils import secure_filename
         

@@ -8,11 +8,18 @@ import json
 import traceback
 from datetime import datetime
 
-from .config import Config
-from .database import SupabaseDB, supabase, init_supabase
-from .image_utils import compress_image, allowed_file
-from .balancing import calculate_balancing as calc_balancing, calculate_vector_balancing
-from .protocol_generator import generate_protocol
+try:
+    from .config import Config
+    from .database import SupabaseDB, supabase, init_supabase
+    from .image_utils import compress_image, allowed_file
+    from .balancing import calculate_balancing as calc_balancing, calculate_vector_balancing
+    from .protocol_generator import generate_protocol
+except ImportError:
+    from config import Config
+    from database import SupabaseDB, supabase, init_supabase
+    from image_utils import compress_image, allowed_file
+    from balancing import calculate_balancing as calc_balancing, calculate_vector_balancing
+    from protocol_generator import generate_protocol
 
 
 # Создаем Blueprint для API

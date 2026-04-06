@@ -3,7 +3,11 @@
 """
 import io
 from PIL import Image
-from .config import Config
+
+try:
+    from .config import Config
+except ImportError:
+    from config import Config
 
 
 def compress_image(image_data, max_size=None, quality=None):
