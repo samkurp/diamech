@@ -10,11 +10,74 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+<style>
+    .clickable-status {
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+    }
+
+    .clickable-status:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+        opacity: 0.9;
+    }
+
+    /* Модальное окно для выбора статуса */
+    .status-selector-modal .status-option {
+        padding: 12px 16px;
+        margin: 8px 0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid var(--border);
+        background: var(--white);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .status-option:hover {
+        background: var(--primary-bg);
+        border-color: var(--primary-light);
+        transform: translateX(4px);
+    }
+
+    .status-option.selected {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+    }
+
+    .status-option .status-badge {
+        width: 80px;
+        font-size: 0.55rem;
+        text-align: center;
+    }
+
+    .status-option .status-name {
+        flex: 1;
+        font-weight: 500;
+    }
+
+    .status-selector-modal .customer-modal-content {
+        max-width: 400px;
+    }
+</style>
     <div class="container">
         <div class="machine-header-minimal">
             <div id="machineTitle" class="machine-title-minimal">Загрузка...</div>
             <div id="machineSubtitle" class="machine-subtitle-minimal">Детальная информация</div>
-            <div id="machineStatus" class="machine-status-minimal">Загрузка...</div>
+            <!-- В строке со статусом, примерно строка 21-23 -->
+            <div id="machineStatus" class="machine-status-minimal clickable-status">Загрузка...</div>
         </div>
 
                 <div class="menu py-15">

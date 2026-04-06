@@ -7,6 +7,17 @@ let currentImages = [];
 let currentImageIndex = 0;
 let customerData = null;
 
+// Список возможных статусов
+const STATUS_OPTIONS = [
+    { value: 'Сборка', label: 'Сборка', class: 'sborka' },
+    { value: 'Собран', label: 'Собран', class: 'sobran' },
+    { value: 'На испытании', label: 'На испытании', class: 'на-испытании' },
+    { value: 'Испытан', label: 'Испытан', class: 'испытан' },
+    { value: 'На упаковке', label: 'На упаковке', class: 'на-упаковке' },
+    { value: 'Упакован', label: 'Упакован', class: 'упакован' },
+    { value: 'Отгружен', label: 'Отгружен', class: 'отгружен' }
+];
+
 // Инициализация
 document.addEventListener('DOMContentLoaded', () => {
     loadMachineData();
@@ -35,6 +46,7 @@ async function loadMachineData() {
             machineData = result.draft;
             displayMachineData();
             setupNotesClickHandler();
+            setupStatusClickHandler();
             loadMachineImages();
             await loadCustomerData();
             await loadRequestFileInfo();
@@ -202,10 +214,7 @@ async function restoreToWork() {
             showStatus('✅ Станок возвращен в работу', 'success');
 
             // Обновляем статус на странице
-            document.getElementById('machineStatus').textContent = 'Сборка';
-            document.getElementById('machineStatus').style.background = 'rgba(59, 130, 246, 0.3)';
-            document.getElementById('machineStatus').style.color = '#3b82f6';
-            document.getElementById('machineStatus').style.borderColor = 'rgba(59, 130, 246, 0.5)';
+            updateStatusDisplay('Сборка');
 
             // Обновляем кнопки
             updateActionButtons();
@@ -270,7 +279,8 @@ function displayMachineData() {
     document.getElementById('machineSubtitle').textContent = titleParts.slice(2).join(' ') || 'Детальная информация';
 
     // Статус
-    document.getElementById('machineStatus').textContent = data.machineStatus || 'Не указан';
+    const status = data.machineStatus || 'Не указан';
+    updateStatusDisplay(status);
 
     // Базовая информация
     document.getElementById('workType').textContent = data.workType || 'Не указан';
@@ -370,19 +380,57 @@ function displayMachineData() {
     }
 
     // Примечания
-    // В функции displayMachineData, замените существующий блок с примечаниями на этот:
-
-    // Примечания
     const notes = data.notes || '';
     const notesElement = document.getElementById('notes');
     if (notes) {
         notesElement.textContent = notes;
         notesElement.classList.remove('empty');
-   
     } else {
         notesElement.textContent = 'Примечаний нет';
         notesElement.classList.add('empty');
+    }
+}
 
+// Обновление отображения статуса на странице
+function updateStatusDisplay(status) {
+    const statusElement = document.getElementById('machineStatus');
+    if (!statusElement) return;
+
+    statusElement.textContent = status;
+
+    // Обновляем класс для стилизации
+    const statusClassMap = {
+        'Сборка': 'sborka',
+        'Собран': 'sobran',
+        'На испытании': 'na-ispytanii',
+        'Испытан': 'ispytan',
+        'На упаковке': 'na-upakovke',
+        'Упакован': 'upakovan',
+        'Отгружен': 'otgruzhen'
+    };
+
+    const className = statusClassMap[status] || 'sborka';
+
+    // Удаляем старые классы статуса
+    statusElement.classList.remove('sborka', 'sobran', 'na-ispytanii', 'ispytan', 'na-upakovke', 'upakovan', 'otgruzhen');
+    statusElement.classList.add(className);
+
+    // Обновляем стиль
+    const styleMap = {
+        'Сборка': { background: 'rgba(59, 130, 246, 0.3)', color: '#3b82f6', borderColor: 'rgba(59, 130, 246, 0.5)' },
+        'Собран': { background: 'rgba(100, 116, 139, 0.3)', color: '#475569', borderColor: 'rgba(100, 116, 139, 0.5)' },
+        'На испытании': { background: 'rgba(245, 158, 11, 0.3)', color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.5)' },
+        'Испытан': { background: 'rgba(16, 185, 129, 0.3)', color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.5)' },
+        'На упаковке': { background: 'rgba(139, 92, 246, 0.3)', color: '#8b5cf6', borderColor: 'rgba(139, 92, 246, 0.5)' },
+        'Упакован': { background: 'rgba(236, 72, 153, 0.3)', color: '#ec4899', borderColor: 'rgba(236, 72, 153, 0.5)' },
+        'Отгружен': { background: 'rgba(156, 163, 175, 0.3)', color: '#9ca3af', borderColor: 'rgba(156, 163, 175, 0.5)' }
+    };
+
+    const style = styleMap[status];
+    if (style) {
+        statusElement.style.background = style.background;
+        statusElement.style.color = style.color;
+        statusElement.style.borderColor = style.borderColor;
     }
 }
 
@@ -748,11 +796,9 @@ async function saveNotes() {
             if (newNotes) {
                 notesElement.textContent = newNotes;
                 notesElement.classList.remove('empty');
-
             } else {
                 notesElement.textContent = 'Примечаний нет';
                 notesElement.classList.add('empty');
-
             }
 
             showStatus('✅ Примечания успешно сохранены', 'success');
@@ -767,6 +813,222 @@ async function saveNotes() {
     } finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = originalText;
+    }
+}
+
+// ========== ФУНКЦИИ ДЛЯ РАБОТЫ СО СТАТУСОМ ==========
+
+// Инициализация кликабельного блока статуса
+function setupStatusClickHandler() {
+    const statusBlock = document.getElementById('machineStatus');
+    if (statusBlock) {
+        // Добавляем класс для кликабельности, если его нет
+        if (!statusBlock.classList.contains('clickable-status')) {
+            statusBlock.classList.add('clickable-status');
+        }
+
+        statusBlock.style.cursor = 'pointer';
+        statusBlock.style.transition = 'all 0.2s ease';
+
+        statusBlock.addEventListener('mouseenter', () => {
+            statusBlock.style.transform = 'translateY(-1px)';
+            statusBlock.style.opacity = '0.9';
+        });
+
+        statusBlock.addEventListener('mouseleave', () => {
+            statusBlock.style.transform = '';
+            statusBlock.style.opacity = '';
+        });
+
+        statusBlock.addEventListener('click', () => openStatusModal());
+    }
+}
+
+// Получение описания статуса
+function getStatusDescription(status) {
+    const descriptions = {
+        'Сборка': 'Оборудование находится в процессе сборки',
+        'Собран': 'Оборудование собрано, ожидает проверки',
+        'На испытании': 'Оборудование проходит испытания',
+        'Испытан': 'Испытания пройдены успешно',
+        'На упаковке': 'Оборудование готовится к упаковке',
+        'Упакован': 'Оборудование упаковано',
+        'Отгружен': 'Оборудование отгружено заказчику'
+    };
+    return descriptions[status] || status;
+}
+
+// Открытие модального окна для выбора статуса
+function openStatusModal() {
+    // Создаем модальное окно динамически
+    let modal = document.getElementById('statusSelectorModal');
+
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'statusSelectorModal';
+        modal.className = 'customer-modal status-selector-modal';
+        modal.innerHTML = `
+            <div class="customer-modal-content">
+                <div class="customer-modal-header">
+                    <div class="customer-modal-title">
+                        <span class="modal-icon">🔄</span>
+                        <h3>Изменение статуса станка</h3>
+                    </div>
+                    <span class="customer-modal-close" onclick="closeStatusModal()">&times;</span>
+                </div>
+                <div class="customer-modal-body">
+                    <div id="statusOptionsList" class="status-options-list"></div>
+                </div>
+                <div class="customer-modal-actions">
+                    <button type="button" class="btn-cancel-customer" onclick="closeStatusModal()">✕ Отмена</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        // Закрытие по клику вне модального окна
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                closeStatusModal();
+            }
+        });
+
+        // Закрытие по Escape
+        document.addEventListener('keydown', function(e) {
+            if (modal.style.display === 'block' && e.key === 'Escape') {
+                closeStatusModal();
+            }
+        });
+    }
+
+    // Получаем текущий статус
+    const currentStatus = machineData?.data?.machineStatus || machineData?.machine_status || 'Сборка';
+
+    // Заполняем список статусов
+    const optionsList = document.getElementById('statusOptionsList');
+    optionsList.innerHTML = '';
+
+    STATUS_OPTIONS.forEach(option => {
+        const optionDiv = document.createElement('div');
+        optionDiv.className = 'status-option';
+        if (option.value === currentStatus) {
+            optionDiv.classList.add('selected');
+        }
+
+        optionDiv.innerHTML = `
+            <span class="status-badge status-value ${option.class}">${option.label}</span>
+            <span class="status-name">${getStatusDescription(option.value)}</span>
+        `;
+
+        optionDiv.addEventListener('click', () => selectStatus(option.value));
+        optionsList.appendChild(optionDiv);
+    });
+
+    // Показываем модальное окно
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+// Закрытие модального окна статуса
+function closeStatusModal() {
+    const modal = document.getElementById('statusSelectorModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+}
+
+// Выбор и сохранение нового статуса
+async function selectStatus(newStatus) {
+    if (!machineData) return;
+
+    const currentStatus = machineData?.data?.machineStatus || machineData?.machine_status || 'Сборка';
+
+    if (currentStatus === newStatus) {
+        closeStatusModal();
+        return;
+    }
+
+    // Подтверждение изменения статуса
+    const confirmMessage = `Изменить статус станка с "${currentStatus}" на "${newStatus}"?`;
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+
+    // Закрываем модальное окно выбора статуса
+    closeStatusModal();
+
+    // Показываем индикатор загрузки
+    const statusElement = document.getElementById('machineStatus');
+    const originalText = statusElement.innerHTML;
+    statusElement.innerHTML = '⏳ Сохранение...';
+    statusElement.style.opacity = '0.7';
+
+    try {
+        // Получаем все текущие данные станка
+        const currentData = machineData.data || {};
+
+        // Создаём FormData для отправки
+        const formData = new FormData();
+
+        // Копируем все поля
+        for (const [key, value] of Object.entries(currentData)) {
+            if (key !== 'machineStatus' && value !== undefined && value !== null && value !== '') {
+                formData.append(key, value);
+            }
+        }
+
+        // Добавляем новый статус
+        formData.append('machineStatus', newStatus);
+
+        // Обязательно передаём draft_id для upsert
+        formData.append('draft_id', machineData.id);
+
+        // Отправляем на универсальный эндпоинт save-draft
+        const response = await fetch(`${API_BASE}/save-draft`, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Обновляем локальные данные
+            if (machineData.data) {
+                machineData.data.machineStatus = newStatus;
+            }
+            machineData.machine_status = newStatus;
+
+            // Обновляем отображение статуса на странице
+            updateStatusDisplay(newStatus);
+
+            showStatus(`✅ Статус изменён на "${newStatus}"`, 'success');
+
+            // Если статус изменился на "Отгружен", обновляем кнопки
+            if (newStatus === 'Отгружен') {
+                updateActionButtons();
+                // Предлагаем перейти на страницу отгруженных
+                setTimeout(() => {
+                    if (confirm('Станок отгружен. Перейти на страницу отгруженных станков?')) {
+                        window.location.href = '/static/shipped.html';
+                    }
+                }, 1000);
+            } else if (currentStatus === 'Отгружен' && newStatus !== 'Отгружен') {
+                // Если возвращаем из отгруженных в работу
+                updateActionButtons();
+            }
+        } else {
+            throw new Error(result.error || 'Ошибка сохранения статуса');
+        }
+
+    } catch (error) {
+        console.error('Ошибка сохранения статуса:', error);
+        showStatus(`❌ Ошибка: ${error.message}`, 'error');
+        // Восстанавливаем отображение
+        updateStatusDisplay(currentStatus);
+    } finally {
+        statusElement.innerHTML = originalText;
+        statusElement.style.opacity = '';
     }
 }
 
