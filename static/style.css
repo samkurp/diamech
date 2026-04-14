@@ -2145,20 +2145,8 @@ small {
 
 .transition { transition: var(--transition); }
 
-/* Mobile Hint */
-.mobile-hint {
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 0.7rem;
-    margin-top: 10px;
-    display: none;
-}
 
-@media (max-width: 768px) {
-    .mobile-hint {
-        display: block;
-    }
-}
+
 
 /* Grid */
 .grid-cols-2 {

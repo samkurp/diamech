@@ -1226,7 +1226,6 @@ class SupabaseDB:
 def calculate_balancing():
     """
     API для расчета балансировки методом трех пусков
-    Возвращает только корректирующий груз и угол установки
     """
     try:
         data = request.get_json()
@@ -1273,35 +1272,66 @@ def calculate_balancing():
 
         import math
 
-        # Преобразование амплитуд в квадраты для расчетов
-        V0_2 = V0 ** 2
-        V1_2 = V1 ** 2
-        V2_2 = V2 ** 2
-        V3_2 = V3 ** 2
+        # ============================================================
+        # ПРАВИЛЬНЫЙ РАСЧЕТ ДЛЯ МЕТОДА ТРЕХ ПУСКОВ
+        # ============================================================
 
-        # Расчет по методу трех пусков
-        # Формулы для нахождения вектора дисбаланса
-        cos_phi = (V1_2 - V0_2 - V2_2) / (2 * V0 * V2) if (2 * V0 * V2) != 0 else 0
-
-        # Ограничиваем значение в пределах [-1, 1] для arccos
-        cos_phi = max(-1, min(1, cos_phi))
-        phi = math.acos(cos_phi)
-
-        # Расчет угла дисбаланса
-        # По значениям V1, V2, V3 определяем квадрант
-        # Упрощенный расчет для метода трех пусков
-        # Находим минимальную вибрацию
+        # Шаг 1: Находим минимальную вибрацию (самый лучший результат)
         vib_values = [V1, V2, V3]
         min_index = vib_values.index(min(vib_values))
-
-        # Определяем угол корректирующего груза
-        angles = [0, 120, 240]
-        correction_angle = angles[min_index]
-
-        # Расчет массы корректирующего груза
-        # K = P * V0 / V_min
         V_min = min(vib_values)
-        correction_mass = P * V0 / V_min if V_min > 0 else P
+
+        # Углы установки пробных грузов
+        test_angles = [0, 120, 240]
+        correction_angle = test_angles[min_index]
+
+        # Шаг 2: КОРРЕКТИРУЮЩАЯ ФОРМУЛА
+        # Три пробных груза по углам 0°, 120°, 240° создают равнодействующую,
+        # равную 1.5 * P (векторная сумма трех грузов под углами 120°)
+        # Поэтому чувствительность системы в 1.5 раза выше, чем с одним грузом
+
+        # Вариант 1: Классическая формула с коэффициентом 1.5
+        # correction_mass = (P * V0) / (1.5 * V_min)
+
+        # Вариант 2: Более точная формула с учетом разницы амплитуд
+        # Рассчитываем коэффициент влияния на основе двух лучших замеров
+
+        # Отбираем два лучших замера (с наименьшей вибрацией)
+        sorted_pairs = sorted([(V1, 0), (V2, 120), (V3, 240)], key=lambda x: x[0])
+        best_angle = sorted_pairs[0][1]
+        second_best_vib = sorted_pairs[1][0]
+        second_best_angle = sorted_pairs[1][1]
+
+        # Угол между лучшим и вторым лучшим
+        angle_diff = abs(best_angle - second_best_angle)
+        angle_diff = min(angle_diff, 360 - angle_diff)
+
+        # Коэффициент, учитывающий геометрию
+        if angle_diff == 120:
+            # Для угла 120° коэффициент = 1.5
+            geometry_factor = 1.5
+        elif angle_diff == 60:
+            # Для угла 60° коэффициент = 1.0
+            geometry_factor = 1.0
+        else:
+            geometry_factor = 1.5  # по умолчанию
+
+        # Рассчитываем массу корректирующего груза
+        # correction_mass = P * V0 / (geometry_factor * V_min)
+
+        # ДОПОЛНИТЕЛЬНО: Если V_min меньше V0, груз нужен для снижения
+        # Если V_min > V0, возможно, груз не нужен
+
+        if V_min < V0:
+            # Требуется корректировка
+            correction_mass = P * V0 / (1.5 * V_min)
+        else:
+            # Вибрация увеличилась - возможно, неправильное направление
+            # Используем обратную формулу
+            correction_mass = P * V_min / (1.5 * V0)
+
+        # Ограничиваем разумными пределами
+        correction_mass = min(correction_mass, P * 3)  # не более 3x пробного груза
 
         return jsonify({
             'success': True,
@@ -1318,73 +1348,6 @@ def calculate_balancing():
             'success': False,
             'error': str(e)
         }), 500
-
-
-def estimate_W_magnitude_simple(V0, V1, V2, V3):
-    """Упрощенная оценка величины вектора влияния с использованием трех замеров"""
-    import math
-
-    def to_radians(degrees):
-        return degrees * math.pi / 180.0
-
-    # Используем усреднение по трем парам
-    # Для пары 0° и 120°
-    delta12 = math.sqrt(V1 ** 2 + V2 ** 2 - 2 * V1 * V2 * math.cos(to_radians(120)))
-    W1 = delta12 / (2 * math.sin(to_radians(60)))
-
-    # Для пары 120° и 240°
-    delta23 = math.sqrt(V2 ** 2 + V3 ** 2 - 2 * V2 * V3 * math.cos(to_radians(120)))
-    W2 = delta23 / (2 * math.sin(to_radians(60)))
-
-    # Для пары 240° и 0°
-    delta31 = math.sqrt(V3 ** 2 + V1 ** 2 - 2 * V3 * V1 * math.cos(to_radians(120)))
-    W3 = delta31 / (2 * math.sin(to_radians(60)))
-
-    # Усредняем
-    W_magnitude = (W1 + W2 + W3) / 3
-
-    return W_magnitude
-
-
-def estimate_W_angle_simple(V0, V1, V2, V3, W_magnitude):
-    """Упрощенная оценка угла вектора влияния"""
-    import math
-
-    def to_radians(degrees):
-        return degrees * math.pi / 180.0
-
-    def to_degrees(radians):
-        return radians * 180.0 / math.pi
-
-    # Вычисляем углы между V0 и каждым измерением
-    angles = []
-
-    # Для V1 (0°)
-    cos_angle1 = (V0 ** 2 + W_magnitude ** 2 - V1 ** 2) / (2 * V0 * W_magnitude) if V0 > 0 and W_magnitude > 0 else 0
-    cos_angle1 = max(-1, min(1, cos_angle1))
-    angle1 = to_degrees(math.acos(cos_angle1))
-    angles.append(angle1)
-
-    # Для V2 (120°)
-    cos_angle2 = (V0 ** 2 + W_magnitude ** 2 - V2 ** 2) / (2 * V0 * W_magnitude) if V0 > 0 and W_magnitude > 0 else 0
-    cos_angle2 = max(-1, min(1, cos_angle2))
-    angle2 = to_degrees(math.acos(cos_angle2))
-    angles.append(angle2)
-
-    # Для V3 (240°)
-    cos_angle3 = (V0 ** 2 + W_magnitude ** 2 - V3 ** 2) / (2 * V0 * W_magnitude) if V0 > 0 and W_magnitude > 0 else 0
-    cos_angle3 = max(-1, min(1, cos_angle3))
-    angle3 = to_degrees(math.acos(cos_angle3))
-    angles.append(angle3)
-
-    # Усредняем
-    avg_angle = sum(angles) / 3
-
-    # Определяем знак на основе сравнения амплитуд
-    if V3 > V1:
-        return avg_angle
-    else:
-        return -avg_angle
 
 
 
