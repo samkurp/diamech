@@ -1223,26 +1223,12 @@ class SupabaseDB:
 # ========== API ЭНДПОИНТЫ ==========
 
 # ========== БАЛАНСИРОВКА ВЕКТОРНЫМ МЕТОДОМ С НАКОПЛЕНИЕМ КВ ==========
-
-# Глобальное хранилище для накопления КВ между пусками в рамках одной сессии
-# Каждый новый расчет - новая сессия, но в рамках одного ротора КВ накапливается
-current_session_K = None  # Текущий накопленный КВ
-session_measurements = []  # История измерений в текущей сессии
-
-
 @app.route('/api/balancing/vector', methods=['POST'])
 def calculate_vector_balancing():
     """
-    API для расчета балансировки векторным методом с накоплением КВ от пуска к пуску.
-
-    Алгоритм:
-    1. Первый пуск: пользователь вводит V0, φ0, Vt, φt, P -> вычисляем КВ
-    2. Второй пуск: пользователь вводит новые данные (после установки груза)
-       -> пересчитываем КВ с учетом предыдущего (усреднение)
-    3. Каждый следующий пуск уточняет КВ
+    API для расчета балансировки векторным методом (с фазоизмерительной аппаратурой)
+    Возвращает корректирующий груз и угол установки (развернутый на 180°)
     """
-    global current_session_K, session_measurements
-
     try:
         data = request.get_json()
 
@@ -1255,24 +1241,9 @@ def calculate_vector_balancing():
         # Получаем входные параметры
         V0 = data.get('V0')  # исходная амплитуда вибрации (мкм)
         phi0 = data.get('phi0')  # исходная фаза вибрации (градусы)
-        Vt = data.get('Vt')  # амплитуда вибрации с грузом (мкм)
-        phi_t = data.get('phi_t')  # фаза вибрации с грузом (градусы)
-        P = data.get('P')  # масса установленного груза (г)
-
-        # Новый параметр: угол, на котором установлен груз (по умолчанию 0 для пробного)
-        angle_installed = data.get('angle_installed', 0)
-
-        # Флаг: это корректирующий пуск? (если True, то груз уже стоит не на 0°)
-        is_correction = data.get('is_correction', False)
-
-        # Флаг: сбросить накопление и начать новую сессию
-        reset_session = data.get('reset_session', False)
-
-        # Сброс сессии если нужно
-        if reset_session:
-            current_session_K = None
-            session_measurements = []
-            print("\n🔄 Сессия балансировки сброшена")
+        Vt = data.get('Vt')  # амплитуда вибрации с пробным грузом (мкм)
+        phi_t = data.get('phi_t')  # фаза вибрации с пробным грузом (градусы)
+        P = data.get('P')  # масса пробного груза (г)
 
         # Валидация
         required_fields = ['V0', 'phi0', 'Vt', 'phi_t', 'P']
@@ -1289,7 +1260,6 @@ def calculate_vector_balancing():
             Vt = float(Vt)
             phi_t = float(phi_t)
             P = float(P)
-            angle_installed = float(angle_installed)
         except ValueError:
             return jsonify({
                 'success': False,
@@ -1310,133 +1280,52 @@ def calculate_vector_balancing():
         def to_degrees(radians):
             return radians * 180.0 / math.pi
 
-        def to_complex(amp, phase_deg):
-            rad = to_radians(phase_deg)
-            return amp * (math.cos(rad) + 1j * math.sin(rad))
+        print(f"\n=== Расчет векторным методом ===")
+        print(f"V0={V0} мкм, φ0={phi0}°")
+        print(f"Vt={Vt} мкм, φt={phi_t}°")
+        print(f"P={P} г")
 
-        print(f"\n{'=' * 60}")
-        print(f"РАСЧЕТ ВЕКТОРНОЙ БАЛАНСИРОВКИ")
-        print(f"{'=' * 60}")
-        print(f"V0 = {V0} мкм @ {phi0}°")
-        print(f"Vt = {Vt} мкм @ {phi_t}°")
-        print(f"P = {P} г @ {angle_installed}°")
-        print(f"Тип пуска: {'Корректирующий' if is_correction else 'Пробный'}")
+        # Шаг 1: Представляем векторы в комплексной форме
+        # Вектор исходной вибрации
+        V0_complex = V0 * (math.cos(to_radians(phi0)) + 1j * math.sin(to_radians(phi0)))
 
-        # Текущий вектор вибрации
-        V0_complex = to_complex(V0, phi0)
-        Vt_complex = to_complex(Vt, phi_t)
+        # Вектор вибрации с пробным грузом
+        Vt_complex = Vt * (math.cos(to_radians(phi_t)) + 1j * math.sin(to_radians(phi_t)))
 
-        # Вектор установленного груза
-        P_complex = to_complex(P, angle_installed)
+        # Шаг 2: Находим вектор влияния пробного груза W
+        # W = Vt - V0 (векторная разность)
+        W_complex = Vt_complex - V0_complex
 
-        # Вектор изменения вибрации
-        delta_V = Vt_complex - V0_complex
+        # Шаг 3: Вычисляем удельное влияние пробного груза
+        # K = W / P (вектор удельного влияния)
+        K_complex = W_complex / P
 
-        # Вычисляем КВ для этого пуска
-        if abs(P_complex) < 0.0001:
-            return jsonify({
-                'success': False,
-                'error': 'Масса груза слишком мала'
-            }), 400
+        # Шаг 4: Расчет корректирующего груза (уже с противоположным направлением)
+        G_comp_complex = -V0_complex / K_complex
+        correction_mass = abs(G_comp_complex)
+        correction_angle = to_degrees(math.atan2(G_comp_complex.imag, G_comp_complex.real))
 
-        K_new = delta_V / P_complex
+        # Приводим угол к диапазону 0-360
+        correction_angle = correction_angle % 360
 
-        print(f"\n📊 КВ текущего пуска:")
-        print(f"   |K| = {abs(K_new):.4f}")
-        print(f"   угол K = {to_degrees(math.atan2(K_new.imag, K_new.real)):.1f}°")
+        print(f"Корректирующий груз: {correction_mass:.3f} г @ {correction_angle:.1f}°")
 
-        # НАКОПЛЕНИЕ КВ: усредняем с предыдущими измерениями
-        if current_session_K is not None and len(session_measurements) > 0:
-            # Весовое усреднение: старый КВ имеет вес = количество предыдущих измерений
-            old_count = len(session_measurements)
-            # Новый КВ = (старый_КВ * старый_вес + новый_КВ) / (старый_вес + 1)
-            K_used = (current_session_K * old_count + K_new) / (old_count + 1)
-
-            print(f"\n📈 НАКОПЛЕННЫЙ КВ (усредненный):")
-            print(f"   Было: |K| = {abs(current_session_K):.4f}")
-            print(f"   Стало: |K| = {abs(K_used):.4f}")
-            print(f"   Количество измерений: {old_count + 1}")
-        else:
-            K_used = K_new
-            print(f"\n📈 Первое измерение, КВ сохранен")
-
-        # Сохраняем для следующих пусков
-        current_session_K = K_used
-        session_measurements.append({
-            'V0': V0, 'phi0': phi0,
-            'Vt': Vt, 'phi_t': phi_t,
-            'P': P, 'angle': angle_installed,
-            'K_magnitude': abs(K_new),
-            'K_angle': to_degrees(math.atan2(K_new.imag, K_new.real))
-        })
-
-        # РАСЧЕТ КОРРЕКТИРУЮЩЕГО ГРУЗА
-        if abs(K_used) < 0.0001:
-            return jsonify({
-                'success': False,
-                'error': 'Коэффициент влияния слишком мал'
-            }), 400
-
-        # Корректирующий груз: G_corr = -V0 / K
-        G_corr = -V0_complex / K_used
-        correction_mass = abs(G_corr)
-        correction_angle = to_degrees(math.atan2(G_corr.imag, G_corr.real))
-
-        # Разворот на 180° (грузим в противоположную сторону)
-        correction_angle = (correction_angle + 180) % 360
-
-        # Ожидаемая остаточная вибрация
-        V_res = V0_complex + K_used * G_corr
-        expected_vibration = abs(V_res)
-
-        print(f"\n🎯 РЕЗУЛЬТАТ:")
-        print(f"   Корректирующий груз: {correction_mass:.3f} г")
-        print(f"   Угол установки: {correction_angle:.1f}°")
-        print(f"   Ожидаемая вибрация: {expected_vibration:.1f} мкм")
-        print(f"   Всего измерений в сессии: {len(session_measurements)}")
-        print(f"{'=' * 60}\n")
-
-        # Формируем ответ
-        response = {
+        # Возвращаем массу и угол (угол округляем до целого)
+        return jsonify({
             'success': True,
             'result': {
                 'correction_mass': round(correction_mass, 3),
-                'correction_angle': round(correction_angle, 1),
-                'expected_vibration': round(expected_vibration, 1)
-            },
-            'session_info': {
-                'measurements_count': len(session_measurements),
-                'current_K_magnitude': round(abs(K_used), 4),
-                'current_K_angle': round(to_degrees(math.atan2(K_used.imag, K_used.real)), 1)
+                'correction_angle': round(correction_angle)  # Округляем до целого
             }
-        }
-
-        # Если это уже не первый пуск, показываем как улучшился КВ
-        if len(session_measurements) > 1:
-            response['session_info']['improvement'] = f"КВ уточнен после {len(session_measurements)} пусков"
-
-        return jsonify(response)
+        })
 
     except Exception as e:
-        print(f"❌ Ошибка расчета: {e}")
+        print(f"❌ Ошибка векторного расчета балансировки: {e}")
         traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
         }), 500
-
-
-@app.route('/api/balancing/vector/reset', methods=['POST'])
-def reset_balancing_session():
-    """Сбрасывает накопленный КВ для новой сессии балансировки"""
-    global current_session_K, session_measurements
-    current_session_K = None
-    session_measurements = []
-    return jsonify({
-        'success': True,
-        'message': 'Сессия балансировки сброшена'
-    })
-
 
 
 @app.route('/api/drafts/<draft_id>/request-text', methods=['GET'])
