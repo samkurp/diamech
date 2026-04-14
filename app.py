@@ -1226,6 +1226,7 @@ class SupabaseDB:
 def calculate_balancing():
     """
     API для расчета балансировки методом трех пусков
+    Правильная реализация с геометрическим расчетом
     """
     try:
         data = request.get_json()
@@ -1237,11 +1238,11 @@ def calculate_balancing():
             }), 400
 
         # Получаем входные параметры
-        V0 = data.get('V0')
-        V1 = data.get('V1')
-        V2 = data.get('V2')
-        V3 = data.get('V3')
-        P = data.get('P')
+        V0 = data.get('V0')  # исходная вибрация (без груза)
+        V1 = data.get('V1')  # вибрация с грузом 0°
+        V2 = data.get('V2')  # вибрация с грузом 120°
+        V3 = data.get('V3')  # вибрация с грузом 240°
+        P = data.get('P')  # масса пробного груза (г)
 
         # Валидация
         required_fields = ['V0', 'V1', 'V2', 'V3', 'P']
@@ -1272,72 +1273,90 @@ def calculate_balancing():
 
         import math
 
+        print(f"\n{'=' * 50}")
+        print(f"РАСЧЕТ БАЛАНСИРОВКИ - МЕТОД ТРЕХ ПУСКОВ")
+        print(f"{'=' * 50}")
+        print(f"Исходная вибрация V0 = {V0} мкм")
+        print(f"Пробный груз P = {P} г")
+        print(f"V1 (0°):   {V1} мкм")
+        print(f"V2 (120°): {V2} мкм")
+        print(f"V3 (240°): {V3} мкм")
+
         # ============================================================
         # ПРАВИЛЬНЫЙ РАСЧЕТ ДЛЯ МЕТОДА ТРЕХ ПУСКОВ
         # ============================================================
 
-        # Шаг 1: Находим минимальную вибрацию (самый лучший результат)
+        # Шаг 1: Находим минимальную вибрацию (точка с наименьшим дисбалансом)
         vib_values = [V1, V2, V3]
         min_index = vib_values.index(min(vib_values))
         V_min = min(vib_values)
 
         # Углы установки пробных грузов
         test_angles = [0, 120, 240]
-        correction_angle = test_angles[min_index]
+        best_angle = test_angles[min_index]
 
-        # Шаг 2: КОРРЕКТИРУЮЩАЯ ФОРМУЛА
-        # Три пробных груза по углам 0°, 120°, 240° создают равнодействующую,
-        # равную 1.5 * P (векторная сумма трех грузов под углами 120°)
-        # Поэтому чувствительность системы в 1.5 раза выше, чем с одним грузом
+        print(f"\n📊 Результаты замеров:")
+        print(f"   Лучший результат: {V_min} мкм при угле {best_angle}°")
 
-        # Вариант 1: Классическая формула с коэффициентом 1.5
-        # correction_mass = (P * V0) / (1.5 * V_min)
+        # Шаг 2: Определяем, нужна ли балансировка
+        if V_min <= V0:
+            # Вибрация уменьшилась - балансировка возможна
+            print(f"   ✅ Вибрация уменьшилась, балансировка эффективна")
 
-        # Вариант 2: Более точная формула с учетом разницы амплитуд
-        # Рассчитываем коэффициент влияния на основе двух лучших замеров
-
-        # Отбираем два лучших замера (с наименьшей вибрацией)
-        sorted_pairs = sorted([(V1, 0), (V2, 120), (V3, 240)], key=lambda x: x[0])
-        best_angle = sorted_pairs[0][1]
-        second_best_vib = sorted_pairs[1][0]
-        second_best_angle = sorted_pairs[1][1]
-
-        # Угол между лучшим и вторым лучшим
-        angle_diff = abs(best_angle - second_best_angle)
-        angle_diff = min(angle_diff, 360 - angle_diff)
-
-        # Коэффициент, учитывающий геометрию
-        if angle_diff == 120:
-            # Для угла 120° коэффициент = 1.5
+            # Рассчитываем коэффициент влияния
+            # Векторная сумма трех грузов под углами 120° дает равнодействующую = 1.5 * P
+            # Потому что геометрическая сумма трех векторов под 120°:
+            # |F| = P * sqrt(1² + 1² + 1² + 2*cos120 + 2*cos120 + 2*cos120) = P * 1.5
             geometry_factor = 1.5
-        elif angle_diff == 60:
-            # Для угла 60° коэффициент = 1.0
-            geometry_factor = 1.0
+
+            # Расчет корректирующей массы
+            # M_kor = P * (V0 - V_min) / (1.5 * V_min)
+            # Формула основана на том, что снижение вибрации пропорционально массе груза
+            correction_mass = P * (V0 - V_min) / (geometry_factor * V_min)
+
+            # Угол установки корректирующего груза
+            # Ставим груз в противоположную сторону от лучшего замера
+            correction_angle = (best_angle + 180) % 360
+
         else:
-            geometry_factor = 1.5  # по умолчанию
+            # Вибрация увеличилась во всех точках - возможно, груз слишком мал
+            # или направление выбрано неверно
+            print(f"   ⚠️ Вибрация увеличилась во всех точках")
+            print(f"   Возможно, требуется увеличить пробный груз")
 
-        # Рассчитываем массу корректирующего груза
-        # correction_mass = P * V0 / (geometry_factor * V_min)
+            # Используем альтернативный расчет через среднее значение
+            V_avg = (V1 + V2 + V3) / 3
+            delta_V = V_avg - V0
 
-        # ДОПОЛНИТЕЛЬНО: Если V_min меньше V0, груз нужен для снижения
-        # Если V_min > V0, возможно, груз не нужен
+            if delta_V > 0:
+                correction_mass = P * V0 / (1.5 * delta_V)
+            else:
+                correction_mass = P * V0 / (1.5 * V_avg)
 
-        if V_min < V0:
-            # Требуется корректировка
-            correction_mass = P * V0 / (1.5 * V_min)
-        else:
-            # Вибрация увеличилась - возможно, неправильное направление
-            # Используем обратную формулу
-            correction_mass = P * V_min / (1.5 * V0)
+            # Угол ставим в точку с наименьшим увеличением
+            correction_angle = (best_angle + 180) % 360
 
-        # Ограничиваем разумными пределами
+        # Шаг 3: Ограничиваем массу разумными пределами
         correction_mass = min(correction_mass, P * 3)  # не более 3x пробного груза
+        correction_mass = max(correction_mass, P * 0.3)  # не менее 0.3x пробного груза
+
+        # Шаг 4: Ожидаемый эффект после установки груза
+        expected_vibration = V0 * (1 - correction_mass * geometry_factor / P * (V_min / V0))
+        expected_vibration = max(expected_vibration, 0)
+
+        print(f"\n🎯 РЕЗУЛЬТАТ РАСЧЕТА:")
+        print(f"   Корректирующий груз: {correction_mass:.3f} г")
+        print(f"   Угол установки: {correction_angle:.1f}°")
+        print(f"   Ожидаемая вибрация после балансировки: ~{expected_vibration:.1f} мкм")
+        print(f"{'=' * 50}\n")
 
         return jsonify({
             'success': True,
             'result': {
                 'correction_mass': round(correction_mass, 3),
-                'correction_angle': round(correction_angle, 1)
+                'correction_angle': round(correction_angle, 1),
+                'expected_vibration': round(expected_vibration, 1),
+                'method': 'three_runs'
             }
         })
 
@@ -1358,7 +1377,7 @@ def calculate_balancing():
 def calculate_vector_balancing():
     """
     API для расчета балансировки векторным методом (с фазоизмерительной аппаратурой)
-    Возвращает только корректирующий груз и угол установки
+    Возвращает корректирующий груз и угол установки (развернутый на 180°)
     """
     try:
         data = request.get_json()
@@ -1433,17 +1452,27 @@ def calculate_vector_balancing():
 
         # Шаг 4: Расчет корректирующего груза
         # Корректирующий груз должен создать вектор, равный по величине V0, но противоположный по направлению
-        # G = -V0 / K
-        G_complex = -V0_complex / K_complex
-        correction_mass = abs(G_complex)
-        correction_angle = to_degrees(math.atan2(G_complex.imag, G_complex.real))
-        if correction_angle < 0:
-            correction_angle += 360
+        # Сначала находим груз для компенсации: G_comp = -V0 / K
+        G_comp_complex = -V0_complex / K_complex
+        correction_mass = abs(G_comp_complex)
 
-        print(f"Корректирующий груз: {correction_mass:.3f} г @ {correction_angle:.1f}°")
+        # Угол установки корректирующего груза (куда его ставить)
+        # ВАЖНО: Финальная фаза должна быть развернута на 180 градусов
+        # Потому что груз ставится не туда, куда показывает вектор дисбаланса,
+        # а в противоположную сторону (на 180° разворота)
+        correction_angle = to_degrees(math.atan2(G_comp_complex.imag, G_comp_complex.real))
+
+        # Разворачиваем фазу на 180 градусов (добавляем pi)
+        correction_angle += 180
+
+        # Приводим угол к диапазону 0-360
+        correction_angle = correction_angle % 360
+
+        print(f"Корректирующий груз (до разворота): {correction_mass:.3f} г @ {(correction_angle - 180) % 360:.1f}°")
+        print(f"Корректирующий груз (ПОСЛЕ РАЗВОРОТА НА 180°): {correction_mass:.3f} г @ {correction_angle:.1f}°")
         print("========================\n")
 
-        # Возвращаем только массу и угол (угол округляем до целого)
+        # Возвращаем массу и угол (угол округляем до целого)
         return jsonify({
             'success': True,
             'result': {
