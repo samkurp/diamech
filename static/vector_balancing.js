@@ -4,8 +4,8 @@ class VectorBalancing {
         this.apiEndpoint = '/api/balancing/vector';
     }
 
-    async calculateFromMeasurements(V0, phi0, Vt, phi_t, P) {
-        console.log('Векторный метод балансировки:', { V0, phi0, Vt, phi_t, P });
+    async calculateFromMeasurements(V0, phi0, Vt, phi_t, P, rotationDirection = 'cw') {
+        console.log('Векторный метод балансировки:', { V0, phi0, Vt, phi_t, P, rotationDirection });
 
         try {
             const response = await fetch(this.apiEndpoint, {
@@ -13,7 +13,14 @@ class VectorBalancing {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ V0, phi0, Vt, phi_t, P })
+                body: JSON.stringify({
+                    V0,
+                    phi0,
+                    Vt,
+                    phi_t,
+                    P,
+                    rotation_direction: rotationDirection
+                })
             });
 
             const data = await response.json();
@@ -41,10 +48,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const VtInput = document.getElementById('Vt');
     const phi_tInput = document.getElementById('phi_t');
     const PInput = document.getElementById('P');
+    const rotationDirectionSelect = document.getElementById('rotationDirection');
     const calculateBtn = document.getElementById('calculateBtn');
     const resetBtn = document.getElementById('resetBtn');
     const resultsSection = document.getElementById('resultsSection');
     const statusMessage = document.getElementById('statusMessage');
+    const angleDirectionEl = document.getElementById('angleDirection');
 
     // Функция округления массы до десятых
     function roundMass(value) {
@@ -101,12 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const Vt = parseFloat(VtInput.value);
         const phi_t = parseFloat(phi_tInput.value);
         const P = parseFloat(PInput.value);
+        const rotationDirection = rotationDirectionSelect.value;
 
         calculateBtn.disabled = true;
         calculateBtn.textContent = '⏳ Расчет...';
 
         try {
-            const result = await balancer.calculateFromMeasurements(V0, phi0, Vt, phi_t, P);
+            const result = await balancer.calculateFromMeasurements(V0, phi0, Vt, phi_t, P, rotationDirection);
 
             // Округляем результаты
             const roundedMass = roundMass(result.correction_mass);
@@ -120,6 +130,13 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('instrMass').textContent = `${roundedMass} г`;
             document.getElementById('instrAngle').textContent = `${roundedAngle}°`;
 
+            // Обновляем текст направления в инструкции
+            if (rotationDirection === 'cw') {
+                angleDirectionEl.textContent = 'в противоположную сторону вращения ротора (по часовой стрелке)';
+            } else {
+                angleDirectionEl.textContent = 'в сторону вращения ротора (против часовой стрелки)';
+            }
+
             // Показываем секцию результатов
             resultsSection.style.display = 'block';
 
@@ -132,7 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
             saveToLocalHistory({
                 timestamp: new Date().toISOString(),
                 method: 'vector',
-                V0, phi0, Vt, phi_t, P,
+                V0, phi0, Vt, phi_t, P, rotationDirection,
                 result: {
                     correction_mass: roundedMass,
                     correction_angle: roundedAngle
@@ -171,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         VtInput.value = '';
         phi_tInput.value = '';
         PInput.value = '';
+        rotationDirectionSelect.value = 'cw';
         resultsSection.style.display = 'none';
 
         showStatus('🔄 Форма очищена', 'info');
@@ -192,6 +210,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     VtInput.value = last.Vt || '';
                     phi_tInput.value = last.phi_t || '';
                     PInput.value = last.P || '';
+
+                    if (last.rotationDirection) {
+                        rotationDirectionSelect.value = last.rotationDirection;
+                    }
 
                     showStatus('📂 Загружен последний расчет', 'info');
                 }

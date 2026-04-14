@@ -17,7 +17,7 @@
                 <p class="subtitle">Векторный метод с фазоизмерительной аппаратурой</p>
             </header>
 
-                        <div class="menu">
+            <div class="menu">
                 <a href="/" class="back-button">🏠 Главная</a>
                 <a href="/add-draft" class="back-button">+ Станок</a>
                 <a href="/static/history.html" class="back-button">📜 История</a>
@@ -29,7 +29,8 @@
                 <a href="/static/three_run_balancing.html" class="back-button">⚖️ Метод трех пусков</a>
                 <a href="/static/vector_balancing.html" class="back-button">➡️ Векторная балансировка</a>
             </div>
-<div class="form-container">
+
+            <div class="form-container">
                 <!-- Входные данные -->
                 <div class="form-section">
                     <h3>📊 Исходные данные</h3>
@@ -62,10 +63,11 @@
                             <input type="number" id="P" step="0.1" placeholder="Например: 1.0">
                         </div>
                         <div class="form-group">
-
-                            <div class="d-flex gap-10">
-
-                            </div>
+                            <label for="rotationDirection" class="required">Направление вращения</label>
+                            <select id="rotationDirection" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color, #ddd); background: white; font-size: 14px;">
+                                <option value="cw" selected>🔄 На себя (по часовой стрелке)</option>
+                                <option value="ccw">🔄 От себя (против часовой стрелки)</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -99,7 +101,7 @@
                         <div id="installationInstructions" style="padding: 15px; background: white; border-radius: 8px;">
                             <p style="margin-bottom: 10px;"><strong>1. Подготовка:</strong> Очистите поверхность ротора в месте установки груза.</p>
                             <p style="margin-bottom: 10px;"><strong>2. Установка:</strong> Закрепите корректирующий груз массой <strong id="instrMass">0 г</strong> на угле <strong id="instrAngle">0°</strong>.</p>
-                            <p style="margin-bottom: 10px;"><strong>3. Направление:</strong> Угол отсчитывается <strong>в противоположную сторону </strong>вращения ротора.</p>
+                            <p style="margin-bottom: 10px;"><strong>3. Направление:</strong> Угол отсчитывается <strong id="angleDirection">в противоположную сторону вращения ротора</strong>.</p>
                             <p><strong>4. Проверка:</strong> После установки выполните контрольный пуск для измерения остаточной вибрации.</p>
                         </div>
                     </div>

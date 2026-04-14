@@ -1227,7 +1227,7 @@ class SupabaseDB:
 def calculate_vector_balancing():
     """
     API для расчета балансировки векторным методом (с фазоизмерительной аппаратурой)
-    Возвращает корректирующий груз и угол установки (развернутый на 180°)
+    Возвращает корректирующий груз и угол установки с учетом направления вращения
     """
     try:
         data = request.get_json()
@@ -1239,11 +1239,12 @@ def calculate_vector_balancing():
             }), 400
 
         # Получаем входные параметры
-        V0 = data.get('V0')  # исходная амплитуда вибрации (мкм)
-        phi0 = data.get('phi0')  # исходная фаза вибрации (градусы)
-        Vt = data.get('Vt')  # амплитуда вибрации с пробным грузом (мкм)
-        phi_t = data.get('phi_t')  # фаза вибрации с пробным грузом (градусы)
-        P = data.get('P')  # масса пробного груза (г)
+        V0 = data.get('V0')
+        phi0 = data.get('phi0')
+        Vt = data.get('Vt')
+        phi_t = data.get('phi_t')
+        P = data.get('P')
+        rotation_direction = data.get('rotation_direction', 'cw')  # 'cw' - на себя, 'ccw' - от себя
 
         # Валидация
         required_fields = ['V0', 'phi0', 'Vt', 'phi_t', 'P']
@@ -1272,8 +1273,6 @@ def calculate_vector_balancing():
                 'error': 'Амплитуды и масса должны быть положительными числами'
             }), 400
 
-        import math
-
         def to_radians(degrees):
             return degrees * math.pi / 180.0
 
@@ -1284,23 +1283,40 @@ def calculate_vector_balancing():
         print(f"V0={V0} мкм, φ0={phi0}°")
         print(f"Vt={Vt} мкм, φt={phi_t}°")
         print(f"P={P} г")
+        print(f"Направление вращения: {'на себя (CW)' if rotation_direction == 'cw' else 'от себя (CCW)'}")
+
+        # КОРРЕКТИРОВКА ФАЗЫ В ЗАВИСИМОСТИ ОТ НАПРАВЛЕНИЯ ВРАЩЕНИЯ
+        original_phi0 = phi0
+        original_phi_t = phi_t
+
+        if rotation_direction == 'ccw':
+            # При вращении "от себя" (CCW) фаза отсчитывается в противоположную сторону
+            phi0 = (-phi0) % 360
+            phi_t = (-phi_t) % 360
+            print(f"Скорректированные фазы для CCW: φ0={phi0}°, φt={phi_t}°")
 
         # Шаг 1: Представляем векторы в комплексной форме
-        # Вектор исходной вибрации
         V0_complex = V0 * (math.cos(to_radians(phi0)) + 1j * math.sin(to_radians(phi0)))
-
-        # Вектор вибрации с пробным грузом
         Vt_complex = Vt * (math.cos(to_radians(phi_t)) + 1j * math.sin(to_radians(phi_t)))
 
+        print(f"V0 комплексный: {V0_complex.real:.3f} + {V0_complex.imag:.3f}i")
+        print(f"Vt комплексный: {Vt_complex.real:.3f} + {Vt_complex.imag:.3f}i")
+
         # Шаг 2: Находим вектор влияния пробного груза W
-        # W = Vt - V0 (векторная разность)
         W_complex = Vt_complex - V0_complex
+        W_magnitude = abs(W_complex)
+        W_angle = to_degrees(math.atan2(W_complex.imag, W_complex.real)) % 360
+
+        print(f"Вектор влияния W: {W_magnitude:.3f} @ {W_angle:.1f}°")
 
         # Шаг 3: Вычисляем удельное влияние пробного груза
-        # K = W / P (вектор удельного влияния)
         K_complex = W_complex / P
+        K_magnitude = abs(K_complex)
+        K_angle = to_degrees(math.atan2(K_complex.imag, K_complex.real)) % 360
 
-        # Шаг 4: Расчет корректирующего груза (уже с противоположным направлением)
+        print(f"Удельное влияние K: {K_magnitude:.3f} @ {K_angle:.1f}°")
+
+        # Шаг 4: Расчет корректирующего груза
         G_comp_complex = -V0_complex / K_complex
         correction_mass = abs(G_comp_complex)
         correction_angle = to_degrees(math.atan2(G_comp_complex.imag, G_comp_complex.real))
@@ -1308,14 +1324,25 @@ def calculate_vector_balancing():
         # Приводим угол к диапазону 0-360
         correction_angle = correction_angle % 360
 
+        # Если вращение "от себя", нужно скорректировать угол обратно
+        if rotation_direction == 'ccw':
+            correction_angle = (-correction_angle) % 360
+            print(f"Скорректированный угол для CCW: {correction_angle}°")
+
         print(f"Корректирующий груз: {correction_mass:.3f} г @ {correction_angle:.1f}°")
 
-        # Возвращаем массу и угол (угол округляем до целого)
         return jsonify({
             'success': True,
             'result': {
                 'correction_mass': round(correction_mass, 3),
-                'correction_angle': round(correction_angle)  # Округляем до целого
+                'correction_angle': round(correction_angle),
+                'rotation_direction': rotation_direction,
+                'debug_info': {
+                    'W_magnitude': round(W_magnitude, 3),
+                    'W_angle': round(W_angle, 1),
+                    'K_magnitude': round(K_magnitude, 3),
+                    'K_angle': round(K_angle, 1)
+                }
             }
         })
 
@@ -1326,7 +1353,6 @@ def calculate_vector_balancing():
             'success': False,
             'error': str(e)
         }), 500
-
 
 @app.route('/api/drafts/<draft_id>/request-text', methods=['GET'])
 def get_request_text(draft_id):
