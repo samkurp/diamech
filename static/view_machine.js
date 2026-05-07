@@ -50,6 +50,7 @@ async function loadMachineData() {
             loadMachineImages();
             await loadCustomerData();
             await loadRequestFileInfo();
+            await loadSchemaFileInfo();
             document.title = machineData.display_name || 'Станок';
 
             // Проверяем статус и показываем/скрываем кнопки
@@ -63,6 +64,55 @@ async function loadMachineData() {
     } finally {
         status.remove();
     }
+}
+
+// Загрузка информации о схеме
+async function loadSchemaFileInfo() {
+    if (!machineData) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/drafts/${machineData.id}/schema-info`);
+        const result = await response.json();
+
+        if (result.success && result.has_schema) {
+            const schemaCard = document.getElementById('schemaFileStatus');
+            if (schemaCard) {
+                schemaCard.innerHTML = `📄 ${result.filename}`;
+                schemaCard.classList.remove('empty');
+                schemaCard.style.color = '#10b981';
+                schemaCard.style.cursor = 'pointer';
+                schemaCard.title = 'Нажмите для открытия схемы';
+
+                const card = document.getElementById('schemaFileCard');
+                if (card) {
+                    card.onclick = () => openSchema();
+                    card.style.cursor = 'pointer';
+                }
+            }
+        } else {
+            const schemaCard = document.getElementById('schemaFileStatus');
+            if (schemaCard) {
+                schemaCard.textContent = 'Не загружена';
+                schemaCard.classList.add('empty');
+                schemaCard.style.color = '#64748b';
+            }
+        }
+    } catch (error) {
+        console.log('Ошибка загрузки информации о схеме:', error);
+        const schemaCard = document.getElementById('schemaFileStatus');
+        if (schemaCard) {
+            schemaCard.textContent = 'Не загружена';
+            schemaCard.classList.add('empty');
+        }
+    }
+}
+
+// Функция открытия PDF схемы
+function openSchema() {
+    if (!machineData) return;
+
+    const url = `${API_BASE}/drafts/${machineData.id}/schema`;
+    window.open(url, '_blank');
 }
 
 // Функция загрузки информации о заявке
@@ -652,7 +702,7 @@ function setupImageModal() {
 // Вспомогательные функции
 function showLoading(message) {
     const status = document.getElementById('statusMessage');
-    status.innerHTML = `<div style="font-size: 0.9rem;">${message}</div>`;
+    status.innerHTML = `<div>${message}</div>`;
     status.className = 'status-message info';
     status.style.display = 'block';
 
@@ -665,7 +715,7 @@ function showLoading(message) {
 
 function showStatus(message, type = 'info') {
     const status = document.getElementById('statusMessage');
-    status.innerHTML = `<span style="font-size: 0.9rem;">${message}</span>`;
+    status.innerHTML = `<span>${message}</span>`;
     status.className = `status-message ${type}`;
     status.style.display = 'block';
 

@@ -36,6 +36,9 @@ class Config:
     # Разрешенные форматы изображений
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
 
+    # Разрешенные форматы для схем
+    ALLOWED_SCHEMA_EXTENSIONS = {'pdf'}
+
     # Максимальный размер файла (16MB)
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
@@ -212,9 +215,16 @@ def extract_text_from_file(file_data, filename):
         return extract_text_from_doc(file_data)
     else:
         return None
+
+
 def allowed_file(filename):
     """Проверка разрешенного формата файла"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in Config.ALLOWED_EXTENSIONS
+
+
+def allowed_schema_file(filename):
+    """Проверка разрешенного формата для схемы"""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in Config.ALLOWED_SCHEMA_EXTENSIONS
 
 
 def generate_folder_name(data):
@@ -378,7 +388,8 @@ class SupabaseDB:
                 'signalProcessorNumber': 'Номер блока',
                 'notes': 'Примечания',
                 'machineStatus': 'Статус станка',
-                'shippingDate': 'Дата отгрузки'
+                'shippingDate': 'Дата отгрузки',
+                'schemaUrl': 'Электрическая схема'
             }
 
             for key, change_info in changed_fields.items():
@@ -690,7 +701,6 @@ class SupabaseDB:
             print(f"❌ Ошибка загрузки черновика {draft_id}: {e}")
             return None
 
-
     @staticmethod
     def save_draft(data, images=None):
         """Сохраняет новый черновик со сжатыми изображениями"""
@@ -800,11 +810,6 @@ class SupabaseDB:
 
                         except Exception as e:
                             print(f"❌ Ошибка при сохранении изображения {filename}: {e}")
-
-            # ВАЖНО: Сохраняем файл заявки, если он передан в images (так как request.files)
-            # Обратите внимание: request_file может быть в images или отдельно
-            # Нужно передавать request_file отдельным параметром
-            # Пока оставим так, но нужно будет изменить вызов
 
             return True, {
                 'id': draft_id,
@@ -1062,7 +1067,17 @@ class SupabaseDB:
             except Exception as e:
                 print(f"⚠️ Ошибка при удалении файла заявки: {e}")
 
-            # 3. Удаляем историю изменений черновика
+            # 3. Удаляем файл схемы
+            try:
+                schema_result = supabase.table('schema_files') \
+                    .delete() \
+                    .eq('draft_id', draft_id) \
+                    .execute()
+                print(f"✅ Удален файл схемы: {len(schema_result.data) if schema_result.data else 0}")
+            except Exception as e:
+                print(f"⚠️ Ошибка при удалении файла схемы: {e}")
+
+            # 4. Удаляем историю изменений черновика
             try:
                 history_result = supabase.table('draft_history') \
                     .delete() \
@@ -1072,7 +1087,7 @@ class SupabaseDB:
             except Exception as e:
                 print(f"⚠️ Ошибка при удалении истории: {e}")
 
-            # 4. Удаляем сам черновик
+            # 5. Удаляем сам черновик
             try:
                 draft_result = supabase.table('drafts') \
                     .delete() \
@@ -1219,6 +1234,127 @@ class SupabaseDB:
             print(f"❌ Ошибка удаления файла заявки: {e}")
             return False
 
+    # ========== НОВЫЕ МЕТОДЫ ДЛЯ РАБОТЫ СО СХЕМОЙ ==========
+
+    @staticmethod
+    def save_schema_file(draft_id, file):
+        """Сохраняет файл электрической схемы (PDF)"""
+        try:
+            if supabase is None:
+                return False, "Supabase не инициализирован"
+
+            if not file or not file.filename:
+                return False, "Файл не выбран"
+
+            filename = secure_filename(file.filename)
+            ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+
+            if ext != 'pdf':
+                return False, "Неподдерживаемый формат файла. Используйте PDF"
+
+            file.seek(0)
+            file_data = file.read()
+
+            # Конвертируем файл в base64
+            file_base64 = base64.b64encode(file_data).decode('utf-8')
+
+            # Сохраняем в таблицу schema_files
+            schema_data = {
+                'draft_id': draft_id,
+                'filename': filename,
+                'file_data': file_base64,
+                'content_type': 'application/pdf',
+                'uploaded_at': datetime.now().isoformat()
+            }
+
+            # Проверяем, существует ли уже файл
+            existing = supabase.table('schema_files') \
+                .select('*') \
+                .eq('draft_id', draft_id) \
+                .execute()
+
+            if existing.data:
+                # Обновляем существующий
+                supabase.table('schema_files') \
+                    .update(schema_data) \
+                    .eq('draft_id', draft_id) \
+                    .execute()
+                print(f"📐 Обновлен файл схемы: {filename}")
+            else:
+                # Вставляем новый
+                supabase.table('schema_files').insert(schema_data).execute()
+                print(f"📐 Сохранен файл схемы: {filename}")
+
+            # Сохраняем URL в data черновика для совместимости
+            draft = SupabaseDB.get_draft(draft_id)
+            if draft:
+                current_data = draft.get('data', {})
+                current_data['schemaUrl'] = filename
+                supabase.table('drafts') \
+                    .update({'data': current_data}) \
+                    .eq('id', draft_id) \
+                    .execute()
+
+            return True, filename
+
+        except Exception as e:
+            print(f"❌ Ошибка сохранения файла схемы: {e}")
+            traceback.print_exc()
+            return False, str(e)
+
+    @staticmethod
+    def get_schema_file(draft_id):
+        """Получает файл электрической схемы"""
+        try:
+            if supabase is None:
+                return None
+
+            response = supabase.table('schema_files') \
+                .select('*') \
+                .eq('draft_id', draft_id) \
+                .execute()
+
+            if not response.data:
+                return None
+
+            file_data = response.data[0]
+            file_bytes = base64.b64decode(file_data['file_data'])
+            return file_bytes, file_data['filename'], file_data['content_type']
+
+        except Exception as e:
+            print(f"❌ Ошибка получения файла схемы: {e}")
+            return None
+
+    @staticmethod
+    def delete_schema_file(draft_id):
+        """Удаляет файл электрической схемы"""
+        try:
+            if supabase is None:
+                return False
+
+            supabase.table('schema_files') \
+                .delete() \
+                .eq('draft_id', draft_id) \
+                .execute()
+
+            # Удаляем URL из data черновика
+            draft = SupabaseDB.get_draft(draft_id)
+            if draft:
+                current_data = draft.get('data', {})
+                if 'schemaUrl' in current_data:
+                    del current_data['schemaUrl']
+                    supabase.table('drafts') \
+                        .update({'data': current_data}) \
+                        .eq('id', draft_id) \
+                        .execute()
+
+            print(f"📐 Удален файл схемы для {draft_id}")
+            return True
+
+        except Exception as e:
+            print(f"❌ Ошибка удаления файла схемы: {e}")
+            return False
+
 
 # ========== API ЭНДПОИНТЫ ==========
 
@@ -1230,6 +1366,8 @@ def calculate_vector_balancing():
     Возвращает корректирующий груз и угол установки с учетом направления вращения
     """
     try:
+        import math
+
         data = request.get_json()
 
         if not data:
@@ -1354,6 +1492,120 @@ def calculate_vector_balancing():
             'error': str(e)
         }), 500
 
+
+# ========== НОВЫЕ ЭНДПОИНТЫ ДЛЯ РАБОТЫ СО СХЕМОЙ ==========
+
+@app.route('/api/drafts/<draft_id>/schema', methods=['GET', 'POST', 'DELETE'])
+def manage_schema_file(draft_id):
+    """Управление файлом электрической схемы"""
+    try:
+        if request.method == 'GET':
+            # Проверяем наличие файла
+            file_data = SupabaseDB.get_schema_file(draft_id)
+
+            if file_data:
+                file_bytes, filename, content_type = file_data
+                return send_file(
+                    io.BytesIO(file_bytes),
+                    mimetype=content_type,
+                    as_attachment=False,
+                    download_name=filename
+                )
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Файл схемы не найден'
+                }), 404
+
+        elif request.method == 'POST':
+            # Сохраняем файл схемы
+            if 'schemaFile' not in request.files:
+                return jsonify({
+                    'success': False,
+                    'error': 'Файл не передан'
+                }), 400
+
+            file = request.files['schemaFile']
+            if file.filename == '':
+                return jsonify({
+                    'success': False,
+                    'error': 'Файл не выбран'
+                }), 400
+
+            success, result = SupabaseDB.save_schema_file(draft_id, file)
+
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': 'Файл схемы сохранен',
+                    'filename': result
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': result
+                }), 400
+
+        elif request.method == 'DELETE':
+            # Удаляем файл схемы
+            success = SupabaseDB.delete_schema_file(draft_id)
+
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': 'Файл схемы удален'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Ошибка удаления файла'
+                }), 500
+
+    except Exception as e:
+        print(f"❌ Ошибка управления файлом схемы: {e}")
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/drafts/<draft_id>/schema-info', methods=['GET'])
+def get_schema_info(draft_id):
+    """Получает информацию о файле схемы (существует ли)"""
+    try:
+        if supabase is None:
+            return jsonify({
+                'success': False,
+                'error': 'Supabase не инициализирован'
+            }), 500
+
+        response = supabase.table('schema_files') \
+            .select('filename, uploaded_at') \
+            .eq('draft_id', draft_id) \
+            .execute()
+
+        if response.data:
+            return jsonify({
+                'success': True,
+                'has_schema': True,
+                'filename': response.data[0]['filename'],
+                'uploaded_at': response.data[0]['uploaded_at']
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'has_schema': False
+            })
+
+    except Exception as e:
+        print(f"❌ Ошибка получения информации о схеме: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/api/drafts/<draft_id>/request-text', methods=['GET'])
 def get_request_text(draft_id):
     """Получает извлеченный текст заявки"""
@@ -1388,6 +1640,7 @@ def get_request_text(draft_id):
             'success': False,
             'error': str(e)
         }), 500
+
 
 @app.route('/api/drafts/<draft_id>/upload-request', methods=['POST'])
 def upload_request_file(draft_id):
@@ -1427,6 +1680,8 @@ def upload_request_file(draft_id):
             'success': False,
             'error': str(e)
         }), 500
+
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Проверка состояния сервера"""
@@ -1500,6 +1755,12 @@ def save_draft():
         success, result, error = SupabaseDB.save_draft(data, images)
 
         if success:
+            # Сохраняем файл схемы, если есть
+            if 'schemaFile' in request.files:
+                schema_file = request.files['schemaFile']
+                if schema_file and schema_file.filename:
+                    SupabaseDB.save_schema_file(result['id'], schema_file)
+
             return jsonify({
                 'success': True,
                 'message': 'Черновик успешно сохранен',
@@ -1531,6 +1792,12 @@ def update_draft(draft_id):
         success, result = SupabaseDB.update_draft(draft_id, data, images)
 
         if success:
+            # Сохраняем файл схемы, если есть
+            if 'schemaFile' in request.files:
+                schema_file = request.files['schemaFile']
+                if schema_file and schema_file.filename:
+                    SupabaseDB.save_schema_file(draft_id, schema_file)
+
             return jsonify({
                 'success': True,
                 'message': 'Черновик обновлен',

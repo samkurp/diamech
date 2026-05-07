@@ -76,11 +76,10 @@
         <div class="machine-header-minimal">
             <div id="machineTitle" class="machine-title-minimal">Загрузка...</div>
             <div id="machineSubtitle" class="machine-subtitle-minimal">Детальная информация</div>
-            <!-- В строке со статусом, примерно строка 21-23 -->
             <div id="machineStatus" class="machine-status-minimal clickable-status">Загрузка...</div>
         </div>
 
-                <div class="menu py-15">
+        <div class="menu py-15">
             <a href="/" class="back-button">🏠 Главная</a>
             <a href="/add-draft" class="back-button">+ Станок</a>
             <a href="/static/history.html" class="back-button">📜 История</a>
@@ -92,7 +91,8 @@
             <a href="/static/three_run_balancing.html" class="back-button">⚖️ Метод трех пусков</a>
             <a href="/static/vector_balancing.html" class="back-button">➡️ Векторная балансировка</a>
         </div>
-<div class="machine-view-minimal">
+
+        <div class="machine-view-minimal">
             <!-- Базовая информация -->
             <div class="section-minimal">
                 <div class="section-title-minimal">📋 Базовая информация</div>
@@ -112,6 +112,10 @@
                     <div class="info-card-minimal" id="requestFileCard">
                         <div class="info-card-title-minimal">📄 Заявка</div>
                         <div id="requestFileStatus" class="info-value-minimal empty">Не загружена</div>
+                    </div>
+                    <div class="info-card-minimal" id="schemaFileCard">
+                        <div class="info-card-title-minimal">📐 Схема</div>
+                        <div id="schemaFileStatus" class="info-value-minimal empty">Не загружена</div>
                     </div>
                 </div>
             </div>
@@ -214,7 +218,6 @@
             </div>
 
             <!-- Дополнительная информация -->
-            <!-- Дополнительная информация -->
             <div class="section-minimal">
                 <div class="section-title-minimal">
                     📝 Примечания
@@ -279,6 +282,8 @@
         </div>
     </div>
 
+    <!-- Модальное окно для просмотра PDF схемы (в новой вкладке) -->
+
     <!-- Модальное окно для редактирования заказчика -->
     <div id="customerModal" class="customer-modal">
         <div class="customer-modal-content">
@@ -333,6 +338,7 @@
             </div>
         </div>
     </div>
+
     <!-- Модальное окно для редактирования примечаний -->
     <div id="notesModal" class="customer-modal">
         <div class="customer-modal-content" style="max-width: 700px;">
@@ -358,6 +364,7 @@
             </div>
         </div>
     </div>
+
     <script src="/static/view_machine.js"></script>
 </body>
 </html>

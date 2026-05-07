@@ -16,7 +16,9 @@ const appState = {
     isViewMode: false,
     currentImages: [],
     hasRequestFile: false,
-    currentRequestFileName: null
+    currentRequestFileName: null,
+    hasSchemaFile: false,
+    currentSchemaFileName: null
 };
 
 // Инициализация при загрузке
@@ -52,9 +54,81 @@ function initForm() {
     // Настройка файла заявки
     setupRequestFileHandlers();
 
+    // Настройка файла схемы
+    setupSchemaFileHandlers();
+
     // Инициализация стилей
     initializeFieldStyles();
     updateSubmitButton();
+}
+
+// Настройка обработчиков файла схемы
+function setupSchemaFileHandlers() {
+    const schemaFileInput = document.getElementById('schemaFile');
+    const removeSchemaBtn = document.getElementById('removeSchemaFile');
+
+    if (schemaFileInput) {
+        schemaFileInput.addEventListener('change', function(e) {
+            const fileInfo = document.getElementById('schemaFileInfo');
+            const fileNameSpan = document.getElementById('currentSchemaFileName');
+
+            if (this.files && this.files.length > 0) {
+                const file = this.files[0];
+                if (file.type === 'application/pdf') {
+                    if (fileInfo && fileNameSpan) {
+                        fileNameSpan.textContent = file.name;
+                        fileInfo.style.display = 'block';
+                        appState.hasSchemaFile = true;
+                        appState.currentSchemaFileName = file.name;
+                    }
+                } else {
+                    showStatus('❌ Пожалуйста, выберите файл в формате PDF', 'error');
+                    this.value = '';
+                }
+            } else {
+                if (fileInfo) fileInfo.style.display = 'none';
+                appState.hasSchemaFile = false;
+                appState.currentSchemaFileName = null;
+            }
+        });
+    }
+
+    if (removeSchemaBtn) {
+        removeSchemaBtn.onclick = async () => {
+            if (confirm('Удалить файл электрической схемы?')) {
+                if (appState.currentDraft) {
+                    try {
+                        const response = await fetch(`${API_BASE}/drafts/${appState.currentDraft}/schema`, {
+                            method: 'DELETE'
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showStatus('✅ Файл схемы удален', 'success');
+                            const fileInfo = document.getElementById('schemaFileInfo');
+                            const schemaFileInput = document.getElementById('schemaFile');
+                            if (fileInfo) fileInfo.style.display = 'none';
+                            if (schemaFileInput) schemaFileInput.value = '';
+                            appState.hasSchemaFile = false;
+                            appState.currentSchemaFileName = null;
+                        } else {
+                            throw new Error(result.error);
+                        }
+                    } catch (error) {
+                        showStatus(`❌ Ошибка удаления: ${error.message}`, 'error');
+                    }
+                } else {
+                    const fileInfo = document.getElementById('schemaFileInfo');
+                    const schemaFileInput = document.getElementById('schemaFile');
+                    if (fileInfo) fileInfo.style.display = 'none';
+                    if (schemaFileInput) schemaFileInput.value = '';
+                    appState.hasSchemaFile = false;
+                    appState.currentSchemaFileName = null;
+                }
+            }
+        };
+    }
 }
 
 // Настройка обработчиков файла заявки
@@ -289,6 +363,25 @@ async function saveDraft() {
                 }
             }
 
+            // Если есть файл схемы, загружаем его отдельно
+            const schemaFile = document.getElementById('schemaFile');
+            if (schemaFile && schemaFile.files.length > 0) {
+                const schemaFormData = new FormData();
+                schemaFormData.append('schemaFile', schemaFile.files[0]);
+
+                const schemaResponse = await fetch(`${API_BASE}/drafts/${draftId}/schema`, {
+                    method: 'POST',
+                    body: schemaFormData
+                });
+
+                const schemaResult = await schemaResponse.json();
+                if (!schemaResult.success) {
+                    console.warn('Файл схемы не загружен:', schemaResult.error);
+                } else {
+                    console.log('Файл схемы загружен:', schemaResult.filename);
+                }
+            }
+
             showNotification('✅ Черновик успешно сохранен!');
             appState.currentDraft = draftId;
 
@@ -409,6 +502,9 @@ async function populateForm(draft) {
     // Загружаем информацию о файле заявки
     await loadRequestFileInfoForEdit(draft.id);
 
+    // Загружаем информацию о файле схемы
+    await loadSchemaFileInfoForEdit(draft.id);
+
     initializeFieldStyles();
     updateSubmitButton();
 }
@@ -459,23 +555,56 @@ async function loadRequestFileInfoForEdit(draftId) {
         if (response.ok) {
             const fileInfo = document.getElementById('requestFileInfo');
             const fileNameSpan = document.getElementById('currentRequestFileName');
-            const removeBtn = document.getElementById('removeRequestFile');
 
-            // Показываем информацию о файле
             if (fileInfo) {
                 fileInfo.style.display = 'block';
-                const filename = response.headers.get('Content-Disposition');
                 if (fileNameSpan) {
-                    fileNameSpan.textContent = 'Файл заявки загружен';
+                    const contentDisposition = response.headers.get('Content-Disposition');
+                    if (contentDisposition) {
+                        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                        if (match && match[1]) {
+                            fileNameSpan.textContent = match[1].replace(/['"]/g, '');
+                        } else {
+                            fileNameSpan.textContent = 'Файл заявки загружен';
+                        }
+                    } else {
+                        fileNameSpan.textContent = 'Файл заявки загружен';
+                    }
                 }
                 appState.hasRequestFile = true;
             }
-
-            // Обработчик удаления уже настроен в setupRequestFileHandlers
         }
     } catch (error) {
         console.log('Нет файла заявки:', error);
         appState.hasRequestFile = false;
+    }
+}
+
+// Функция загрузки информации о схеме для редактирования
+async function loadSchemaFileInfoForEdit(draftId) {
+    try {
+        const response = await fetch(`${API_BASE}/drafts/${draftId}/schema-info`);
+
+        if (response.ok) {
+            const result = await response.json();
+
+            if (result.success && result.has_schema) {
+                const fileInfo = document.getElementById('schemaFileInfo');
+                const fileNameSpan = document.getElementById('currentSchemaFileName');
+
+                if (fileInfo) {
+                    fileInfo.style.display = 'block';
+                    if (fileNameSpan) {
+                        fileNameSpan.textContent = result.filename;
+                    }
+                    appState.hasSchemaFile = true;
+                    appState.currentSchemaFileName = result.filename;
+                }
+            }
+        }
+    } catch (error) {
+        console.log('Нет файла схемы:', error);
+        appState.hasSchemaFile = false;
     }
 }
 

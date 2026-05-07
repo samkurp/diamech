@@ -19,7 +19,7 @@
                 <p class="subtitle">Заполните форму для создания маршрутного листа оборудования</p>
             </header>
 
-                        <div class="menu">
+            <div class="menu">
                 <a href="/" class="back-button">🏠 Главная</a>
                 <a href="/add-draft" class="back-button">+ Станок</a>
                 <a href="/static/history.html" class="back-button">📜 История</a>
@@ -31,7 +31,8 @@
                 <a href="/static/three_run_balancing.html" class="back-button">⚖️ Метод трех пусков</a>
                 <a href="/static/vector_balancing.html" class="back-button">➡️ Векторная балансировка</a>
             </div>
-<div class="form-container">
+
+            <div class="form-container">
                 <form id="machineForm" enctype="multipart/form-data">
                     <!-- Тип работы -->
                     <div class="form-section">
@@ -61,10 +62,25 @@
                             <input type="file" id="requestFile" name="requestFile" accept=".doc,.docx" class="file-input">
                             <small>Поддерживаемые форматы: DOC, DOCX</small>
                         </div>
-                        <div id="requestFileInfo" class="file-info-box">
+                        <div id="requestFileInfo" class="file-info-box" style="display: none;">
                             <span class="text-success">📄 </span>
                             <span id="currentRequestFileName" class="text-primary"></span>
                             <button type="button" id="removeRequestFile" class="remove-file-btn">✕</button>
+                        </div>
+                    </div>
+
+                    <!-- Электрическая схема -->
+                    <div class="form-section">
+                        <h3>📐 Электрическая схема</h3>
+                        <div class="form-group">
+                            <label for="schemaFile">Файл схемы (PDF):</label>
+                            <input type="file" id="schemaFile" name="schemaFile" accept=".pdf" class="file-input">
+                            <small>Поддерживаемые форматы: PDF</small>
+                        </div>
+                        <div id="schemaFileInfo" class="file-info-box" style="display: none;">
+                            <span class="text-success">📐 </span>
+                            <span id="currentSchemaFileName" class="text-primary"></span>
+                            <button type="button" id="removeSchemaFile" class="remove-file-btn">✕</button>
                         </div>
                     </div>
 
@@ -256,6 +272,7 @@
                                         <option value="607А-11">607А-11</option>
                                         <option value="608А-11">608А-11</option>
                                         <option value="ДВС-1">ДВС-1</option>
+                                        <option value="Китайские пьезоакселерометры">Китайские пьезоакселерометры</option>
                                     </select>
                                 </div>
                             </div>
@@ -282,6 +299,7 @@
                                         <option value="Нет">Нет</option>
                                         <option value="ДВС-1">ДВС-1</option>
                                         <option value="ICP">ICP</option>
+                                        <option value="Китайские пьезоакселерометры">Китайские пьезоакселерометры</option>
                                     </select>
                                 </div>
                             </div>
