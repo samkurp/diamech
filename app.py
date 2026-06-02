@@ -1994,9 +1994,11 @@ def generate_protocol():
 
             # 1. Генерируем протокол Excel из шаблона
             wb = load_workbook(Config.TEMPLATE_PATH)
-            ws = wb.active
 
-            # Маппинг полей на ячейки Excel
+            # ЯВНО указываем первый лист (по индексу 0)
+            first_sheet = wb.worksheets[0]  # Первый лист
+
+            # Маппинг полей на ячейки Excel (ТОЛЬКО НА ПЕРВЫЙ ЛИСТ)
             mapping = {
                 'workType': 'I1',
                 'machineType': 'C3',
@@ -2024,12 +2026,13 @@ def generate_protocol():
                 'signalProcessorNumber': 'G20'
             }
 
+            # Записываем ВСЕ данные на ПЕРВЫЙ лист
             for field, cell in mapping.items():
                 if field in data and data[field]:
-                    ws[cell] = data[field]
+                    first_sheet[cell] = data[field]
 
-            # Записываем примечания на второй лист в ячейку B3, затем объединяем B3:G52
-            notes_sheet = wb.worksheets[1]  # Второй лист (индекс 1)
+            # Записываем примечания на ВТОРОЙ лист (индекс 1)
+            notes_sheet = wb.worksheets[1]  # Второй лист
             notes_text = data.get('notes', '')
 
             if notes_text:
