@@ -2020,13 +2020,18 @@ def generate_protocol():
                 'measuringDevice': 'E18',
                 'measuringDeviceNumber': 'G18',
                 'signalProcessor': 'E20',
-                'signalProcessorNumber': 'G20',
-                'notes': 'A37'
+                'signalProcessorNumber': 'G20'
             }
 
             for field, cell in mapping.items():
                 if field in data and data[field]:
                     ws[cell] = data[field]
+
+            # Записываем примечания на второй лист в объединенные ячейки B3:G52
+            notes_sheet = wb.worksheets[1]  # Второй лист (индекс 1)
+            notes_text = data.get('notes', '')
+            if notes_text:
+                notes_sheet['B3'] = notes_text
 
             # Сохраняем протокол
             protocol_path = os.path.join(temp_dir, protocol_filename)
