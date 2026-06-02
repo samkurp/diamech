@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 from openpyxl import load_workbook
+from openpyxl.styles import Alignment
 from datetime import datetime
 import uuid
 import traceback
@@ -2027,11 +2028,20 @@ def generate_protocol():
                 if field in data and data[field]:
                     ws[cell] = data[field]
 
-            # Записываем примечания на второй лист в объединенные ячейки B3:G52
+            # Записываем примечания на второй лист в ячейку B3, затем объединяем B3:G52
             notes_sheet = wb.worksheets[1]  # Второй лист (индекс 1)
             notes_text = data.get('notes', '')
+
             if notes_text:
+                # Записываем текст в ячейку B3
                 notes_sheet['B3'] = notes_text
+
+                # Объединяем ячейки B3:G52
+                notes_sheet.merge_cells('B3:G52')
+
+                # Настраиваем перенос текста для многострочных примечаний
+                from openpyxl.styles import Alignment
+                notes_sheet['B3'].alignment = Alignment(wrap_text=True, vertical='top', horizontal='left')
 
             # Сохраняем протокол
             protocol_path = os.path.join(temp_dir, protocol_filename)
