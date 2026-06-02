@@ -1995,7 +1995,7 @@ def generate_protocol():
             wb = load_workbook(Config.TEMPLATE_PATH)
             ws = wb.active
 
-            # Маппинг полей на ячейки Excel (для первого листа)
+            # Маппинг полей на ячейки Excel
             mapping = {
                 'workType': 'I1',
                 'machineType': 'C3',
@@ -2020,27 +2020,13 @@ def generate_protocol():
                 'measuringDevice': 'E18',
                 'measuringDeviceNumber': 'G18',
                 'signalProcessor': 'E20',
-                'signalProcessorNumber': 'G20'
+                'signalProcessorNumber': 'G20',
+                'notes': 'A37'
             }
 
             for field, cell in mapping.items():
                 if field in data and data[field]:
                     ws[cell] = data[field]
-
-            # Записываем примечания на второй лист в объединенную ячейку B2:G52
-            if 'notes' in data and data['notes']:
-                ws2 = wb.worksheets[1]  # Второй лист (индекс 1)
-                # Получаем мастер-ячейку объединенного диапазона
-                merged_range = 'B2:G52'
-                if merged_range in ws2.merged_cells:
-                    # Находим мастер-ячейку (первую в объединенном диапазоне)
-                    for merged_cell in ws2.merged_cells:
-                        if merged_cell.coord == merged_range:
-                            ws2.cell(row=merged_cell.min_row, column=merged_cell.min_col).value = data['notes']
-                            break
-                else:
-                    # Если диапазон не объединен, записываем в B2
-                    ws2['B2'] = data['notes']
 
             # Сохраняем протокол
             protocol_path = os.path.join(temp_dir, protocol_filename)
