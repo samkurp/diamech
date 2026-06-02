@@ -1995,7 +1995,7 @@ def generate_protocol():
             wb = load_workbook(Config.TEMPLATE_PATH)
             ws = wb.active
 
-            # Маппинг полей на ячейки Excel
+            # Маппинг полей на ячейки Excel (для первого листа)
             mapping = {
                 'workType': 'I1',
                 'machineType': 'C3',
@@ -2020,33 +2020,17 @@ def generate_protocol():
                 'measuringDevice': 'E18',
                 'measuringDeviceNumber': 'G18',
                 'signalProcessor': 'E20',
-                'signalProcessorNumber': 'G20',
-                'notes': 'A37'
+                'signalProcessorNumber': 'G20'
             }
 
             for field, cell in mapping.items():
                 if field in data and data[field]:
                     ws[cell] = data[field]
 
-            # ========== НОВЫЙ КОД: ЗАПИСЬ ПРИМЕЧАНИЙ ВО ВТОРОЙ ЛИСТ ==========
-            # Проверяем, существует ли второй лист, если нет - создаем
-            if len(wb.worksheets) < 2:
-                second_sheet = wb.create_sheet("Примечания")
-            else:
-                second_sheet = wb.worksheets[1]
-
-            # Записываем примечания в ячейку B2 второго листа
-            notes_text = data.get('notes', '')
-            if notes_text:
-                second_sheet['B2'] = notes_text
-                print(f"📝 Примечания записаны во второй лист, ячейка B2: {notes_text[:100]}...")
-            else:
-                second_sheet['B2'] = ''
-                print("📝 Примечания отсутствуют, ячейка B2 оставлена пустой")
-
-            # Дополнительно: можно добавить заголовок в A2
-            second_sheet['A2'] = "Примечания:"
-            # ========== КОНЕЦ НОВОГО КОДА ==========
+            # Записываем примечания на второй лист в объединенную ячейку B2:G52
+            if 'notes' in data and data['notes']:
+                ws2 = wb.worksheets[1]  # Второй лист (индекс 1)
+                ws2['B2'] = data['notes']
 
             # Сохраняем протокол
             protocol_path = os.path.join(temp_dir, protocol_filename)
