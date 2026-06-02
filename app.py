@@ -2028,6 +2028,26 @@ def generate_protocol():
                 if field in data and data[field]:
                     ws[cell] = data[field]
 
+            # ========== НОВЫЙ КОД: ЗАПИСЬ ПРИМЕЧАНИЙ ВО ВТОРОЙ ЛИСТ ==========
+            # Проверяем, существует ли второй лист, если нет - создаем
+            if len(wb.worksheets) < 2:
+                second_sheet = wb.create_sheet("Примечания")
+            else:
+                second_sheet = wb.worksheets[1]
+
+            # Записываем примечания в ячейку B2 второго листа
+            notes_text = data.get('notes', '')
+            if notes_text:
+                second_sheet['B2'] = notes_text
+                print(f"📝 Примечания записаны во второй лист, ячейка B2: {notes_text[:100]}...")
+            else:
+                second_sheet['B2'] = ''
+                print("📝 Примечания отсутствуют, ячейка B2 оставлена пустой")
+
+            # Дополнительно: можно добавить заголовок в A2
+            second_sheet['A2'] = "Примечания:"
+            # ========== КОНЕЦ НОВОГО КОДА ==========
+
             # Сохраняем протокол
             protocol_path = os.path.join(temp_dir, protocol_filename)
             wb.save(protocol_path)
